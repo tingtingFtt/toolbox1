@@ -29,6 +29,7 @@ export interface BaiduConfig {
   refreshToken?: string;
   appKey?: string; // Optional custom App Key / Client ID
   appSecret?: string; // Optional custom App Secret / Secret Key
+  apiBaseUrl?: string; // Backend service origin/base path; required for static deployments
   redirectUri?: string;
   rootPath: string; // e.g. /apps/TavernVault/
   userInfo?: BaiduUserInfo;
@@ -161,3 +162,4 @@ export interface SyncProgressUpdate {
   uploadedFiles?: number;
   skippedFiles?: number;
 }
+

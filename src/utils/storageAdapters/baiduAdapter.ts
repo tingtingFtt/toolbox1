@@ -1,6 +1,7 @@
 import { IStorageAdapter, RemoteFileInfo } from './baseAdapter';
 import { BaiduConfig, BaiduUserInfo } from '../../types/cloudSync';
 import { syncLogger } from '../cloudSyncLogger';
+import { fetchBaiduBackend, isHtmlResponse, BaiduConnectionError, BAIDU_BACKEND_MESSAGE, baiduErrorDiagnosis } from '../baiduApi';
 
 export const DEFAULT_BAIDU_APP_KEY = '';
 
@@ -31,50 +32,30 @@ export function buildBaiduOAuthUrl(customAppKey?: string, customRedirectUri?: st
 }
 
 /**
- * Helper to execute Baidu NetDisk requests via internal proxy (with direct fallback) to prevent browser CORS failure
+ * Helper to execute Baidu NetDisk requests via the configured backend proxy to prevent browser CORS failure
  */
 export async function executeBaiduApiFetch(
   targetUrl: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
+  apiBaseUrl = ''
 ): Promise<{ ok: boolean; status: number; data: any; rawBuffer?: ArrayBuffer; latencyMs: number }> {
   const startTime = performance.now();
   const method = options.method || 'GET';
   
-  // Build proxy URL (or direct fallback if proxy fails)
-  const proxyUrl = `/api/baidu-proxy?url=${encodeURIComponent(targetUrl)}`;
-
-  let res: Response;
   try {
-    res = await fetch(proxyUrl, options);
-  } catch (proxyErr: any) {
-    // If local proxy threw a network error, attempt direct fetch as fallback (e.g. GET requests with CORS support)
-    try {
-      res = await fetch(targetUrl, options);
-    } catch {
-      const latencyMs = Math.round(performance.now() - startTime);
-      syncLogger.addLog({
-        category: 'baidu',
-        level: 'error',
-        title: `百度网盘 API 请求网络异常 [${method}]`,
-        url: targetUrl,
-        method,
-        latencyMs,
-        error: proxyErr.message || '网络连接被中断或代理服务无响应',
-        diagnosis: '请求未收到服务器响应，请检查服务端代理服务是否正常运行或检查当前网络环境。',
-      });
-      throw proxyErr;
-    }
-  }
-
-  try {
+    const res = await fetchBaiduBackend(`/api/baidu-proxy?url=${encodeURIComponent(targetUrl)}`, options, apiBaseUrl);
     const latencyMs = Math.round(performance.now() - startTime);
     const contentType = res.headers.get('content-type') || '';
+    if (contentType.toLowerCase().includes('text/html')) {
+      throw new BaiduConnectionError(BAIDU_BACKEND_MESSAGE, 'backend');
+    }
 
     let data: any = null;
     let rawBuffer: ArrayBuffer | undefined = undefined;
 
     if (contentType.includes('application/json') || contentType.includes('text/plain')) {
       const text = await res.text();
+      if (isHtmlResponse(text)) throw new BaiduConnectionError(BAIDU_BACKEND_MESSAGE, 'backend');
       rawBuffer = new TextEncoder().encode(text).buffer as ArrayBuffer;
       try {
         data = JSON.parse(text);
@@ -84,13 +65,12 @@ export async function executeBaiduApiFetch(
     } else {
       rawBuffer = await res.arrayBuffer();
       // Try to parse buffer as json in case error response has octet-stream header
-      try {
-        const text = new TextDecoder().decode(rawBuffer);
-        data = JSON.parse(text);
-      } catch {}
+      const text = new TextDecoder().decode(rawBuffer);
+      if (isHtmlResponse(text)) throw new BaiduConnectionError(BAIDU_BACKEND_MESSAGE, 'backend');
+      try { data = JSON.parse(text); } catch {}
     }
 
-    const isSuccess = res.ok && (!data || (data.errno === undefined && data.error_code === undefined) || data.errno === 0 || data.error_code === 0);
+    const isSuccess = res.ok && !data?.error && (data?.errno === undefined || data.errno === 0) && (data?.error_code === undefined || data.error_code === 0);
 
     syncLogger.addLog({
       category: 'baidu',
@@ -110,7 +90,7 @@ export async function executeBaiduApiFetch(
     });
 
     return {
-      ok: res.ok,
+      ok: isSuccess,
       status: res.status,
       data,
       rawBuffer,
@@ -126,7 +106,7 @@ export async function executeBaiduApiFetch(
       method,
       latencyMs,
       error: err.message || '网络连接被中断或拒绝',
-      diagnosis: '请求未收到服务器响应，请检查服务端代理服务是否正常运行或检查当前网络环境。',
+      diagnosis: baiduErrorDiagnosis(err),
     });
     throw err;
   }
@@ -173,24 +153,13 @@ export function parseBaiduTokenFromUrl(): { accessToken: string; expiresIn?: num
 /**
  * Fetch detailed user profile information using Baidu NetDisk Open API
  */
-export async function fetchBaiduUserInfo(accessToken: string): Promise<BaiduUserInfo | null> {
-  try {
-    const url = `https://pan.baidu.com/rest/2.0/xpan/nas?method=uinfo&access_token=${encodeURIComponent(accessToken)}`;
-    const { data } = await executeBaiduApiFetch(url);
-
-    if (data && data.errno === 0) {
-      return {
-        baidu_name: data.baidu_name,
-        netdisk_name: data.netdisk_name,
-        avatar_url: data.avatar_url,
-        uk: data.uk,
-        vip_type: data.vip_type,
-      };
-    }
-    return null;
-  } catch {
-    return null;
+export async function fetchBaiduUserInfo(accessToken: string, apiBaseUrl = ''): Promise<BaiduUserInfo> {
+  const url = `https://pan.baidu.com/rest/2.0/xpan/nas?method=uinfo&access_token=${encodeURIComponent(accessToken)}`;
+  const { data, ok } = await executeBaiduApiFetch(url, {}, apiBaseUrl);
+  if (!ok || !data || data.errno !== 0) {
+    throw new Error(data?.errno !== undefined ? syncLogger.interpretBaiduErrno(data.errno) : '无法验证百度网盘账号，请检查连接服务与授权凭证。');
   }
+  return { baidu_name: data.baidu_name, netdisk_name: data.netdisk_name, avatar_url: data.avatar_url, uk: data.uk, vip_type: data.vip_type };
 }
 
 export class BaiduAdapter implements IStorageAdapter {
@@ -198,6 +167,10 @@ export class BaiduAdapter implements IStorageAdapter {
 
   constructor(config: BaiduConfig) {
     this.config = config;
+  }
+
+  private fetchApi(targetUrl: string, options: RequestInit = {}) {
+    return executeBaiduApiFetch(targetUrl, options, this.config.apiBaseUrl);
   }
 
   private normalizePath(path: string): string {
@@ -235,7 +208,7 @@ export class BaiduAdapter implements IStorageAdapter {
 
     try {
       const url = `https://pan.baidu.com/rest/2.0/xpan/nas?method=uinfo&access_token=${encodeURIComponent(this.config.accessToken)}`;
-      const { data, latencyMs } = await executeBaiduApiFetch(url);
+      const { data, latencyMs } = await this.fetchApi(url);
 
       if (data && data.errno === 0) {
         const username = data.baidu_name || data.netdisk_name || '百度网盘用户';
@@ -284,13 +257,13 @@ export class BaiduAdapter implements IStorageAdapter {
     const formData = new FormData();
     formData.append('file', new Blob([buffer], { type: mimeType }), fileName);
 
-    const { data } = await executeBaiduApiFetch(uploadUrl, {
+    const { data, ok } = await this.fetchApi(uploadUrl, {
       method: 'POST',
       body: formData,
     });
 
-    if (data && data.error_code && data.error_code !== 0) {
-      throw new Error(`百度网盘上传失败: ${data.error_msg || data.error_code}`);
+    if (!ok || data?.error || (data?.error_code && data.error_code !== 0)) {
+      throw new Error(`百度网盘上传失败: ${data?.error_msg || data?.error || data?.error_code || '连接服务返回异常'}`);
     }
   }
 
@@ -300,7 +273,7 @@ export class BaiduAdapter implements IStorageAdapter {
     // Tier 1: Try direct download via Baidu PCS API
     try {
       const downloadUrl = `https://d.pcs.baidu.com/rest/2.0/pcs/file?method=download&access_token=${encodeURIComponent(this.config.accessToken)}&path=${encodeURIComponent(fullPath)}`;
-      const res = await executeBaiduApiFetch(downloadUrl);
+      const res = await this.fetchApi(downloadUrl);
 
       const hasError =
         (res.data && (res.data.error_code || res.data.errno || (typeof res.data.error === 'string' && res.data.error !== ''))) ||
@@ -320,7 +293,7 @@ export class BaiduAdapter implements IStorageAdapter {
 
       // List parent directory or search to find the file's fs_id
       const listUrl = `https://pan.baidu.com/rest/2.0/xpan/file?method=list&dir=${encodeURIComponent(parentDir)}&access_token=${encodeURIComponent(this.config.accessToken)}`;
-      const listRes = await executeBaiduApiFetch(listUrl);
+      const listRes = await this.fetchApi(listUrl);
 
       let targetItem: any = null;
       if (listRes.data?.list && Array.isArray(listRes.data.list)) {
@@ -330,7 +303,7 @@ export class BaiduAdapter implements IStorageAdapter {
       if (!targetItem?.fs_id) {
         // Try searching if listing didn't find it
         const searchUrl = `https://pan.baidu.com/rest/2.0/xpan/file?method=search&dir=${encodeURIComponent(parentDir)}&key=${encodeURIComponent(fileName)}&access_token=${encodeURIComponent(this.config.accessToken)}`;
-        const searchRes = await executeBaiduApiFetch(searchUrl);
+        const searchRes = await this.fetchApi(searchUrl);
         if (searchRes.data?.list && Array.isArray(searchRes.data.list)) {
           targetItem = searchRes.data.list.find((it: any) => it.server_filename === fileName || it.path === fullPath);
         }
@@ -338,12 +311,12 @@ export class BaiduAdapter implements IStorageAdapter {
 
       if (targetItem?.fs_id) {
         const metasUrl = `https://pan.baidu.com/rest/2.0/xpan/multimedia?method=filemetas&access_token=${encodeURIComponent(this.config.accessToken)}&fsids=[${targetItem.fs_id}]&dlink=1`;
-        const metasRes = await executeBaiduApiFetch(metasUrl);
+        const metasRes = await this.fetchApi(metasUrl);
         const dlink = metasRes.data?.list?.[0]?.dlink;
 
         if (dlink) {
           const finalDownloadUrl = `${dlink}&access_token=${encodeURIComponent(this.config.accessToken)}`;
-          const dlinkRes = await executeBaiduApiFetch(finalDownloadUrl, {
+          const dlinkRes = await this.fetchApi(finalDownloadUrl, {
             headers: {
               'User-Agent': 'pan.baidu.com',
             },
@@ -368,7 +341,7 @@ export class BaiduAdapter implements IStorageAdapter {
     const formData = new FormData();
     formData.append('filelist', JSON.stringify([fullPath]));
     
-    const { data } = await executeBaiduApiFetch(url, {
+    const { data } = await this.fetchApi(url, {
       method: 'POST',
       body: formData,
     });
@@ -382,7 +355,7 @@ export class BaiduAdapter implements IStorageAdapter {
     const fullPath = this.normalizePath(dirPath);
     const url = `https://pan.baidu.com/rest/2.0/xpan/file?method=list&dir=${encodeURIComponent(fullPath)}&access_token=${encodeURIComponent(this.config.accessToken)}`;
     
-    const { data } = await executeBaiduApiFetch(url);
+    const { data } = await this.fetchApi(url);
     if (!data || data.errno !== 0 || !Array.isArray(data.list)) {
       return [];
     }
@@ -395,3 +368,4 @@ export class BaiduAdapter implements IStorageAdapter {
     }));
   }
 }
+

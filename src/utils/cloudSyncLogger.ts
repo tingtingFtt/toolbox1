@@ -52,7 +52,7 @@ class CloudSyncLoggerService {
     if (!diagnosis && entry.responseDetails?.errno !== undefined) {
       diagnosis = this.interpretBaiduErrno(entry.responseDetails.errno);
     } else if (!diagnosis && entry.error?.includes('Failed to fetch')) {
-      diagnosis = '网络请求被浏览器拦截或无法解析目标域名。已自动启用服务端双向透明代理 (/api/baidu-proxy) 以绕过浏览器跨域 CORS 限制。';
+      diagnosis = '网络请求被浏览器拦截或目标服务不可达，请检查网络、连接服务地址与服务端跨域设置。GitHub Pages 不提供网盘代理接口。';
     }
 
     const fullEntry: CloudSyncLogEntry = {
@@ -103,3 +103,4 @@ class CloudSyncLoggerService {
 }
 
 export const syncLogger = new CloudSyncLoggerService();
+

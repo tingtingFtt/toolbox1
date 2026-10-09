@@ -35,6 +35,7 @@ import {
 } from 'lucide-react';
 import { SyncDiagnosticLogDrawer } from './SyncDiagnosticLogDrawer';
 import { BaiduQRCodeModal } from './BaiduQRCodeModal';
+import { requestBaiduJson, baiduErrorDiagnosis } from '../../utils/baiduApi';
 import { CloudSyncProgressModal } from '../modals/CloudSyncProgressModal';
 import { syncLogger } from '../../utils/cloudSyncLogger';
 import { CustomSelect } from '../ui/CustomSelect';
@@ -153,6 +154,8 @@ export const CloudSyncSettingsPanel: React.FC<CloudSyncSettingsPanelProps> = ({
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
   const [logDrawerOpen, setLogDrawerOpen] = useState(false);
   const [baiduQrModalOpen, setBaiduQrModalOpen] = useState(false);
+  const [testingBaiduBackend, setTestingBaiduBackend] = useState(false);
+  const [baiduBackendResult, setBaiduBackendResult] = useState<{ success: boolean; message: string } | null>(null);
 
   // Baidu OAuth states
   const [baiduLoadingUser, setBaiduLoadingUser] = useState(false);
@@ -255,7 +258,7 @@ export const CloudSyncSettingsPanel: React.FC<CloudSyncSettingsPanelProps> = ({
   const applyBaiduToken = async (token: string) => {
     setBaiduLoadingUser(true);
     try {
-      const userInfo = await fetchBaiduUserInfo(token);
+      const userInfo = await fetchBaiduUserInfo(token, config.baidu.apiBaseUrl);
       updateConfig({
         provider: 'baidu',
         baidu: {
@@ -267,38 +270,44 @@ export const CloudSyncSettingsPanel: React.FC<CloudSyncSettingsPanelProps> = ({
       });
       const name = userInfo?.baidu_name || userInfo?.netdisk_name || '用户';
       showNotification?.(`百度网盘授权登录成功！已绑定账号: ${name}`, 'success');
-    } catch {
-      updateConfig({
-        provider: 'baidu',
-        baidu: {
-          ...config.baidu,
-          accessToken: token,
-        },
-      });
-      showNotification?.('百度网盘 Token 已保存', 'success');
+    } catch (error) {
+      const message = baiduErrorDiagnosis(error);
+      setTestResult({ success: false, message });
+      showNotification?.(`百度网盘账号验证失败：${message}`, 'error');
     } finally {
       setBaiduLoadingUser(false);
     }
   };
 
-  // Handle Baidu Direct OAuth Login
-  const handleBaiduOAuthLogin = () => {
-    const authUrl = buildBaiduOAuthUrl(config.baidu.appKey, config.baidu.redirectUri, 'page');
-    window.location.href = authUrl;
+  const handleTestBaiduBackend = async () => {
+    setTestingBaiduBackend(true);
+    setBaiduBackendResult(null);
+    try {
+      const { response, data } = await requestBaiduJson('/api/health', {}, config.baidu.apiBaseUrl);
+      if (!response.ok || data.status !== 'ok') throw new Error('连接服务健康检查失败，请确认地址指向本项目的后端服务。');
+      setBaiduBackendResult({ success: true, message: '连接服务可用，可以开始百度授权。' });
+    } catch (error) { setBaiduBackendResult({ success: false, message: baiduErrorDiagnosis(error) }); }
+    finally { setTestingBaiduBackend(false); }
   };
 
-  // Handle Baidu Popup OAuth Login
+  const goToBaiduBackend = () => {
+    setBaiduQrModalOpen(false);
+    setTimeout(() => document.getElementById('baidu-backend-settings')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100);
+  };
+
+  const handleBaiduOAuthLogin = () => {
+    try { window.location.href = buildBaiduOAuthUrl(config.baidu.appKey, config.baidu.redirectUri, 'page'); }
+    catch (error) { setShowBaiduAdvanced(true); showNotification?.(baiduErrorDiagnosis(error), 'error'); }
+  };
+
   const handleBaiduPopupOAuthLogin = () => {
-    const authUrl = buildBaiduOAuthUrl(config.baidu.appKey, config.baidu.redirectUri, 'popup');
-    const width = 700;
-    const height = 650;
-    const left = window.screenX + (window.outerWidth - width) / 2;
-    const top = window.screenY + (window.outerHeight - height) / 2;
-    window.open(
-      authUrl,
-      'baidu_oauth_window',
-      `width=${width},height=${height},left=${left},top=${top},menubar=no,toolbar=no,status=no`
-    );
+    try {
+      const authUrl = buildBaiduOAuthUrl(config.baidu.appKey, config.baidu.redirectUri, 'popup');
+      const width = 700, height = 650;
+      const left = window.screenX + (window.outerWidth - width) / 2;
+      const top = window.screenY + (window.outerHeight - height) / 2;
+      window.open(authUrl, 'baidu_oauth_window', `width=${width},height=${height},left=${left},top=${top},menubar=no,toolbar=no,status=no`);
+    } catch (error) { setShowBaiduAdvanced(true); showNotification?.(baiduErrorDiagnosis(error), 'error'); }
   };
 
   // Logout from Baidu NetDisk
@@ -863,7 +872,7 @@ export const CloudSyncSettingsPanel: React.FC<CloudSyncSettingsPanelProps> = ({
                     百度网盘官方开放平台授权
                   </h5>
                   <p className="text-[10px] sm:text-[11px] text-stone-400 dark:text-stone-500 leading-tight">
-                    点击下方按钮直接跳转至百度账号授权中心完成登录，授权后自动返回并绑定，免去繁琐配置。
+                    先配置连接服务和百度应用 AppKey，再通过扫码或网页授权登录；账号验证通过后完成绑定。
                   </p>
                 </div>
 
@@ -941,7 +950,7 @@ export const CloudSyncSettingsPanel: React.FC<CloudSyncSettingsPanelProps> = ({
                       <div>
                         <div className="flex items-center justify-between mb-1">
                           <label className="text-stone-500 font-medium">
-                            AppSecret (Secret Key，可选)
+                            AppSecret (Secret Key，扫码换取 Token 使用)
                           </label>
                           <span className="inline-flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-normal">
                             <Lock className="w-2.5 h-2.5" />
@@ -971,6 +980,19 @@ export const CloudSyncSettingsPanel: React.FC<CloudSyncSettingsPanelProps> = ({
                 </div>
               </div>
             )}
+            <div id="baidu-backend-settings" className="p-3.5 border border-stone-200 dark:border-stone-700 space-y-2 text-xs">
+              <label htmlFor="baidu-backend-url" className="block font-semibold">百度网盘连接服务地址</label>
+              <p className="text-[var(--dim)] leading-relaxed">GitHub Pages 版本需填写已部署的后端服务地址，扫码和云端同步共用。运行完整服务时可留空。请使用您自己的服务。</p>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <input id="baidu-backend-url" type="url" placeholder="https://your-backend.example.com" value={config.baidu.apiBaseUrl || ''}
+                  onChange={event => { setBaiduBackendResult(null); updateConfig({ baidu: { ...config.baidu, apiBaseUrl: event.target.value } }); }}
+                  className="flex-1 min-w-0 px-3 py-2 border border-stone-200 dark:border-stone-700 bg-stone-50/50 dark:bg-stone-800/50 font-mono outline-none" />
+                <button type="button" disabled={testingBaiduBackend} onClick={handleTestBaiduBackend} className="px-3 py-2 border border-stone-200 dark:border-stone-700 whitespace-nowrap disabled:opacity-50">
+                  {testingBaiduBackend ? '正在检查...' : '检查连接服务'}
+                </button>
+              </div>
+              {baiduBackendResult && <p role="status" className={baiduBackendResult.success ? 'text-emerald-600' : 'text-rose-600'}>{baiduBackendResult.message}</p>}
+            </div>
           </div>
         )}
 
@@ -1638,6 +1660,8 @@ export const CloudSyncSettingsPanel: React.FC<CloudSyncSettingsPanelProps> = ({
         }}
         appKey={config.baidu.appKey}
         appSecret={config.baidu.appSecret}
+        apiBaseUrl={config.baidu.apiBaseUrl}
+        onGoToBackend={goToBaiduBackend}
       />
 
       {/* 实时通信与错误诊断日志抽屉浮层 */}
@@ -1661,3 +1685,4 @@ export const CloudSyncSettingsPanel: React.FC<CloudSyncSettingsPanelProps> = ({
     </div>
   );
 };
+

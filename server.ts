@@ -1,11 +1,21 @@
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
-import { createServer as createViteServer } from 'vite';
+
+async function readBaiduOAuthJson(response: Response) {
+  const text = await response.text();
+  try {
+    const data = JSON.parse(text);
+    if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error();
+    return data;
+  } catch {
+    throw new Error(`百度 OAuth 接口未返回有效 JSON (HTTP ${response.status})，请检查后端到百度的网络连接。`);
+  }
+}
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = Number(process.env.PORT) || 3000;
 
   app.use(cors());
   app.use(express.json({ limit: '100mb' }));
@@ -13,7 +23,7 @@ async function startServer() {
 
   // Health check
   app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+    res.json({ status: 'ok', services: ['baidu'], timestamp: new Date().toISOString() });
   });
 
   // Baidu Device Code generation endpoint (for In-App QR Code Login)
@@ -45,11 +55,11 @@ async function startServer() {
         },
       });
 
-      const data = await response.json();
+      const data = await readBaiduOAuthJson(response);
       res.status(response.status).json(data);
     } catch (err: any) {
       res.status(500).json({
-        error: 'Failed to generate device code',
+        error: 'backend_error',
         message: err.message || 'Network error',
       });
     }
@@ -89,10 +99,10 @@ async function startServer() {
         body: formParams.toString(),
       });
 
-      let data = await response.json();
+      let data = await readBaiduOAuthJson(response);
 
-      // If POST failed or returned error other than authorization_pending, try GET fallback
-      if (!data.access_token && data.error && data.error !== 'authorization_pending' && clientId) {
+      // Do not immediately retry pending, slow-down or terminal device states.
+      if (!data.access_token && data.error && !['authorization_pending', 'slow_down', 'expired_token', 'expired_code', 'authorization_declined'].includes(data.error) && clientId) {
         try {
           const getUrl = `${tokenUrl}?grant_type=device_token&code=${encodeURIComponent(code)}&client_id=${encodeURIComponent(
             clientId.trim()
@@ -104,9 +114,10 @@ async function startServer() {
               Accept: 'application/json',
             },
           });
-          const getData = await getRes.json();
+          const getData = await readBaiduOAuthJson(getRes);
           if (getData.access_token || (!data.access_token && getData.error === 'authorization_pending')) {
             data = getData;
+            response = getRes;
           }
         } catch {
           // Keep original response
@@ -116,7 +127,7 @@ async function startServer() {
       res.status(response.status).json(data);
     } catch (err: any) {
       res.status(500).json({
-        error: 'Failed to poll token',
+        error: 'backend_error',
         message: err.message || 'Network error',
       });
     }
@@ -255,20 +266,25 @@ async function startServer() {
     }
   });
 
-  // Vite middleware setup
-  if (process.env.NODE_ENV !== 'production') {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: 'spa',
-    });
-    app.use(vite.middlewares);
-  } else {
-    const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
-    // Note: express v5 requires *all
-    app.get('*all', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
-    });
+  app.use('/api', (_req, res) => res.status(404).json({ error: 'api_not_found', message: '请求的后端接口不存在。' }));
+
+  // An API-only service can be hosted separately from GitHub Pages.
+  if (!process.argv.includes('--api-only')) {
+    if (process.env.NODE_ENV !== 'production' && !process.argv[1]?.endsWith('server.cjs')) {
+      const { createServer: createViteServer } = await import('vite');
+      const vite = await createViteServer({
+        server: { middlewareMode: true },
+        appType: 'spa',
+      });
+      app.use(vite.middlewares);
+    } else {
+      const distPath = path.join(process.cwd(), 'dist');
+      app.use(express.static(distPath));
+      // Note: express v5 requires *all
+      app.get('*all', (req, res) => {
+        res.sendFile(path.join(distPath, 'index.html'));
+      });
+    }
   }
 
   app.listen(PORT, '0.0.0.0', () => {
@@ -277,3 +293,4 @@ async function startServer() {
 }
 
 startServer();
+

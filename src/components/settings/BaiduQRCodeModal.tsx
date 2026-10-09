@@ -14,6 +14,7 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { syncLogger } from '../../utils/cloudSyncLogger';
+import { requestBaiduJson, BaiduConnectionError, baiduErrorDiagnosis } from '../../utils/baiduApi';
 
 interface BaiduQRCodeModalProps {
   isOpen: boolean;
@@ -23,6 +24,8 @@ interface BaiduQRCodeModalProps {
   onGoToAdvanced?: () => void;
   appKey?: string;
   appSecret?: string;
+  apiBaseUrl?: string;
+  onGoToBackend?: () => void;
 }
 
 export const BaiduQRCodeModal: React.FC<BaiduQRCodeModalProps> = ({
@@ -33,6 +36,8 @@ export const BaiduQRCodeModal: React.FC<BaiduQRCodeModalProps> = ({
   onGoToAdvanced,
   appKey,
   appSecret,
+  apiBaseUrl,
+  onGoToBackend,
 }) => {
   const effectiveAppKey = appKey?.trim() || '';
   const [loading, setLoading] = useState(false);
@@ -45,209 +50,122 @@ export const BaiduQRCodeModal: React.FC<BaiduQRCodeModalProps> = ({
   const [pollHint, setPollHint] = useState<string>('等待扫码中...');
   const [errorMessage, setErrorMessage] = useState<string>('');
 
-  const pollTimerRef = useRef<any>(null);
-  const countdownTimerRef = useRef<any>(null);
+  const [errorKind, setErrorKind] = useState<'backend' | 'network' | 'response' | 'appkey'>('response');
+  const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const countdownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const requestRef = useRef<AbortController | null>(null);
+  const sessionRef = useRef(0);
+  const pollingRef = useRef(false);
+  const pollDelayRef = useRef(5000);
 
-  const fetchQRCode = async () => {
-    // Clear previous timers
-    if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+  const clearTimers = () => {
+    if (pollTimerRef.current) clearTimeout(pollTimerRef.current);
     if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
-
-    if (!effectiveAppKey) {
-      setLoading(false);
-      setStatus('idle');
-      return;
-    }
-
-    setLoading(true);
-    setStatus('waiting');
-    setPollHint('等待扫码中...');
-    setErrorMessage('');
-    setQrCodeUrl('');
-    setUserCode('');
-
-    syncLogger.addLog({
-      category: 'baidu',
-      level: 'info',
-      title: '申请百度网盘设备码与扫码登录二维码 (Device Flow)',
-      requestDetails: { client_id: effectiveAppKey, has_secret: !!appSecret },
-      diagnosis: '正在向 openapi.baidu.com/oauth/2.0/device/code 发起设备码请求...',
-    });
-
-    try {
-      const response = await fetch(`/api/baidu-device-code?client_id=${encodeURIComponent(effectiveAppKey)}`);
-      const data = await response.json();
-
-      if (data.error === 'unconfigured_client' || data.error === 'invalid_client') {
-        setLoading(false);
-        setStatus('error');
-        setErrorMessage(
-          data.error === 'unconfigured_client'
-            ? '尚未配置百度开放平台 AppKey。'
-            : '此 AppKey 未在百度开放平台开通设备码流权限 (invalid_client)。'
-        );
-        return;
-      }
-
-      if (!response.ok || data.error) {
-        const errDesc = data.error_description || data.error || data.message || '获取二维码失败';
-        throw new Error(errDesc);
-      }
-
-      const qrcode = data.qrcode_url;
-      const uCode = data.user_code;
-      const dCode = data.device_code;
-      const vUrl = data.verification_url || 'https://openapi.baidu.com/device';
-      const duration = data.expires_in || 300;
-      const intervalSec = Math.max(data.interval || 4, 3);
-
-      setQrCodeUrl(qrcode);
-      setUserCode(uCode);
-      setDeviceCode(dCode);
-      setVerificationUrl(vUrl);
-      setExpiresIn(duration);
-      setLoading(false);
-      setStatus('waiting');
-
-      syncLogger.addLog({
-        category: 'baidu',
-        level: 'success',
-        title: '成功生成百度网盘扫码二维码',
-        responseDetails: { user_code: uCode, expires_in: duration, interval: intervalSec },
-        diagnosis: '二维码已就绪，正在启动后台授权轮询检测...',
-      });
-
-      // Start countdown
-      countdownTimerRef.current = setInterval(() => {
-        setExpiresIn((prev) => {
-          if (prev <= 1) {
-            clearInterval(countdownTimerRef.current);
-            if (pollTimerRef.current) clearInterval(pollTimerRef.current);
-            setStatus('expired');
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-
-      // Start polling for token
-      startPolling(dCode, intervalSec, effectiveAppKey);
-    } catch (err: any) {
-      setLoading(false);
-      setStatus('error');
-      const msg = err.message || '网络连接异常，请检查后端代理';
-      setErrorMessage(msg);
-      syncLogger.addLog({
-        category: 'baidu',
-        level: 'error',
-        title: '生成百度网盘设备码失败',
-        error: msg,
-        diagnosis: '请检查高级选项中的 AppKey 设置是否正确。',
-      });
-    }
+    if (successTimerRef.current) clearTimeout(successTimerRef.current);
+  };
+  const cancelSession = () => {
+    sessionRef.current++;
+    clearTimers();
+    requestRef.current?.abort();
+    pollingRef.current = false;
+  };
+  const showError = (error: unknown) => {
+    clearTimers();
+    setLoading(false);
+    setStatus('error');
+    setErrorKind(error instanceof BaiduConnectionError ? error.kind : 'response');
+    setErrorMessage(baiduErrorDiagnosis(error));
+    syncLogger.addLog({ category: 'baidu', level: 'error', title: '百度网盘扫码连接失败', error: baiduErrorDiagnosis(error), diagnosis: baiduErrorDiagnosis(error) });
   };
 
-  // Check token once immediately
-  const checkTokenOnce = async (code: string, activeKey: string) => {
+  const checkTokenOnce = async (code: string, activeKey: string, session = sessionRef.current): Promise<boolean> => {
+    if (!code || pollingRef.current || session !== sessionRef.current) return false;
+    pollingRef.current = true;
     try {
-      let pollUrl = `/api/baidu-poll-token?code=${encodeURIComponent(code)}&client_id=${encodeURIComponent(activeKey)}`;
-      if (appSecret) {
-        pollUrl += `&client_secret=${encodeURIComponent(appSecret)}`;
-      }
-
-      const res = await fetch(pollUrl);
-      const data = await res.json();
-
-      if (data.access_token) {
-        if (pollTimerRef.current) clearInterval(pollTimerRef.current);
-        if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
+      // Keep secrets out of the service URL and browser history.
+      const { response, data } = await requestBaiduJson('/api/baidu-poll-token', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, client_id: activeKey, client_secret: appSecret?.trim() || undefined }),
+        signal: requestRef.current?.signal,
+      }, apiBaseUrl);
+      if (session !== sessionRef.current) return true;
+      if (response.ok && typeof data.access_token === 'string' && data.access_token) {
+        clearTimers();
         setStatus('success');
-        setPollHint('授权成功！正在绑定账号...');
-
-        syncLogger.addLog({
-          category: 'baidu',
-          level: 'success',
-          title: '百度网盘扫码授权成功！已换取 Access Token',
-          responseDetails: { expires_in: data.expires_in, scope: data.scope },
-          diagnosis: '设备码已成功兑换为长期 Access Token，正在执行账号信息同步。',
-        });
-
-        setTimeout(() => {
-          onSuccess(data.access_token);
-          onClose();
-        }, 1000);
+        setPollHint('授权成功，正在验证网盘账号...');
+        syncLogger.addLog({ category: 'baidu', level: 'success', title: '百度网盘设备码授权成功', responseDetails: { expires_in: data.expires_in, scope: data.scope } });
+        successTimerRef.current = setTimeout(() => { if (session === sessionRef.current) { onSuccess(data.access_token); onClose(); } }, 500);
         return true;
       }
-
-      if (data.error) {
-        if (data.error === 'authorization_pending') {
-          setPollHint('手机端已打开，请在手机屏幕上点击【同意授权】');
-        } else if (data.error === 'slow_down') {
-          setPollHint('正在平稳同步手机端授权状态...');
-        } else if (data.error === 'authorization_declined') {
-          if (pollTimerRef.current) clearInterval(pollTimerRef.current);
-          setStatus('error');
-          setErrorMessage('手机端已拒绝授权');
-        } else if (data.error === 'expired_token' || data.error === 'expired_code') {
-          if (pollTimerRef.current) clearInterval(pollTimerRef.current);
-          setStatus('expired');
-        } else if (data.error === 'invalid_client') {
-          if (pollTimerRef.current) clearInterval(pollTimerRef.current);
-          setStatus('error');
-          setErrorMessage('应用客户端校验失败：此 AppKey 在百度端需配置 AppSecret 或不支持设备码流。');
-        }
+      if (data.error === 'authorization_pending') {
+        setPollHint('等待授权，请在手机或网页端点击【同意授权】');
+        return false;
       }
-    } catch {
-      // ignore jitter
-    }
-    return false;
+      if (data.error === 'slow_down') {
+        pollDelayRef.current += 5000;
+        setPollHint('正在等待授权，已降低检测频率...');
+        return false;
+      }
+      if (['expired_token', 'expired_code'].includes(data.error)) {
+        clearTimers(); setStatus('expired'); return true;
+      }
+      const message = data.error === 'authorization_declined' ? '您已拒绝授权，请重新扫码。'
+        : data.error === 'invalid_client' ? '百度返回 invalid_client，请检查 AppKey、AppSecret 及应用设备码授权权限。'
+        : data.error_description || data.message || data.error || `验证授权失败 (HTTP ${response.status})`;
+      throw new BaiduConnectionError(message, data.error === 'invalid_client' ? 'appkey' : data.error === 'backend_error' ? 'backend' : 'response');
+    } catch (error) {
+      if (session !== sessionRef.current) return true;
+      showError(error);
+      return true;
+    } finally { if (session === sessionRef.current) pollingRef.current = false; }
   };
 
-  // Poll for token
-  const startPolling = (code: string, intervalSec: number, activeKey: string) => {
-    let attempts = 0;
-    const pollInterval = Math.max(intervalSec || 5, 5);
-    const maxAttempts = Math.floor(300 / pollInterval);
+  const startPolling = (code: string, intervalSec: number, activeKey: string, session: number) => {
+    pollDelayRef.current = Math.max(intervalSec, 5) * 1000;
+    const tick = async () => {
+      if (session !== sessionRef.current) return;
+      const stopped = await checkTokenOnce(code, activeKey, session);
+      if (!stopped && session === sessionRef.current) pollTimerRef.current = setTimeout(tick, pollDelayRef.current);
+    };
+    pollTimerRef.current = setTimeout(tick, pollDelayRef.current);
+  };
 
-    pollTimerRef.current = setInterval(async () => {
-      attempts++;
-      if (attempts > maxAttempts) {
-        clearInterval(pollTimerRef.current);
-        setStatus('expired');
-        return;
+  const fetchQRCode = async () => {
+    cancelSession();
+    const session = sessionRef.current;
+    requestRef.current = new AbortController();
+    if (!effectiveAppKey) { setLoading(false); setStatus('idle'); return; }
+    setLoading(true); setStatus('waiting'); setErrorMessage('');
+    setPollHint('等待扫码中...'); setQrCodeUrl(''); setUserCode(''); setDeviceCode('');
+    syncLogger.addLog({ category: 'baidu', level: 'info', title: '申请百度网盘设备码', diagnosis: '正在通过连接服务申请百度设备码，尚未收到百度响应。' });
+    try {
+      const { response, data } = await requestBaiduJson(`/api/baidu-device-code?client_id=${encodeURIComponent(effectiveAppKey)}`, { signal: requestRef.current.signal }, apiBaseUrl);
+      if (session !== sessionRef.current) return;
+      if (!response.ok || data.error) {
+        const invalidKey = ['unconfigured_client', 'invalid_client'].includes(data.error);
+        throw new BaiduConnectionError(data.error_description || data.message || data.error || `获取二维码失败 (HTTP ${response.status})`, invalidKey ? 'appkey' : data.error === 'backend_error' ? 'backend' : 'response');
       }
-
-      const success = await checkTokenOnce(code, activeKey);
-      if (!success) {
-        setPollHint((prev) => {
-          if (prev.includes('等待扫码')) {
-            return `等待手机扫码中 (已检测${attempts}次)`;
-          }
-          if (prev.includes('同意授权')) {
-            return prev;
-          }
-          return `检测手机授权中... (第${attempts}次)`;
-        });
-      }
-    }, pollInterval * 1000);
+      if (!data.device_code || !data.user_code || !data.qrcode_url) throw new BaiduConnectionError('设备码响应缺少二维码或授权码，请检查连接服务。');
+      const duration = Number(data.expires_in) > 0 ? Number(data.expires_in) : 300;
+      const interval = Number(data.interval) > 0 ? Number(data.interval) : 5;
+      setQrCodeUrl(data.qrcode_url); setUserCode(data.user_code); setDeviceCode(data.device_code);
+      setVerificationUrl(data.verification_url || 'https://openapi.baidu.com/device');
+      setExpiresIn(duration); setLoading(false); setStatus('waiting');
+      syncLogger.addLog({ category: 'baidu', level: 'success', title: '已获取百度网盘扫码二维码', responseDetails: { expires_in: duration, interval } });
+      countdownTimerRef.current = setInterval(() => setExpiresIn(previous => {
+        if (previous <= 1) { cancelSession(); setStatus('expired'); return 0; }
+        return previous - 1;
+      }), 1000);
+      startPolling(data.device_code, interval, effectiveAppKey, session);
+    } catch (error) { if (session === sessionRef.current) showError(error); }
   };
 
   useEffect(() => {
-    if (isOpen) {
-      if (effectiveAppKey) {
-        fetchQRCode();
-      } else {
-        setStatus('idle');
-      }
-    } else {
-      if (pollTimerRef.current) clearInterval(pollTimerRef.current);
-      if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
-    }
-    return () => {
-      if (pollTimerRef.current) clearInterval(pollTimerRef.current);
-      if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
-    };
-  }, [isOpen, effectiveAppKey]);
+    if (isOpen) fetchQRCode();
+    else cancelSession();
+    return cancelSession;
+  }, [isOpen, effectiveAppKey, appSecret, apiBaseUrl]);
 
   if (!isOpen) return null;
 
@@ -332,7 +250,7 @@ export const BaiduQRCodeModal: React.FC<BaiduQRCodeModalProps> = ({
                     <div>
                       <h4 className="font-bold text-xs">获取二维码失败</h4>
                       <p className="text-[11px] text-rose-700 dark:text-rose-400 mt-1 leading-relaxed">
-                        {errorMessage || '当前 AppKey 可能无效或未开通设备流授权权限。'}
+                        {errorMessage || '请检查连接服务与百度返回的错误信息。'}
                       </p>
                     </div>
                   </div>
@@ -342,12 +260,13 @@ export const BaiduQRCodeModal: React.FC<BaiduQRCodeModalProps> = ({
                       type="button"
                       onClick={() => {
                         onClose();
-                        onGoToAdvanced?.();
+                        if (errorKind === 'backend' || errorKind === 'network') onGoToBackend?.();
+                        else onGoToAdvanced?.();
                       }}
                       className="w-full py-2 px-3 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition"
                     >
                       <Settings2 className="w-3.5 h-3.5" />
-                      前往高级选项修改 AppKey
+                      {errorKind === 'backend' || errorKind === 'network' ? '配置连接服务地址' : '前往高级选项检查应用配置'}
                     </button>
                     <button
                       type="button"
@@ -400,8 +319,8 @@ export const BaiduQRCodeModal: React.FC<BaiduQRCodeModalProps> = ({
                     ) : status === 'success' ? (
                       <div className="flex flex-col items-center gap-2 text-emerald-600">
                         <CheckCircle2 className="w-12 h-12 animate-bounce" />
-                        <span className="text-sm font-bold">授权登录成功！</span>
-                        <span className="text-xs text-stone-500">正在自动绑定网盘账号...</span>
+                        <span className="text-sm font-bold">百度授权已确认</span>
+                        <span className="text-xs text-stone-500">正在验证网盘账号，验证通过后完成绑定...</span>
                       </div>
                     ) : qrCodeUrl ? (
                       <img
@@ -414,6 +333,8 @@ export const BaiduQRCodeModal: React.FC<BaiduQRCodeModalProps> = ({
                       <div className="text-xs text-stone-400">准备就绪</div>
                     )}
                   </div>
+
+                  {userCode && status === 'waiting' && !loading && <p className="text-[11px] text-stone-500 break-all">授权码：<strong>{userCode}</strong> · <a href={verificationUrl} target="_blank" rel="noopener noreferrer" className="underline">打开百度授权页面</a></p>}
 
                   {/* Status Instructions & Steps */}
                   {status !== 'success' && (
@@ -492,3 +413,4 @@ export const BaiduQRCodeModal: React.FC<BaiduQRCodeModalProps> = ({
     </div>
   );
 };
+
