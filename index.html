@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="toolbox" />
+    <meta name="description" content="酒馆资源与角色卡管理工具，支持角色卡、ST世界书、ST正则、ST脚本、ST插件、预设及聊天记录存储与联动管理" />
+    <meta property="og:title" content="toolbox" />
+    <meta property="og:description" content="酒馆资源与角色卡管理工具，支持角色卡、ST世界书、ST正则、ST脚本、ST插件、预设及聊天记录存储与联动管理" />
+    <link rel="apple-touch-icon" href="https://pic.imgdd.cc/i/0341lHicrMaWOnQGTSDWxo.jpg" />
+    <link rel="stylesheet" href="https://fontsapi.zeoseven.com/875/main/result.css" />
+    <link rel="stylesheet" href="https://fontsapi.zeoseven.com/875/bold/result.css" />
+    <link rel="stylesheet" href="https://fontsapi.zeoseven.com/875/extra-bold/result.css" />
+    <style>
+      body {
+        font-family: var(--font-body, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif);
+      }
+      
+      aside,
+      [data-design-id="app-sidebar"] {
+        font-family: var(--font-sidebar, inherit);
+      }
+      
+      [data-design-id="settings-tab-bar"],
+      .tab-nav-bar,
+      .nav-item {
+        font-family: var(--font-navbar, inherit);
+      }
+    </style>
+    <title>toolbox</title>
+    <script>
+      // 防止 iOS 双指捏合缩放
+      document.addEventListener('gesturestart', function (e) {
+        e.preventDefault();
+      });
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

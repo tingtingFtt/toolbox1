@@ -1,0 +1,144 @@
+@import url("https://fontsapi.zeoseven.com/875/main/result.css");
+@import url("https://fontsapi.zeoseven.com/875/bold/result.css");
+@import url("https://fontsapi.zeoseven.com/875/extra-bold/result.css");
+@import "tailwindcss";
+@import "./styles/themes.css";
+@import "./styles/ui.css";
+@import "./styles/layout.css";
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --system-font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+  --system-font-serif: "Songti SC", "STSong", "SimSun", "Noto Serif SC", serif;
+  --system-font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+
+  --font-body: var(--user-font-body, var(--theme-font-body, var(--system-font-sans)));
+  --font-sidebar: var(--user-font-sidebar-menu, var(--user-font-sidebar, var(--theme-font-sidebar, var(--font-body))));
+  --font-navbar: var(--user-font-nav-tabs, var(--user-font-navbar, var(--font-sidebar)));
+  --font-hero: var(--user-font-home-hero, var(--user-font-hero, var(--theme-font-hero, var(--font-body))));
+  --font-mono: var(--user-font-mono-code, var(--user-font-mono, var(--theme-font-mono, var(--system-font-mono))));
+}
+
+body {
+  font-family: var(--font-body);
+}
+
+aside,
+.sidebar,
+[data-design-id="app-sidebar"] {
+  font-family: var(--font-sidebar);
+}
+
+header,
+[data-design-id="app-header"],
+.top-header,
+[data-design-id="settings-tab-bar"],
+.tab-nav-bar {
+  font-family: var(--font-sidebar);
+}
+
+[data-design-id="home-st-hero-title"],
+[data-design-id="home-mobile-hero-title"],
+.hero-title,
+.font-hero {
+  font-family: var(--font-hero);
+}
+
+code,
+pre,
+.font-mono {
+  font-family: var(--font-mono);
+}
+
+/* 防止 iOS 弹出键盘时输入框自动放大以及双击/手势缩放 */
+
+html, body {
+  touch-action: manipulation;
+  -webkit-text-size-adjust: 100%;
+  height: 100%;
+  width: 100%;
+  
+  
+}
+
+/* iOS Safe Area Padding for Standalone PWA / Web App Added to Home Screen */
+:root {
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+}
+
+/* 顶部状态栏与刘海/灵动岛避让以及固定顶部导航栏 */
+header {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 40 !important;
+  padding-top: env(safe-area-inset-top, 0px);
+  height: calc(3.5rem + env(safe-area-inset-top, 0px)) !important;
+  flex-shrink: 0 !important;
+  
+  backdrop-filter: blur(12px) saturate(130%);
+  -webkit-backdrop-filter: blur(12px) saturate(130%);
+}
+
+aside {
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Toast 提示避让状态栏 */
+.toast-container {
+  top: calc(1rem + env(safe-area-inset-top, 0px)) !important;
+}
+
+/* === Flat Theme Inputs === */
+.theme-flat input:is([type="text"], [type="password"], [type="number"], [type="url"], :not([type])),
+.theme-flat textarea,
+.theme-flat select,
+.theme-flat .base-input-override,
+.theme-flat [class*="rounded-xl"]:is(input, textarea, select),
+.theme-flat [class*="rounded-lg"]:is(input, textarea, select, .text-input-like) {
+  border-radius: 0 !important;
+  background-color: var(--input-bg, transparent) !important;
+  border-color: var(--line, rgba(0,0,0,0.1)) !important;
+}
+
+.theme-flat input:is([type="text"], [type="password"], [type="number"], [type="url"], :not([type])):focus,
+.theme-flat textarea:focus,
+.theme-flat select:focus {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 1px var(--line-focus) !important;
+  outline: none !important;
+}
+
+/* Also apply to those read-only divs in CardDetailModal that look like textareas if needed */
+.theme-flat .whitespace-pre-wrap.font-mono.min-h-\[5rem\],
+.theme-flat .whitespace-pre-wrap.font-mono.min-h-\[4rem\],
+.theme-flat .max-h-48.overflow-y-auto.whitespace-pre-wrap {
+  border-radius: 0 !important;
+  background-color: var(--input-bg, transparent) !important;
+  border-color: var(--line, rgba(0,0,0,0.1)) !important;
+}
+
+/* Custom Read-only Display Box Background in Flat Themes */
+.theme-flat .custom-gradient-bg {
+  background-image: var(--bg-gradient) !important;
+  background-attachment: local !important;
+}
+
+/* Remove rounded corners on enlarged modal in flat theme */
+.theme-flat .fullscreen-data-modal-panel {
+  border-radius: 0 !important;
+}
+
+/* Hide scrollbar across all browsers */
+.no-scrollbar::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+.no-scrollbar {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}

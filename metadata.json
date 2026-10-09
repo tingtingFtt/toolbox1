@@ -1,0 +1,8 @@
+{
+  "name": "toolbox",
+  "description": "酒馆资源与角色卡管理工具，支持角色卡、ST世界书、ST正则、ST脚本、ST插件、预设及聊天记录存储与联动管理",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
+

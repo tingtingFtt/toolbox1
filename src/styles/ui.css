@@ -1,0 +1,1917 @@
+/* ═════════════════════════════════════════════════════════════
+   动态映射 Tailwind 色彩至当前激活的扁平主题
+   ═════════════════════════════════════════════════════════════ */
+:root.theme-flat,
+:root[data-theme],
+body[data-theme] {
+  --color-zinc-50: var(--bg-paper);
+  --color-zinc-100: var(--input-bg);
+  --color-zinc-200: var(--line);
+  --color-zinc-300: var(--line-focus);
+  --color-zinc-400: var(--faint);
+  --color-zinc-500: var(--dim);
+  --color-zinc-600: var(--text);
+  --color-zinc-700: var(--text-serif);
+  --color-zinc-800: var(--text-serif);
+  --color-zinc-900: var(--text-serif);
+  --color-zinc-950: var(--text-serif);
+  --color-white: var(--bg-paper);
+  --color-black: #1A232D;
+  
+  /* Primary Accent & Cool Palette Mappings */
+  --color-blue-50: var(--btn-primary-bg);
+  --color-blue-100: var(--btn-primary-hover);
+  --color-blue-200: var(--accent);
+  --color-blue-300: var(--accent);
+  --color-blue-400: var(--accent);
+  --color-blue-500: var(--accent);
+  --color-blue-600: var(--accent);
+  --color-blue-700: var(--accent-hover);
+  --color-blue-800: var(--accent-hover);
+  --color-blue-900: var(--text-serif);
+  --color-blue-950: var(--text-serif);
+
+  --color-indigo-50: var(--btn-primary-bg);
+  --color-indigo-100: var(--btn-primary-hover);
+  --color-indigo-200: var(--accent);
+  --color-indigo-300: var(--accent);
+  --color-indigo-400: var(--accent);
+  --color-indigo-500: var(--accent);
+  --color-indigo-600: var(--accent);
+  --color-indigo-700: var(--accent-hover);
+  --color-indigo-800: var(--accent-hover);
+  --color-indigo-900: var(--text-serif);
+  --color-indigo-950: var(--text-serif);
+
+  --color-purple-50: var(--btn-primary-bg);
+  --color-purple-100: var(--btn-primary-hover);
+  --color-purple-200: var(--accent);
+  --color-purple-300: var(--accent);
+  --color-purple-400: var(--accent);
+  --color-purple-500: var(--accent);
+  --color-purple-600: var(--accent);
+  --color-purple-700: var(--accent-hover);
+  --color-purple-800: var(--accent-hover);
+  --color-purple-900: var(--text-serif);
+  --color-purple-950: var(--text-serif);
+
+  --color-violet-50: var(--btn-primary-bg);
+  --color-violet-100: var(--btn-primary-hover);
+  --color-violet-200: var(--accent);
+  --color-violet-300: var(--accent);
+  --color-violet-400: var(--accent);
+  --color-violet-500: var(--accent);
+  --color-violet-600: var(--accent);
+  --color-violet-700: var(--accent-hover);
+  --color-violet-800: var(--accent-hover);
+  --color-violet-900: var(--text-serif);
+  --color-violet-950: var(--text-serif);
+
+  --color-fuchsia-50: var(--btn-primary-bg);
+  --color-fuchsia-100: var(--btn-primary-hover);
+  --color-fuchsia-200: var(--accent);
+  --color-fuchsia-300: var(--accent);
+  --color-fuchsia-400: var(--accent);
+  --color-fuchsia-500: var(--accent);
+  --color-fuchsia-600: var(--accent);
+  --color-fuchsia-700: var(--accent-hover);
+  --color-fuchsia-800: var(--accent-hover);
+  --color-fuchsia-900: var(--text-serif);
+  --color-fuchsia-950: var(--text-serif);
+
+  --color-pink-50: var(--btn-primary-bg);
+  --color-pink-100: var(--btn-primary-hover);
+  --color-pink-200: var(--accent);
+  --color-pink-300: var(--accent);
+  --color-pink-400: var(--accent);
+  --color-pink-500: var(--accent);
+  --color-pink-600: var(--accent);
+  --color-pink-700: var(--accent-hover);
+  --color-pink-800: var(--accent-hover);
+  --color-pink-900: var(--text-serif);
+  --color-pink-950: var(--text-serif);
+
+  --color-cyan-50: var(--btn-primary-bg);
+  --color-cyan-100: var(--btn-primary-hover);
+  --color-cyan-200: var(--accent);
+  --color-cyan-300: var(--accent);
+  --color-cyan-400: var(--accent);
+  --color-cyan-500: var(--accent);
+  --color-cyan-600: var(--accent);
+  --color-cyan-700: var(--accent-hover);
+  --color-cyan-800: var(--accent-hover);
+  --color-cyan-900: var(--text-serif);
+  --color-cyan-950: var(--text-serif);
+
+  --color-teal-50: var(--btn-primary-bg);
+  --color-teal-100: var(--btn-primary-hover);
+  --color-teal-200: var(--accent);
+  --color-teal-300: var(--accent);
+  --color-teal-400: var(--accent);
+  --color-teal-500: var(--accent);
+  --color-teal-600: var(--accent);
+  --color-teal-700: var(--accent-hover);
+  --color-teal-800: var(--accent-hover);
+  --color-teal-900: var(--text-serif);
+  --color-teal-950: var(--text-serif);
+
+  --color-sky-50: var(--btn-primary-bg);
+  --color-sky-100: var(--btn-primary-hover);
+  --color-sky-200: var(--accent);
+  --color-sky-300: var(--accent);
+  --color-sky-400: var(--accent);
+  --color-sky-500: var(--accent);
+  --color-sky-600: var(--accent);
+  --color-sky-700: var(--accent-hover);
+  --color-sky-800: var(--accent-hover);
+  --color-sky-900: var(--text-serif);
+  --color-sky-950: var(--text-serif);
+
+  /* Warm Mappings (Amber, Orange, Yellow) */
+  --color-amber-50: var(--btn-bg);
+  --color-amber-100: var(--btn-bg);
+  --color-amber-200: var(--warn);
+  --color-amber-300: var(--warn);
+  --color-amber-400: var(--warn);
+  --color-amber-500: var(--warn);
+  --color-amber-600: var(--warn);
+  --color-amber-700: var(--warn);
+  --color-amber-800: var(--warn);
+  --color-amber-900: var(--text-serif);
+  --color-amber-950: var(--text-serif);
+
+  --color-orange-50: var(--btn-bg);
+  --color-orange-100: var(--btn-bg);
+  --color-orange-200: var(--warn);
+  --color-orange-300: var(--warn);
+  --color-orange-400: var(--warn);
+  --color-orange-500: var(--warn);
+  --color-orange-600: var(--warn);
+  --color-orange-700: var(--warn);
+  --color-orange-800: var(--warn);
+  --color-orange-900: var(--text-serif);
+  --color-orange-950: var(--text-serif);
+
+  --color-yellow-50: var(--btn-bg);
+  --color-yellow-100: var(--btn-bg);
+  --color-yellow-200: var(--warn);
+  --color-yellow-300: var(--warn);
+  --color-yellow-400: var(--warn);
+  --color-yellow-500: var(--warn);
+  --color-yellow-600: var(--warn);
+  --color-yellow-700: var(--warn);
+  --color-yellow-800: var(--warn);
+  --color-yellow-900: var(--text-serif);
+  --color-yellow-950: var(--text-serif);
+
+  /* Green / OK Mappings */
+  --color-emerald-50: var(--btn-primary-bg);
+  --color-emerald-100: var(--btn-primary-hover);
+  --color-emerald-200: var(--ok);
+  --color-emerald-300: var(--ok);
+  --color-emerald-400: var(--ok);
+  --color-emerald-500: var(--ok);
+  --color-emerald-600: var(--ok);
+  --color-emerald-700: var(--ok);
+  --color-emerald-800: var(--ok);
+  --color-emerald-900: var(--text-serif);
+  --color-emerald-950: var(--text-serif);
+
+  --color-green-50: var(--btn-primary-bg);
+  --color-green-100: var(--btn-primary-hover);
+  --color-green-200: var(--ok);
+  --color-green-300: var(--ok);
+  --color-green-400: var(--ok);
+  --color-green-500: var(--ok);
+  --color-green-600: var(--ok);
+  --color-green-700: var(--ok);
+  --color-green-800: var(--ok);
+  --color-green-900: var(--text-serif);
+  --color-green-950: var(--btn-primary-bg);
+
+  /* Harmonized Error / Danger Mappings */
+  --color-rose-50: rgba(168, 72, 72, 0.08);
+  --color-rose-100: rgba(168, 72, 72, 0.14);
+  --color-rose-200: var(--err);
+  --color-rose-300: var(--err);
+  --color-rose-400: var(--err);
+  --color-rose-500: var(--err);
+  --color-rose-600: var(--err);
+  --color-rose-700: var(--err);
+  --color-rose-800: var(--err);
+  --color-rose-900: var(--err);
+  --color-rose-950: rgba(168, 72, 72, 0.12);
+
+  --color-red-50: rgba(168, 72, 72, 0.08);
+  --color-red-100: rgba(168, 72, 72, 0.14);
+  --color-red-200: var(--err);
+  --color-red-300: var(--err);
+  --color-red-400: var(--err);
+  --color-red-500: var(--err);
+  --color-red-600: var(--err);
+  --color-red-700: var(--err);
+  --color-red-800: var(--err);
+  --color-red-900: var(--err);
+  --color-red-950: rgba(168, 72, 72, 0.12);
+  
+  --radius-2xl: 0px;
+  --radius-xl: 0px;
+  --radius-lg: 0px;
+  --radius-md: 0px;
+  --radius-sm: 0px;
+  --radius: 0px;
+}
+
+:root.theme-flat * {
+  border-radius: 0px !important;
+  box-shadow: none !important;
+}
+
+:root.theme-flat body,
+:root.theme-flat #root,
+:root.theme-flat #app-root-container,
+:root.theme-flat .app-shell-root,
+body[data-theme="jinsha"],
+:root[data-theme="jinsha"] body,
+[data-theme="jinsha"] #app-root-container,
+[data-theme="jinsha"] .app-shell-root,
+:root.theme-flat .min-h-screen,
+:root.theme-flat main,
+:root.theme-flat #app-content,
+:root.theme-flat header,
+:root.theme-flat aside,
+:root.theme-flat .theme-gradient-panel {
+  background-color: var(--bg-paper) !important;
+  color: var(--text) !important;
+  background-image: var(--bg-gradient) !important;
+  background-attachment: fixed !important;
+  background-size: cover !important;
+  letter-spacing: 0.3px;
+}
+
+:root.theme-flat .min-h-screen,
+:root.theme-flat #app-content,
+[data-theme="jinsha"] #app-content {
+  background-color: transparent !important;
+}
+
+/* ═════════════════════════════════════════════════════════════
+   扁平风格（Flat Style）一比一复刻：
+   1. 去除上、左、右边框，三边与背景完全融为一体相通
+   2. 仅保留底部的水平分割线样式 (border-bottom)
+   3. 点击/悬停/选中状态：背景颜色显着加深，底线条加粗高亮
+   4. 移除多余的包覆背景方框，使页面内容直接浮于纸张背景之上
+   ═════════════════════════════════════════════════════════════ */
+
+/* 消除子页面与容器外层背景方框（但不影响弹窗浮层与下拉菜单） */
+:root.theme-flat #app-content > div:not(.modal-panel):not(.dropdown-panel):not(.fixed),
+:root.theme-flat #app-content .bg-zinc-50:not(.modal-panel):not(.dropdown-panel),
+:root.theme-flat #app-content .bg-zinc-950:not(.modal-panel):not(.dropdown-panel),
+[data-theme="jinsha"] #app-content > div:not(.modal-panel):not(.dropdown-panel):not(.fixed),
+[data-theme="jinsha"] #app-content .bg-zinc-50:not(.modal-panel):not(.dropdown-panel),
+[data-theme="jinsha"] #app-content .bg-zinc-950:not(.modal-panel):not(.dropdown-panel) {
+  background-color: transparent !important;
+}
+
+/* 通用容器、卡片、块、列表项：三边相通无外框，仅留底分割线 (排除弹窗、对话框、下拉菜单与浮层) */
+:root.theme-flat .flat-card,
+:root.theme-flat .flat-item,
+:root.theme-flat .option-block,
+:root.theme-flat #app-content section .card-item,
+:root.theme-flat #app-content > div > .border:not(.modal-panel):not(.dropdown-panel),
+:root.theme-flat #app-content section .border:not(.modal-panel):not(.dropdown-panel),
+:root.theme-flat #app-content section .rounded-xl:not(.modal-panel):not(.dropdown-panel),
+:root.theme-flat #app-content section .rounded-2xl:not(.modal-panel):not(.dropdown-panel) {
+  border-top: none !important;
+  border-left: none !important;
+  border-right: none !important;
+  border-bottom: 1px solid var(--line) !important;
+  border-radius: 0px !important;
+  box-shadow: none !important;
+  background-color: transparent !important;
+}
+
+/* 所有浮层、弹窗的遮罩大背景强制完全透明，无磨砂无纯色遮挡 */
+.fixed.inset-0:not(.modal-panel):not(.dropdown-panel):not(.modal-card),
+.modal-backdrop,
+.backdrop-transparent,
+div[aria-label="关闭遮罩"] {
+  background-color: transparent !important;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* 核心保护：弹窗卡片本体、下拉菜单保持实体背景与完整边框，但在扁平风格下全部去除圆角 */
+:root.theme-flat .modal-panel,
+:root.theme-flat .dropdown-panel,
+:root.theme-flat .modal-card,
+:root.theme-flat [role="dialog"],
+:root.theme-flat [role="dialog"] > div,
+:root.theme-flat [role="dialog"] .modal-panel,
+:root.theme-flat [role="dialog"] .modal-card,
+:root.theme-flat [role="dialog"] .dropdown-panel,
+:root.theme-flat .bottom-sheet-panel,
+:root.theme-flat [data-design-id*="modal"] {
+  background-color: var(--bg-paper, #ffffff) !important;
+  border: 1px solid var(--line, rgba(0, 0, 0, 0.15)) !important;
+  border-radius: 0 !important; /* 扁平风格下所有弹窗均不带圆角 */
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.25), 0 8px 10px -6px rgba(0, 0, 0, 0.15) !important;
+  opacity: 1 !important;
+}
+
+:root.theme-flat.dark .modal-panel,
+:root.theme-flat.dark .dropdown-panel,
+:root.theme-flat.dark .modal-card,
+:root.theme-flat.dark [role="dialog"],
+:root.theme-flat.dark [role="dialog"] > div,
+:root.theme-flat.dark [role="dialog"] .modal-panel,
+:root.theme-flat.dark [role="dialog"] .modal-card,
+:root.theme-flat.dark [role="dialog"] .dropdown-panel,
+:root.theme-flat.dark .bottom-sheet-panel,
+:root.theme-flat.dark [data-design-id*="modal"] {
+  background-color: #18181b !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  border-radius: 0 !important; /* 扁平风格下所有弹窗均不带圆角 */
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7) !important;
+  opacity: 1 !important;
+}
+
+/* 扁平风格下弹窗内部所有元素无圆角 */
+:root.theme-flat .modal-panel *,
+:root.theme-flat .modal-card *,
+:root.theme-flat [role="dialog"] *,
+:root.theme-flat .dropdown-panel *,
+:root.theme-flat .bottom-sheet-panel * {
+  border-radius: 0 !important;
+}
+
+/* 所有文件详情页样式去除圆角并全面跟随主题 */
+.file-detail-modal,
+.file-detail-modal *,
+:root.theme-flat .file-detail-modal,
+:root.theme-flat.dark .file-detail-modal,
+:root.theme-flat .file-detail-modal *,
+:root.theme-flat.dark .file-detail-modal * {
+  border-radius: 0 !important;
+}
+
+:root.theme-flat .file-detail-modal {
+  background-color: var(--bg-paper, #f3eee8) !important;
+  color: var(--text, #2b3540) !important;
+  border-radius: 0 !important;
+}
+
+:root.theme-flat.dark .file-detail-modal {
+  background-color: #121214 !important;
+  color: #f4f4f5 !important;
+  border-radius: 0 !important;
+}
+
+:root.theme-flat .file-detail-modal header,
+:root.theme-flat .file-detail-modal nav,
+:root.theme-flat .file-detail-modal .border-b,
+:root.theme-flat .file-detail-modal .border-t,
+:root.theme-flat .file-detail-modal .border-r,
+:root.theme-flat .file-detail-modal .border-l {
+  border-color: var(--line, rgba(96, 126, 149, 0.18)) !important;
+}
+
+:root.theme-flat .file-detail-modal .bg-white,
+:root.theme-flat .file-detail-modal .bg-\[\#fafafa\],
+:root.theme-flat .file-detail-modal .bg-zinc-50 {
+  background-color: var(--bg-paper, #f3eee8) !important;
+}
+
+:root.theme-flat.dark .file-detail-modal .bg-white,
+:root.theme-flat.dark .file-detail-modal .bg-\[\#fafafa\],
+:root.theme-flat.dark .file-detail-modal .bg-zinc-900,
+:root.theme-flat.dark .file-detail-modal .bg-\[\#09090b\] {
+  background-color: #18181b !important;
+}
+
+:root.theme-flat .file-detail-modal input,
+:root.theme-flat .file-detail-modal textarea,
+:root.theme-flat .file-detail-modal select {
+  background-color: var(--input-bg, rgba(226, 208, 188, 0.25)) !important;
+  border-color: var(--line, rgba(96, 126, 149, 0.18)) !important;
+  color: var(--text, #2b3540) !important;
+}
+
+:root.theme-flat.dark .file-detail-modal input,
+:root.theme-flat.dark .file-detail-modal textarea,
+:root.theme-flat.dark .file-detail-modal select {
+  background-color: #27272a !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  color: #f4f4f5 !important;
+}
+
+:root.theme-flat .file-detail-modal button:hover {
+  border-color: var(--line-focus, var(--accent)) !important;
+}
+
+:root.theme-flat .modal-panel .modal-header,
+:root.theme-flat .modal-panel .modal-footer,
+:root.theme-flat .dropdown-panel .dropdown-header {
+  background-color: rgba(0, 0, 0, 0.03) !important;
+  border-bottom: 1px solid var(--line, rgba(0, 0, 0, 0.1)) !important;
+}
+
+:root.theme-flat.dark .modal-panel .modal-header,
+:root.theme-flat.dark .modal-panel .modal-footer,
+:root.theme-flat.dark .dropdown-panel .dropdown-header {
+  background-color: rgba(255, 255, 255, 0.04) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+:root.theme-flat .modal-panel input,
+:root.theme-flat .modal-panel textarea,
+:root.theme-flat .dropdown-panel input {
+  background-color: var(--input-bg, #f4f4f5) !important;
+  border: 1px solid var(--line, #e4e4e7) !important;
+  border-radius: 0 !important;
+}
+
+:root.theme-flat.dark .modal-panel input,
+:root.theme-flat.dark .modal-panel textarea,
+:root.theme-flat.dark .dropdown-panel input {
+  background-color: #27272a !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  color: #f4f4f5 !important;
+}
+
+:root.theme-flat .text-white {
+  color: var(--text-serif) !important;
+}
+
+:root.theme-flat .text-zinc-400,
+:root.theme-flat .text-zinc-500 {
+  color: var(--dim) !important;
+}
+
+/* 输入框、文本框、选择框：三边相通，聚焦/选中时背景加深 */
+:root.theme-flat input, 
+:root.theme-flat textarea, 
+:root.theme-flat select {
+  background-color: var(--input-bg) !important;
+  border: none !important;
+  border-bottom: 1px solid var(--line) !important;
+  color: var(--text) !important;
+  border-radius: 0 !important;
+  transition: all 0.2s ease !important;
+}
+
+:root.theme-flat input:focus, 
+:root.theme-flat textarea:focus, 
+:root.theme-flat select:focus {
+  outline: none !important;
+  border-bottom: 2px solid var(--accent) !important;
+  background-color: var(--btn-bg) !important;
+}
+
+/* 按钮、卡片、选项、列表项默认状态与交互 */
+:root.theme-flat button,
+:root.theme-flat .flat-item,
+:root.theme-flat .option-block,
+:root.theme-flat [role="tab"],
+:root.theme-flat [role="button"] {
+  border-top: none !important;
+  border-left: none !important;
+  border-right: none !important;
+  border-bottom: 1.5px solid var(--line, rgba(96, 126, 149, 0.2)) !important;
+  background-color: transparent !important;
+  color: var(--text-serif) !important;
+  outline: none !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  box-shadow: none !important;
+}
+
+:root.theme-flat button:focus,
+:root.theme-flat [role="tab"]:focus,
+:root.theme-flat [role="button"]:focus {
+  outline: none !important;
+}
+
+/* 悬停 (Hover) 与 停留 (Focus-within)：背景颜色加深，底线条加深 */
+:root.theme-flat button:hover,
+:root.theme-flat .flat-item:hover,
+:root.theme-flat .option-block:hover,
+:root.theme-flat [role="tab"]:hover,
+:root.theme-flat [role="button"]:hover {
+  background-color: var(--btn-primary-bg, rgba(96, 126, 149, 0.16)) !important;
+  border-bottom: 2px solid var(--line-focus, rgba(96, 126, 149, 0.5)) !important;
+  border-bottom-color: var(--line-focus, rgba(96, 126, 149, 0.5)) !important;
+  color: var(--accent, #486175) !important;
+}
+
+/* 点击按下/激活 (Active)：背景显著加深，底线变深加粗 */
+:root.theme-flat button:active,
+:root.theme-flat .flat-item:active,
+:root.theme-flat .option-block:active,
+:root.theme-flat [role="tab"]:active,
+:root.theme-flat [role="button"]:active {
+  background-color: var(--btn-primary-hover, rgba(96, 126, 149, 0.32)) !important;
+  border-bottom: 2.5px solid var(--accent, #486175) !important;
+  border-bottom-color: var(--accent, #486175) !important;
+  color: var(--accent, #486175) !important;
+}
+
+/* 选中状态 (Selected / Active) —— 点击选中后背景框显著加深，框下分割线也加深变粗 */
+:root.theme-flat button.active,
+:root.theme-flat button.bg-blue-600,
+:root.theme-flat button.bg-blue-500,
+:root.theme-flat button.btn-primary,
+:root.theme-flat button[data-state="active"],
+:root.theme-flat button[data-active="true"],
+:root.theme-flat button[aria-selected="true"],
+:root.theme-flat button[aria-expanded="true"],
+:root.theme-flat .active,
+:root.theme-flat .selected,
+:root.theme-flat .is-selected,
+:root.theme-flat .tab-active,
+:root.theme-flat [role="tab"][aria-selected="true"],
+:root.theme-flat [data-active="true"] {
+  background-color: var(--btn-primary-hover, rgba(96, 126, 149, 0.26)) !important;
+  color: var(--accent, #486175) !important;
+  border-top: none !important;
+  border-left: none !important;
+  border-right: none !important;
+  border-bottom: 2.5px solid var(--accent, #486175) !important;
+  border-bottom-color: var(--accent, #486175) !important;
+  font-weight: 700 !important;
+}
+
+:root.theme-flat button.active:hover,
+:root.theme-flat .active:hover,
+:root.theme-flat .selected:hover,
+:root.theme-flat [data-active="true"]:hover {
+  background-color: var(--btn-primary-hover, rgba(96, 126, 149, 0.36)) !important;
+  border-bottom: 3px solid var(--accent, #486175) !important;
+  border-bottom-color: var(--accent, #486175) !important;
+}
+
+/* ═════════════════════════════════════════════════════════════
+   多层级全站字体与字号定制系统 (Comprehensive Font & Typography Hierarchy)
+   支持 14+ 细分层级独立定制 (4px ~ 40px, 字体, 颜色, 字重)
+   ═════════════════════════════════════════════════════════════ */
+
+/* 1. 主页系统 */
+/* 第一类标题：欢迎来到工作台 (最大主标题) */
+.hero-title,
+.home-hero-title,
+[data-design-id="home-st-hero-title"],
+[data-design-id="home-mobile-hero-title"],
+[data-design-id*="hero-title"] {
+  font-family: var(--user-font-home-hero, var(--user-font-hero, var(--font-hero, inherit))) !important;
+  font-size: var(--user-size-home-hero, 1.85rem) !important;
+  font-weight: var(--user-weight-home-hero, 900) !important;
+  letter-spacing: -0.025em !important;
+  line-height: 1.2 !important;
+  color: var(--user-color-home-hero, var(--text-serif, #1A232D)) !important;
+}
+
+/* 第二类标题：数字标题 (区块大标题) */
+.main-section-title,
+.home-section-title,
+.home-block-title,
+[data-design-id="home-st-section-title"],
+[data-design-id="home-st-recent-section-title"],
+[data-design-id="home-mobile-section-title"],
+[data-design-id="home-mobile-recent-section-title"],
+[data-design-id="home-tools-section-title"],
+[data-design-id="home-backup-section-title"],
+[data-design-id*="section-title"] {
+  font-family: var(--user-font-home-section, inherit) !important;
+  font-size: var(--user-size-home-section, 1.05rem) !important;
+  font-weight: var(--user-weight-home-section, 700) !important;
+  letter-spacing: 0.01em !important;
+  color: var(--user-color-home-section, var(--text-serif, #1A232D)) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 0.4rem !important;
+  text-align: left !important;
+  line-height: 1.3 !important;
+}
+
+/* 第三类标题：数字标题下条目的小标题 (模块小标题) */
+.home-module-title,
+.sub-item-title,
+[data-design-id*="module-title"],
+[data-design-id*="item-title"],
+.home-stat-card span,
+.home-quick-action-title {
+  font-family: var(--user-font-home-module, inherit) !important;
+  font-size: var(--user-size-home-module, 13px) !important;
+  font-weight: var(--user-weight-home-module, 600) !important;
+  color: var(--user-color-home-module, var(--text-serif, #1A232D)) !important;
+  line-height: 1.3 !important;
+}
+
+/* 主页模块说明正文 */
+.home-module-desc,
+.home-hero-desc,
+.home-desc-text,
+[data-design-id="home-st-hero-desc"],
+[data-design-id="home-mobile-hero-desc"],
+[data-design-id*="hero-desc"],
+.home-module-card p {
+  font-family: var(--user-font-home-desc, inherit) !important;
+  font-size: var(--user-size-home-desc, 11px) !important;
+  font-weight: var(--user-weight-home-desc, 400) !important;
+  color: var(--user-color-home-desc, var(--dim, #647382)) !important;
+  line-height: 1.4 !important;
+}
+
+/* 2. 分界面与列表页顶栏 */
+.page-header-title,
+.section-page-title,
+.section-header-title,
+.subpage-title,
+.sub-interface-banner h2,
+.sub-interface-banner h1,
+.sub-interface-title,
+[data-design-id="sub-interface-title"],
+[data-design-id="section-page-title"],
+[data-design-id*="-header"] h2,
+[data-design-id*="section-header"] h2,
+[data-design-id$="-header-banner"] h1,
+[data-design-id$="-header-banner"] h2,
+.section-header h2,
+.mgmt-header h2 {
+  font-family: var(--user-font-page-title, inherit) !important;
+  font-size: var(--user-size-page-title, 13px) !important;
+  font-weight: var(--user-weight-page-title, 700) !important;
+  color: var(--user-color-page-title, var(--text-serif, #1A232D)) !important;
+  line-height: 1.3 !important;
+}
+
+.header-page-title,
+[data-design-id="header-page-title"] {
+  font-family: var(--user-font-sidebar-menu, var(--user-font-sidebar, var(--font-sidebar, inherit))) !important;
+  font-size: 16px !important;
+  font-weight: 800 !important;
+  color: var(--text-serif, #1A232D) !important;
+  letter-spacing: -0.01em;
+}
+
+.sub-interface-banner p,
+.sub-interface-desc {
+  font-family: var(--user-font-card-body, inherit) !important;
+  font-size: var(--user-size-card-body, 12px) !important;
+  font-weight: var(--user-weight-card-body, 400) !important;
+  color: var(--user-color-card-body, var(--dim, #647382)) !important;
+}
+
+.toolbar-text,
+.mgmt-toolbar-text,
+[data-design-id*="toolbar"],
+[data-design-id*="toolbar"] input,
+[data-design-id*="toolbar"] span,
+[data-design-id*="search"] input,
+.search-bar input,
+.search-input-box input,
+.toolbar-filter-btn,
+.tag-filter-btn,
+.custom-select-trigger,
+.custom-select-trigger span {
+  font-family: var(--user-font-toolbar-text, inherit) !important;
+  font-size: var(--user-size-toolbar-text, 12px) !important;
+  font-weight: var(--user-weight-toolbar-text, 500) !important;
+  color: var(--user-color-toolbar-text, inherit) !important;
+}
+
+/* 分界面的分组展示按键字号紧凑化微调 */
+.group-category-container,
+.group-category-bar,
+[data-design-id*="group-bar"],
+[data-design-id*="group-category"] {
+  font-size: 9.5px !important;
+}
+
+.group-category-container button,
+.group-category-container span,
+.group-category-bar button,
+.group-category-bar span,
+.group-category-btn,
+.category-filter-btn {
+  font-size: 9.5px !important;
+  line-height: 1.15 !important;
+}
+
+.group-category-container button span.opacity-70,
+.group-category-container button span.opacity-75,
+.group-category-bar button span.opacity-70,
+.group-category-bar button span.opacity-75 {
+  font-size: 8.5px !important;
+}
+
+.card-title,
+.character-card-title,
+.sub-block-card h3,
+.entry-card-title,
+.worldbook-card-title,
+.regex-card-title,
+.script-card-title,
+.plugin-card-title,
+.chat-log-title,
+.persona-name,
+.preset-name,
+.theme-name,
+[data-design-id*="card"] h3 {
+  font-family: var(--user-font-card-title, inherit) !important;
+  font-size: var(--user-size-card-title, 14px) !important;
+  font-weight: var(--user-weight-card-title, 600) !important;
+  color: var(--user-color-card-title, var(--text-serif, #1A232D)) !important;
+}
+
+.card-body-text,
+.card-desc-text,
+.sub-block-card p:not(.code-mono-text),
+.character-card p,
+.entry-card-desc,
+.worldbook-card-desc,
+.regex-card-desc,
+.script-card-desc,
+.plugin-card-desc,
+.chat-log-desc,
+.persona-desc,
+.preset-desc,
+.theme-desc {
+  font-family: var(--user-font-card-body, inherit) !important;
+  font-size: var(--user-size-card-body, 12px) !important;
+  font-weight: var(--user-weight-card-body, 400) !important;
+  color: var(--user-color-card-body, var(--dim, #647382)) !important;
+}
+
+/* 3. 详情弹窗与编辑 */
+.modal-main-title,
+.modal-title,
+[data-design-id*="modal"] h2,
+[data-design-id*="modal"] h3.modal-title,
+[data-design-id="card-detail-header"] h2,
+[data-design-id*="modal-header"] h2,
+[data-design-id*="modal-header"] h3,
+.modal-panel h2,
+.modal-panel h3,
+.modal-card h2,
+.modal-card h3,
+.dialog-header h2,
+.dialog-header h3 {
+  font-family: var(--user-font-modal-title, inherit) !important;
+  font-size: var(--user-size-modal-title, 13px) !important;
+  font-weight: var(--user-weight-modal-title, 700) !important;
+  color: var(--user-color-modal-title, var(--text-serif, #1A232D)) !important;
+  line-height: 1.3 !important;
+}
+
+/* 暂存处弹窗标题字号紧凑重置 (避免被全局 modal h3 覆盖) */
+[data-design-id="staging-vault-modal-panel"] h2,
+[data-design-id="staging-vault-modal-panel"] h3,
+[data-design-id="staging-vault-modal-panel"] h4,
+[data-design-id="staging-vault-header"] h3,
+.staging-vault-modal-title {
+  font-size: 13px !important;
+  line-height: 1.3 !important;
+}
+
+.modal-section-subtitle,
+.modal-subtitle,
+[data-design-id*="modal"] label,
+[data-design-id*="detail"] label,
+.modal-panel label,
+.modal-card label,
+[data-design-id="card-detail-modal"] label,
+.modal-section-title,
+.modal-form-label,
+.form-section-title {
+  font-family: var(--user-font-modal-subtitle, inherit) !important;
+  font-size: var(--user-size-modal-subtitle, 11.5px) !important;
+  font-weight: var(--user-weight-modal-subtitle, 600) !important;
+  color: var(--user-color-modal-subtitle, var(--text-serif, #1A232D)) !important;
+}
+
+.modal-content-body,
+.modal-longtext-body,
+[data-design-id*="modal"] textarea:not(.font-mono):not(code),
+[data-design-id*="modal"] input:not([type="checkbox"]):not([type="radio"]):not(.font-mono),
+[data-design-id*="modal"] .modal-text-content,
+.modal-panel textarea:not(.font-mono):not(code),
+.modal-panel input:not([type="checkbox"]):not([type="radio"]):not(.font-mono),
+[data-design-id="card-detail-modal"] textarea:not(.font-mono):not(code),
+.modal-body p:not(.modal-meta-text) {
+  font-family: var(--user-font-modal-body, inherit) !important;
+  font-size: var(--user-size-modal-body, 11.5px) !important;
+  font-weight: var(--user-weight-modal-body, 400) !important;
+  color: var(--user-color-modal-body, var(--text, #2B3540)) !important;
+  line-height: 1.45 !important;
+}
+
+.modal-meta-text,
+.modal-help-text,
+.modal-meta,
+[data-design-id*="modal"] .token-count,
+[data-design-id*="modal"] .char-count,
+.token-stat-badge,
+.modal-helper-text,
+.meta-stat-pill,
+.modal-token-stat {
+  font-family: var(--user-font-modal-meta, inherit) !important;
+  font-size: var(--user-size-modal-meta, 10px) !important;
+  font-weight: var(--user-weight-modal-meta, 400) !important;
+  color: var(--user-color-modal-meta, var(--dim, #647382)) !important;
+}
+
+/* 详情页专用字号紧凑规则 */
+.file-detail-modal,
+[data-design-id="card-detail-modal"],
+[data-design-id="normal-card-detail-modal"] {
+  font-size: 11.5px !important;
+}
+
+.file-detail-modal h2,
+.file-detail-modal h3,
+.file-detail-modal h4,
+[data-design-id="card-detail-modal"] h2,
+[data-design-id="card-detail-modal"] h3,
+[data-design-id="normal-card-detail-modal"] h2,
+[data-design-id="normal-card-detail-modal"] h3 {
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  line-height: 1.3 !important;
+}
+
+.file-detail-modal label,
+[data-design-id="card-detail-modal"] label,
+[data-design-id="normal-card-detail-modal"] label {
+  font-size: 10.5px !important;
+  font-weight: 600 !important;
+  line-height: 1.25 !important;
+}
+
+.file-detail-modal input:not([type="checkbox"]):not([type="radio"]),
+.file-detail-modal textarea,
+.file-detail-modal select,
+[data-design-id="card-detail-modal"] input:not([type="checkbox"]):not([type="radio"]),
+[data-design-id="card-detail-modal"] textarea,
+[data-design-id="normal-card-detail-modal"] input:not([type="checkbox"]):not([type="radio"]),
+[data-design-id="normal-card-detail-modal"] textarea {
+  font-size: 11.5px !important;
+  line-height: 1.45 !important;
+}
+
+.file-detail-modal [data-design-id="card-detail-tabbar"] button,
+.file-detail-modal .tab-nav-bar button,
+[data-design-id="card-detail-modal"] [data-design-id="card-detail-tabbar"] button {
+  font-size: 10px !important;
+  line-height: 1.2 !important;
+}
+
+/* 分组与标签管理弹窗字号紧凑重置 */
+.group-tag-manager-modal,
+[data-design-id="group-tag-manager-modal"] {
+  font-size: 11px !important;
+}
+
+.group-tag-manager-modal h2,
+.group-tag-manager-modal h3,
+[data-design-id="group-tag-manager-modal"] h2,
+[data-design-id="group-tag-manager-modal"] h3 {
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  line-height: 1.3 !important;
+}
+
+.group-tag-manager-modal .tab-nav-bar button,
+.group-tag-manager-modal button,
+.group-tag-manager-modal input,
+.group-tag-manager-modal label,
+[data-design-id="group-tag-manager-modal"] button,
+[data-design-id="group-tag-manager-modal"] input,
+[data-design-id="group-tag-manager-modal"] label {
+  font-size: 11px !important;
+}
+
+.group-tag-manager-modal .item-badge,
+.group-tag-manager-modal .item-count,
+[data-design-id="group-tag-manager-modal"] .item-badge,
+[data-design-id="group-tag-manager-modal"] .item-count {
+  font-size: 9px !important;
+}
+
+/* 4. 导航系统与顶栏 Tab */
+.horizontal-nav-tab,
+.home-top-tab-btn,
+.tab-nav-btn,
+.horizontal-tab,
+.category-tab-btn,
+.reader-tab-btn,
+.theme-tab-btn,
+[data-design-id="settings-tab-bar"] button,
+[data-design-id="home-category-st-btn"],
+[data-design-id="home-category-mobile-btn"],
+[data-design-id*="tabbar"] button,
+[data-design-id="card-detail-tabbar"] button {
+  font-family: var(--user-font-sidebar-menu, var(--user-font-sidebar, var(--user-font-nav-tabs, var(--font-sidebar, inherit)))) !important;
+  font-size: var(--user-size-sidebar-menu, var(--user-size-nav-tabs, 13px)) !important;
+  font-weight: var(--user-weight-sidebar-menu, var(--user-weight-nav-tabs, 600)) !important;
+  color: var(--user-color-nav-tabs, inherit) !important;
+}
+
+.sidebar-toolbox-title,
+[data-design-id="sidebar-header"] h2,
+[data-design-id="sidebar-toolbox-title"] {
+  font-family: var(--user-font-sidebar-menu, var(--user-font-sidebar, var(--font-sidebar, inherit))) !important;
+  font-size: calc(var(--user-size-sidebar-menu, 13px) + 2px) !important;
+  font-weight: 700 !important;
+  color: var(--dim, #647382) !important;
+  letter-spacing: 0.1em !important;
+}
+
+.sidebar-menu-item,
+.nav-item,
+[data-design-id="app-sidebar"] .nav-item,
+[data-design-id="app-sidebar"] .nav-item span,
+[data-design-id="sidebar-nav-list"] button,
+[data-design-id="sidebar-nav-list"] span {
+  font-family: var(--user-font-sidebar-menu, var(--user-font-sidebar, var(--font-sidebar, inherit))) !important;
+  font-size: var(--user-size-sidebar-menu, 13px) !important;
+  font-weight: var(--user-weight-sidebar-menu, 500) !important;
+  color: var(--user-color-sidebar-menu, inherit) !important;
+}
+
+.sidebar-footer-btn,
+[data-design-id="sidebar-footer"],
+[data-design-id="sidebar-footer"] button,
+[data-design-id="sidebar-footer"] span,
+[data-design-id="sidebar-footer"] .sidebar-footer-btn {
+  font-family: var(--user-font-sidebar-footer, var(--user-font-sidebar, var(--font-sidebar, inherit))) !important;
+  font-size: var(--user-size-sidebar-footer, 11px) !important;
+  font-weight: var(--user-weight-sidebar-footer, 500) !important;
+  color: var(--user-color-sidebar-footer, inherit) !important;
+}
+
+/* 5. 按钮与徽章系统 */
+.btn-primary-cta,
+button[data-variant="primary"],
+.base-button-primary,
+button.btn-primary,
+.home-gacha-btn,
+[data-design-id*="confirm-btn"],
+button[data-design-id*="primary-btn"],
+.sub-interface-banner button:first-of-type,
+.sub-interface-banner button[title*="导入"],
+button.primary-action-btn {
+  font-family: var(--user-font-btn-primary, inherit) !important;
+  font-size: var(--user-size-btn-primary, 13px) !important;
+  font-weight: var(--user-weight-btn-primary, 700) !important;
+  color: var(--user-color-btn-primary, inherit) !important;
+}
+
+.btn-secondary-action,
+button[data-variant="secondary"],
+button[data-variant="outline"],
+button[data-variant="ghost"],
+.base-button-secondary,
+.base-button-outline,
+.base-button-ghost,
+.sub-interface-banner button,
+.sub-interface-banner button span,
+.batch-btn,
+.batch-btn span,
+.batch-floating-card button,
+.batch-floating-card button span,
+.toolbar-filter-btn,
+.tag-filter-btn,
+.custom-select-trigger,
+.custom-select-trigger span,
+button.action-btn,
+button.card-action-btn,
+.card-actions button {
+  font-family: var(--user-font-btn-secondary, inherit) !important;
+  font-size: var(--user-size-btn-secondary, 12px) !important;
+  font-weight: var(--user-weight-btn-secondary, 500) !important;
+  color: var(--user-color-btn-secondary, inherit) !important;
+}
+
+.btn-danger-action,
+button[data-variant="danger"],
+.base-button-danger,
+button[data-design-id*="delete"],
+button.btn-danger,
+.batch-floating-card button.btn-danger,
+.danger-action-btn {
+  font-family: var(--user-font-btn-danger, inherit) !important;
+  font-size: var(--user-size-btn-danger, 12px) !important;
+  font-weight: var(--user-weight-btn-danger, 600) !important;
+  color: var(--user-color-btn-danger, inherit) !important;
+}
+
+.badge-tag-text,
+.base-badge,
+[data-component="badge"],
+.header-tag,
+.sub-interface-banner .header-tag,
+.tag-badge,
+.home-module-tag,
+.version-badge,
+.tag-editor-badge,
+.group-badge {
+  font-family: var(--user-font-badge-tag, inherit) !important;
+  font-size: var(--user-size-badge-tag, 10px) !important;
+  font-weight: var(--user-weight-badge-tag, 600) !important;
+  color: var(--user-color-badge-tag, inherit) !important;
+}
+
+/* 6. 代码与特殊文本 */
+.code-mono-text,
+code,
+pre,
+.font-mono,
+textarea.font-mono,
+input.font-mono,
+.regex-pattern-text,
+[data-design-id*="code"],
+.json-viewer {
+  font-family: var(--user-font-mono-code, var(--user-font-mono, var(--system-font-mono, monospace))) !important;
+  font-size: var(--user-size-mono-code, 12px) !important;
+  color: var(--user-color-mono-code, inherit) !important;
+}
+
+/* 序号印章与序号徽章图标 (清晰无方块乱码) */
+.section-index-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 1.5rem !important;
+  height: 1.5rem !important;
+  border-radius: 6px !important;
+  background-color: var(--btn-primary-bg, rgba(217, 119, 6, 0.12)) !important;
+  color: var(--accent, #D97706) !important;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+  font-size: 0.8rem !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+  border: 1px solid var(--accent, rgba(217, 119, 6, 0.3)) !important;
+  flex-shrink: 0 !important;
+  user-select: none !important;
+}
+
+:root.theme-flat .section-index-badge {
+  border-radius: 0 !important;
+}
+
+/* Header 顶部导航栏与按钮：只改变图标/文字颜色，不改变背景和底栏线 */
+:root.theme-flat header button,
+header button {
+  border: none !important;
+  border-top: none !important;
+  border-left: none !important;
+  border-right: none !important;
+  border-bottom: none !important;
+  background-color: transparent !important;
+  background: transparent !important;
+  color: var(--text-serif, #1A232D) !important;
+  box-shadow: none !important;
+  transition: color 0.15s ease !important;
+}
+
+:root.theme-flat header button svg,
+header button svg {
+  color: inherit;
+  transition: color 0.15s ease !important;
+}
+
+:root.theme-flat header button:hover,
+header button:hover {
+  background-color: transparent !important;
+  background: transparent !important;
+  border: none !important;
+  border-bottom: none !important;
+  border-bottom-color: transparent !important;
+  box-shadow: none !important;
+  color: var(--accent, #486175) !important;
+}
+
+:root.theme-flat header button:hover svg,
+header button:hover svg {
+  color: var(--accent, #486175) !important;
+}
+
+:root.theme-flat header button:active,
+header button:active {
+  background-color: transparent !important;
+  background: transparent !important;
+  border: none !important;
+  border-bottom: none !important;
+  border-bottom-color: transparent !important;
+  box-shadow: none !important;
+  color: var(--accent, #486175) !important;
+}
+
+:root.theme-flat header button:active svg,
+header button:active svg {
+  color: var(--accent, #486175) !important;
+}
+
+:root.theme-flat header button.active,
+:root.theme-flat header button[data-active="true"],
+header button.active,
+header button[data-active="true"] {
+  background-color: transparent !important;
+  background: transparent !important;
+  border: none !important;
+  border-bottom: none !important;
+  border-bottom-color: transparent !important;
+  box-shadow: none !important;
+  color: var(--accent, #486175) !important;
+  font-weight: 700 !important;
+}
+
+:root.theme-flat header button.active svg,
+:root.theme-flat header button[data-active="true"] svg,
+header button.active svg,
+header button[data-active="true"] svg {
+  color: var(--accent, #486175) !important;
+}
+
+/* 侧边栏及导航项 (Aside & Nav Items) */
+:root.theme-flat .theme-stat-card {
+  background-image: linear-gradient(var(--line), var(--line)), var(--bg-gradient) !important;
+  background-attachment: scroll, fixed !important;
+  background-position: top left, top left !important;
+  background-size: 100% 100%, cover !important;
+  background-color: transparent !important;
+  border: 1px solid var(--line-soft) !important;
+  box-shadow: none !important;
+}
+
+/* 修正扁平主题下，工具栏 Select 外层 div 的边框重复问题 */
+:root.theme-flat .flex.items-center.gap-1\.5.bg-white.border.rounded-lg,
+:root.theme-flat .flex.items-center.gap-1\.5.bg-white.dark\:bg-zinc-900.border {
+  border: none !important;
+  background-color: transparent !important;
+}
+:root.theme-flat select {
+  height: 100% !important;
+}
+
+/* 紧凑型标签和分组高度限制 (确保自由标签和分组名标签紧凑不占过高空间) */
+.tag-chip,
+.group-tab-chip,
+[data-size="xs"],
+button[data-size="xs"],
+button.tag-chip,
+button.group-tab-chip,
+span.leading-tight.rounded,
+:root.theme-flat button[data-size="xs"],
+:root.theme-flat .tag-chip,
+:root.theme-flat .group-tab-chip {
+  min-height: 0 !important;
+  height: auto !important;
+  line-height: 1.2 !important;
+  padding-top: 2px !important;
+  padding-bottom: 2px !important;
+}
+
+/* 针对标签编辑栏和分组标签栏中的按钮高度进行强制紧凑压缩 */
+.tag-nav-bar button,
+.file-detail-modal .tag-nav-bar button {
+  min-height: 0 !important;
+}
+
+/* 标签列表中的删除/添加小按钮不继承大边距 */
+button.shrink-0.p-0\.5,
+button.shrink-0.p-1,
+button.shrink-0.p-1\.5 {
+  min-height: 0 !important;
+  padding-top: 2px !important;
+  padding-bottom: 2px !important;
+}
+
+/* 主页模块跳转标签卡片样式：去除背景，只保留底栏线，去除上左右边框与圆角，悬停动态改变下划线、图标与文字颜色 */
+.home-jump-card,
+:root.theme-flat .home-jump-card,
+:root.theme-flat.dark .home-jump-card {
+  background: transparent !important;
+  background-color: transparent !important;
+  border-top: none !important;
+  border-left: none !important;
+  border-right: none !important;
+  border-bottom: 1px solid var(--line, rgba(96, 126, 149, 0.18)) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.home-jump-card:hover,
+:root.theme-flat .home-jump-card:hover,
+:root.theme-flat.dark .home-jump-card:hover {
+  background: transparent !important;
+  background-color: transparent !important;
+  border-bottom: 2px solid var(--accent, #607e95) !important;
+}
+
+/* 悬停时动态改变标题、图标和文字颜色 */
+.home-jump-card:hover h3,
+:root.theme-flat .home-jump-card:hover h3,
+.home-jump-card:hover .home-jump-title {
+  color: var(--accent, #3b82f6) !important;
+}
+
+.home-jump-card:hover .home-jump-icon-box,
+:root.theme-flat .home-jump-card:hover .home-jump-icon-box {
+  background-color: var(--btn-primary-bg, rgba(96, 126, 149, 0.15)) !important;
+  color: var(--accent, #3b82f6) !important;
+  transform: scale(1.08);
+  transition: all 0.25s ease !important;
+}
+
+.home-jump-card:hover .home-jump-icon-box svg,
+:root.theme-flat .home-jump-card:hover .home-jump-icon-box svg,
+.home-jump-card:hover .home-jump-action-arrow,
+:root.theme-flat .home-jump-card:hover .home-jump-action-arrow {
+  color: var(--accent, #3b82f6) !important;
+}
+
+.home-jump-card:hover .home-jump-action-text,
+:root.theme-flat .home-jump-card:hover .home-jump-action-text {
+  color: var(--accent, #3b82f6) !important;
+}
+
+html.dark:not(.theme-flat) .home-jump-card {
+  border-bottom-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+:root.theme-flat .home-jump-card .border-t,
+.home-jump-card .border-t {
+  border-top: 1px solid var(--line-soft, rgba(96, 126, 149, 0.09)) !important;
+}
+
+/* 所有标签页导航栏背景渐变，并和主题色系保持一致 */
+.tab-nav-bar,
+:root.theme-flat .tab-nav-bar,
+.file-detail-modal .tab-nav-bar,
+:root.theme-flat .file-detail-modal .tab-nav-bar {
+  background: var(--tab-bg-gradient, linear-gradient(90deg, #f8f9fa 0%, #f1f3f5 50%, #ffffff 100%)) !important;
+  background-color: transparent !important;
+  border-bottom: 1px solid var(--line, rgba(96, 126, 149, 0.18)) !important;
+}
+
+html.dark:not(.theme-flat) .tab-nav-bar,
+html.dark:not(.theme-flat) .file-detail-modal .tab-nav-bar {
+  background: linear-gradient(90deg, rgba(39, 39, 42, 0.7) 0%, rgba(24, 24, 27, 0.85) 100%) !important;
+  border-bottom-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+:root.theme-flat .tab-nav-bar button,
+:root.theme-flat .file-detail-modal .tab-nav-bar button {
+  transition: all 0.2s ease;
+}
+
+:root.theme-flat .tab-nav-bar button:hover,
+:root.theme-flat .file-detail-modal .tab-nav-bar button:hover {
+  color: var(--text-serif, var(--text)) !important;
+}
+
+:root.theme-flat .tab-nav-bar button.border-zinc-900,
+:root.theme-flat .tab-nav-bar button.dark\:border-zinc-100,
+:root.theme-flat .file-detail-modal .tab-nav-bar button.border-zinc-900,
+:root.theme-flat .file-detail-modal .tab-nav-bar button.dark\:border-zinc-100 {
+  border-bottom-color: var(--accent) !important;
+  color: var(--accent) !important;
+}
+
+/* 详情页内中可上下滑动的区域，背景设置为主题跟随纯色 */
+.file-detail-modal,
+.file-detail-modal .overflow-y-auto,
+.file-detail-modal .file-detail-body,
+.file-detail-modal > .flex-1.overflow-y-auto,
+:root.theme-flat .file-detail-modal,
+:root.theme-flat .file-detail-modal .overflow-y-auto,
+:root.theme-flat .file-detail-modal .file-detail-body,
+:root.theme-flat .file-detail-modal > .flex-1.overflow-y-auto,
+[data-theme] .file-detail-modal,
+[data-theme] .file-detail-modal .overflow-y-auto,
+[data-theme] .file-detail-modal .file-detail-body,
+[data-theme] .file-detail-modal > .flex-1.overflow-y-auto {
+  background: var(--card-solid-bg) !important;
+  background-color: var(--card-solid-bg) !important;
+  background-image: none !important;
+}
+
+/* 详情页顶栏与底栏颜色一致 */
+.file-detail-modal [data-design-id="card-detail-header"],
+.file-detail-modal [data-design-id="card-detail-footer"],
+:root.theme-flat .file-detail-modal [data-design-id="card-detail-header"],
+:root.theme-flat .file-detail-modal [data-design-id="card-detail-footer"],
+[data-theme] .file-detail-modal [data-design-id="card-detail-header"],
+[data-theme] .file-detail-modal [data-design-id="card-detail-footer"] {
+  background: var(--modal-bar-bg) !important;
+  background-color: var(--modal-bar-bg) !important;
+  background-image: none !important;
+  border-color: var(--line) !important;
+}
+
+/* 详情页顶栏高度压缩与微调 */
+.file-detail-modal [data-design-id="card-detail-header"],
+:root.theme-flat .file-detail-modal [data-design-id="card-detail-header"],
+[data-theme] .file-detail-modal [data-design-id="card-detail-header"] {
+  padding-top: 4px !important;
+  padding-bottom: 4px !important;
+}
+
+/* 详情页底栏按钮尺寸压缩与微调 */
+.file-detail-modal [data-design-id="card-detail-footer"] button,
+:root.theme-flat .file-detail-modal [data-design-id="card-detail-footer"] button,
+[data-theme] .file-detail-modal [data-design-id="card-detail-footer"] button {
+  min-height: 24px !important;
+  max-height: 26px !important;
+  font-size: 9px !important;
+  padding-top: 2px !important;
+  padding-bottom: 2px !important;
+  padding-left: 8px !important;
+  padding-right: 8px !important;
+  border-radius: 0px !important;
+  line-height: 1 !important;
+}
+
+/* 详情页滑动导航栏：相近的渐变背景 */
+.file-detail-modal .tab-nav-bar,
+.file-detail-modal [data-design-id="card-detail-tabbar"],
+:root.theme-flat .file-detail-modal .tab-nav-bar,
+:root.theme-flat .file-detail-modal [data-design-id="card-detail-tabbar"],
+[data-theme] .file-detail-modal .tab-nav-bar,
+[data-theme] .file-detail-modal [data-design-id="card-detail-tabbar"] {
+  background: var(--detail-tabbar-gradient) !important;
+  background-image: var(--detail-tabbar-gradient) !important;
+  border-bottom: 1px solid var(--line) !important;
+}
+
+/* 详情页内卡片、输入框、文本跟随主题色系 */
+.file-detail-modal input,
+.file-detail-modal textarea,
+.file-detail-modal select,
+:root.theme-flat .file-detail-modal input,
+:root.theme-flat .file-detail-modal textarea,
+:root.theme-flat .file-detail-modal select,
+[data-theme] .file-detail-modal input,
+[data-theme] .file-detail-modal textarea,
+[data-theme] .file-detail-modal select {
+  background-color: var(--input-bg) !important;
+  border-color: var(--line) !important;
+  color: var(--text) !important;
+  border-radius: 0px !important;
+}
+
+.file-detail-modal input:focus,
+.file-detail-modal textarea:focus,
+.file-detail-modal select:focus {
+  border-color: var(--line-focus) !important;
+  outline: none !important;
+}
+
+/* 详情页内部各类展示卡片统一跟随卡片纯色背景与边框 */
+.file-detail-modal [data-design-id="card-detail-overview-grid"] > div,
+.file-detail-modal .bg-white,
+.file-detail-modal .dark\:bg-zinc-900,
+.file-detail-modal .bg-zinc-100,
+.file-detail-modal .dark\:bg-zinc-800,
+:root.theme-flat .file-detail-modal .bg-white,
+:root.theme-flat .file-detail-modal .dark\:bg-zinc-900,
+[data-theme] .file-detail-modal .bg-white,
+[data-theme] .file-detail-modal .dark\:bg-zinc-900 {
+  background-color: var(--card-solid-bg) !important;
+  border-color: var(--line) !important;
+  color: var(--text) !important;
+  border-radius: 0px !important;
+}
+
+.file-detail-modal h2,
+.file-detail-modal h3,
+.file-detail-modal h4 {
+  color: var(--text-serif) !important;
+}
+
+/* 统一全局弹窗面板的实色纯色与去背景图 */
+.modal-panel,
+.modal-card,
+:root.theme-flat .modal-panel,
+:root.theme-flat .modal-card,
+[data-theme] .modal-panel,
+[data-theme] .modal-card {
+  background: var(--modal-solid-bg, var(--card-solid-bg)) !important;
+  background-color: var(--modal-solid-bg, var(--card-solid-bg)) !important;
+  background-image: none !important;
+  border-color: var(--line) !important;
+}
+
+/* 放置分组界面卡片的背景跟随主题样式色系：纯色背景，去边框，去圆角 */
+.group-category-container,
+:root.theme-flat .group-category-container,
+[data-theme] .group-category-container {
+  background: var(--group-card-bg) !important;
+  background-color: var(--group-card-bg) !important;
+  background-image: none !important;
+  border: none !important;
+  border-radius: 0px !important;
+  box-shadow: none !important;
+}
+
+/* 条目卡面背景纯色，跟随当前主题色系 */
+.sub-block-card,
+:root.theme-flat .sub-block-card,
+[data-theme] .sub-block-card {
+  background: var(--card-solid-bg) !important;
+  background-color: var(--card-solid-bg) !important;
+  background-image: none !important;
+  border: none !important;
+  border-radius: 0px !important;
+  box-shadow: none !important;
+}
+
+.jump-target-card,
+:root.theme-flat .jump-target-card,
+[data-theme] .jump-target-card {
+  background: var(--card-solid-bg) !important;
+  background-color: var(--card-solid-bg) !important;
+  background-image: none !important;
+  border: none !important;
+  border-radius: 0px !important;
+  box-shadow: none !important;
+}
+
+/* 选择操作栏背景跟随主题纯色，且铺满操作栏区域 */
+.batch-action-bar-wrapper,
+:root.theme-flat .batch-action-bar-wrapper,
+[data-theme] .batch-action-bar-wrapper {
+  background: var(--group-card-bg) !important;
+  background-color: var(--group-card-bg) !important;
+  background-image: none !important;
+  width: 100% !important;
+}
+
+.batch-action-bar,
+:root.theme-flat .batch-action-bar,
+[data-theme] .batch-action-bar {
+  background: var(--group-card-bg) !important;
+  background-color: var(--group-card-bg) !important;
+  background-image: none !important;
+  width: 100% !important;
+  border-top: none !important;
+  border-left: none !important;
+  border-right: none !important;
+  border-bottom: 1px solid var(--line, rgba(140, 47, 45, 0.18)) !important;
+  border-radius: 0px !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06) !important;
+}
+
+/* ═════════════════════════════════════════════════════════════
+   阶段三：统一微动效与多端交互响应式体验规范
+   ═════════════════════════════════════════════════════════════ */
+
+@keyframes cardEntrance {
+  0% {
+    opacity: 0;
+    transform: translateY(8px) scale(0.99);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes batchToolbarSlide {
+  0% {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes tabFadeSwitch {
+  0% {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.card-item, .flat-card {
+  animation: cardEntrance 0.22s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.batch-action-bar {
+  animation: batchToolbarSlide 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* 批量操作栏全覆盖与直接悬浮：背景使用页面大背景渐变色，去除边框圆角，仅留底线 */
+.batch-action-bar,
+:root.theme-flat .batch-action-bar,
+[data-theme="jinsha"] .batch-action-bar {
+  background: var(--bg-gradient) !important;
+  border-top: none !important;
+  border-left: none !important;
+  border-right: none !important;
+  border-bottom: 1px solid var(--line, rgba(140, 47, 45, 0.18)) !important;
+  border-radius: 0px !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* 批量操作栏按键：跟其他按键一样样式，去除边框，去除圆角，需要底线 */
+.batch-action-bar button,
+:root.theme-flat .batch-action-bar button,
+[data-theme="jinsha"] .batch-action-bar button {
+  border-top: none !important;
+  border-left: none !important;
+  border-right: none !important;
+  border-radius: 0px !important;
+  box-shadow: none !important;
+  opacity: 1 !important;
+  border-bottom: 1px solid var(--line-focus, #9B8778) !important;
+  background-color: transparent !important;
+  color: var(--text, #3E3A39) !important;
+}
+
+.batch-action-bar button.action-primary,
+.batch-action-bar button[data-action-primary="true"] {
+  border-bottom: 2px solid var(--accent, #8C2F2D) !important;
+  background-color: var(--btn-primary-bg, rgba(140, 47, 45, 0.1)) !important;
+  color: var(--accent, #8C2F2D) !important;
+  font-weight: 600 !important;
+}
+
+.batch-action-bar button:hover,
+:root.theme-flat .batch-action-bar button:hover,
+[data-theme="jinsha"] .batch-action-bar button:hover {
+  background-color: var(--btn-primary-bg, rgba(140, 47, 45, 0.15)) !important;
+  filter: none !important;
+}
+
+/* 分组导航栏容器跟随主题色系：纯色背景，去边框，去圆角 */
+.group-category-container,
+:root.theme-flat .group-category-container,
+[data-theme] .group-category-container {
+  background-color: var(--group-card-bg, #EBE4DA) !important;
+  border: none !important;
+  border-radius: 0px !important;
+  box-shadow: none !important;
+}
+
+.dark .group-category-container,
+.dark[data-theme] .group-category-container,
+body.dark[data-theme] .group-category-container {
+  background-color: var(--group-card-bg, #1B2128) !important;
+  border: none !important;
+  border-radius: 0px !important;
+  box-shadow: none !important;
+}
+
+/* 主页面板块三通用辅助工具跳转卡片：从主题色系中选择合适的纯色作为背景，去边框，去圆角 */
+.home-general-tool-card,
+[data-design-id^="home-general-tool-"] {
+  background-color: var(--jump-card-bg, #EBE2D5) !important;
+  border: none !important;
+  border-radius: 0px !important;
+  box-shadow: none !important;
+}
+
+.home-general-tool-card:hover,
+[data-design-id^="home-general-tool-"]:hover {
+  background-color: var(--btn-primary-hover, rgba(140, 47, 45, 0.22)) !important;
+  border: none !important;
+}
+
+.dark .home-general-tool-card,
+.dark [data-design-id^="home-general-tool-"],
+.dark[data-theme] .home-general-tool-card,
+.dark[data-theme] [data-design-id^="home-general-tool-"] {
+  background-color: var(--jump-card-bg, #2B2423) !important;
+  border: none !important;
+  border-radius: 0px !important;
+}
+
+/* 角色卡分界面卡片：无边框纯色卡片，去圆角 */
+:root.theme-flat .sub-block-card,
+[data-theme] .sub-block-card,
+.sub-block-card {
+  border: none !important;
+  border-radius: 0px !important;
+  background-color: var(--card-solid-bg, #E8EAEB) !important;
+  box-shadow: none !important;
+}
+
+.dark .sub-block-card,
+.dark[data-theme] .sub-block-card,
+body.dark .sub-block-card {
+  background-color: var(--card-solid-bg, #242C35) !important;
+  border: none !important;
+  border-radius: 0px !important;
+  box-shadow: none !important;
+}
+
+/* 悬浮操作栏卡片：使用对应主题背景多色渐变（渲染方向不同），无边框，无圆角，上下5px左右8px紧凑内边距，悬浮柔和阴影 */
+.batch-floating-card {
+  padding: 5px 8px !important;
+  background: var(--batch-bar-bg, linear-gradient(135deg, #CFDCE5 0%, #E2D7CC 48%, #CBD3DA 100%)) !important;
+  border: 1px solid var(--line-focus, rgba(96, 126, 149, 0.25)) !important;
+  border-bottom: 2px solid var(--accent, #607E95) !important;
+  border-radius: 0px !important;
+  box-shadow: 0 4px 14px -2px rgba(0, 0, 0, 0.12), 0 2px 5px -1px rgba(0, 0, 0, 0.08) !important;
+}
+
+.dark .batch-floating-card,
+[data-theme="dark"] .batch-floating-card {
+  padding: 5px 8px !important;
+  background: var(--batch-bar-bg, linear-gradient(135deg, #1A232D 0%, #263442 50%, #1E2833 100%)) !important;
+  border: 1px solid var(--line-focus, rgba(96, 126, 149, 0.35)) !important;
+  border-bottom: 2px solid var(--accent, #607E95) !important;
+  border-radius: 0px !important;
+  box-shadow: 0 6px 18px -2px rgba(0, 0, 0, 0.45), 0 2px 6px -1px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* 选择操作栏按钮与按键动态：压缩高度与字号，背景加深，底线加深加粗 */
+.batch-btn {
+  height: 22px;
+  padding: 0 7px;
+  font-size: 10px;
+  font-weight: 500;
+  border-radius: 0 !important;
+  border-top: none !important;
+  border-left: none !important;
+  border-right: none !important;
+  border-bottom: 1.5px solid var(--line-focus, #9B8778) !important;
+  background-color: var(--btn-bg, rgba(209, 187, 147, 0.4)) !important;
+  color: var(--text, #3E3A39) !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  cursor: pointer;
+  box-sizing: border-box;
+  transition: background-color 0.15s ease, filter 0.15s ease, border-bottom 0.15s ease, transform 0.1s ease;
+}
+
+/* 动态交互：背景加深，底线加深加粗 */
+.batch-btn:hover:not(:disabled) {
+  filter: brightness(0.88);
+  border-bottom-width: 2px !important;
+  border-bottom-color: var(--accent, #8C2F2D) !important;
+  background-color: var(--btn-primary-bg, rgba(140, 47, 45, 0.22)) !important;
+}
+
+.batch-btn:active:not(:disabled) {
+  filter: brightness(0.75);
+  border-bottom-width: 2px !important;
+  border-bottom-color: var(--text-serif, #1A232D) !important;
+  transform: translateY(0.5px);
+}
+
+.batch-btn-primary {
+  background-color: var(--btn-primary-bg, rgba(140, 47, 45, 0.16)) !important;
+  color: var(--accent, #8C2F2D) !important;
+  border-bottom: 1.5px solid var(--accent, #8C2F2D) !important;
+}
+
+.batch-btn-primary:hover:not(:disabled) {
+  background-color: var(--btn-primary-hover, rgba(140, 47, 45, 0.28)) !important;
+  filter: brightness(0.88);
+  border-bottom-width: 2px !important;
+  border-bottom-color: var(--text-serif, #291F1E) !important;
+}
+
+.batch-btn-primary:active:not(:disabled) {
+  filter: brightness(0.75);
+  border-bottom-width: 2px !important;
+  border-bottom-color: var(--text-serif, #1A232D) !important;
+}
+
+.batch-btn-danger {
+  background-color: rgba(225, 29, 72, 0.12) !important;
+  color: #B91C1C !important;
+  border-bottom: 1.5px solid #E11D48 !important;
+}
+
+.dark .batch-btn-danger,
+[data-theme="dark"] .batch-btn-danger {
+  background-color: rgba(244, 63, 94, 0.18) !important;
+  color: #FDA4AF !important;
+  border-bottom: 1.5px solid #FB7185 !important;
+}
+
+.batch-btn-danger:hover:not(:disabled) {
+  background-color: rgba(225, 29, 72, 0.25) !important;
+  filter: brightness(0.88);
+  border-bottom-width: 2px !important;
+  border-bottom-color: #881337 !important;
+}
+
+.batch-btn-danger:active:not(:disabled) {
+  filter: brightness(0.75);
+  border-bottom-width: 2px !important;
+  border-bottom-color: #4C0519 !important;
+}
+
+.batch-btn:disabled {
+  opacity: 0.35 !important;
+  cursor: not-allowed !important;
+  pointer-events: none !important;
+}
+
+/* 所有分界面的简介样式，统一压缩高度 */
+[data-design-id$="-header-banner"],
+.sub-interface-banner {
+  background: transparent !important;
+  border-top: none !important;
+  border-left: none !important;
+  border-right: none !important;
+  border-bottom: 1px solid var(--line, rgba(140, 47, 45, 0.18)) !important;
+  border-radius: 0px !important;
+  box-shadow: none !important;
+  padding: 0.25rem 0 0.4rem 0 !important;
+  margin-bottom: 0.5rem !important;
+}
+
+[data-design-id$="-header-banner"] .header-icon-box,
+[data-design-id$="-header-banner"] div[class*="w-9"][class*="h-9"],
+.sub-interface-banner .header-icon-box {
+  border-radius: 0px !important;
+  border: 1px solid var(--accent, #8C2F2D) !important;
+  background-color: var(--btn-primary-bg, rgba(140, 47, 45, 0.1)) !important;
+  color: var(--accent, #8C2F2D) !important;
+}
+
+[data-design-id$="-header-banner"] div[class*="w-9"][class*="h-9"] svg,
+.sub-interface-banner .header-icon-box svg {
+  color: var(--accent, #8C2F2D) !important;
+}
+
+[data-design-id$="-header-banner"] .header-tag,
+[data-design-id$="-header-banner"] span[class*="text-[10px]"],
+.sub-interface-banner .header-tag {
+  border-radius: 0px !important;
+  border: 1px solid var(--accent, #8C2F2D) !important;
+  background-color: var(--btn-primary-bg, rgba(140, 47, 45, 0.1)) !important;
+  color: var(--accent, #8C2F2D) !important;
+  font-weight: 500 !important;
+}
+
+[data-design-id$="-header-banner"] h1, [data-design-id$="-header-banner"] h2, .sub-interface-banner h1,
+.sub-interface-banner h2 {
+  color: var(--user-color-page-title, var(--text, #3E3A39)) !important;
+  font-family: var(--user-font-page-title, inherit) !important;
+  font-size: var(--user-size-page-title, 13px) !important;
+  font-weight: var(--user-weight-page-title, 700) !important;
+  line-height: 1.3 !important;
+}
+
+[data-design-id$="-header-banner"] p,
+.sub-interface-banner p {
+  color: var(--dim, #7C6865) !important;
+}
+
+[data-design-id$="-header-banner"] button,
+.sub-interface-banner button {
+  border-radius: 0px !important;
+  border-top: none !important;
+  border-left: none !important;
+  border-right: none !important;
+  box-shadow: none !important;
+}
+
+[data-design-id$="-header-banner"] button.btn-primary,
+[data-design-id$="-header-banner"] button[data-variant="primary"],
+[data-design-id$="-header-banner"] button:first-of-type:not([data-variant="secondary"]):not([data-variant="outline"]),
+.sub-interface-banner button.btn-primary,
+.sub-interface-banner button[data-variant="primary"] {
+  border-bottom: 2px solid var(--accent, #8C2F2D) !important;
+  background-color: var(--btn-primary-bg, rgba(140, 47, 45, 0.1)) !important;
+  color: var(--accent, #8C2F2D) !important;
+  font-weight: 600 !important;
+}
+
+[data-design-id$="-header-banner"] button.btn-primary span,
+[data-design-id$="-header-banner"] button[data-variant="primary"] span,
+[data-design-id$="-header-banner"] button.btn-primary svg,
+[data-design-id$="-header-banner"] button[data-variant="primary"] svg {
+  color: var(--accent, #8C2F2D) !important;
+}
+
+[data-design-id$="-header-banner"] button.btn-secondary,
+[data-design-id$="-header-banner"] button[data-variant="secondary"],
+[data-design-id$="-header-banner"] button[data-variant="outline"],
+.sub-interface-banner button.btn-secondary,
+.sub-interface-banner button[data-variant="secondary"] {
+  border-bottom: 1px solid var(--line-focus, #9B8778) !important;
+  background-color: transparent !important;
+  color: var(--text, #3E3A39) !important;
+}
+
+/* 选项卡导航条跟随主题色系 */
+.tab-nav-bar {
+  background-color: var(--bg-paper, #ffffff) !important;
+  border-bottom-color: var(--line, rgba(0, 0, 0, 0.12)) !important;
+}
+
+:root.theme-flat[data-theme="jinsha"] .tab-nav-bar,
+[data-theme="jinsha"] .tab-nav-bar {
+  background-color: #F0E8DC !important;
+  border-bottom-color: rgba(209, 187, 147, 0.55) !important;
+}
+
+.dark[data-theme="jinsha"] .tab-nav-bar,
+body.dark[data-theme="jinsha"] .tab-nav-bar {
+  background-color: #221D1C !important;
+  border-bottom-color: rgba(209, 187, 147, 0.28) !important;
+}
+
+.tab-pane-transition {
+  animation: tabFadeSwitch 0.18s ease-out forwards;
+}
+
+/* 移动端与平板端触控适配 (≥44px 触控热区与底部避让) */
+@media (max-width: 640px) {
+  .touch-target-min {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .modal-panel, .file-detail-modal {
+    max-height: calc(100dvh - 1.5rem) !important;
+    border-bottom-left-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+  }
+
+  :root.theme-flat .modal-panel,
+  :root.theme-flat .file-detail-modal {
+    border-radius: 0 !important;
+  }
+
+  /* 底部悬浮操作栏避让系统手势区 */
+  .floating-bottom-bar {
+    bottom: calc(1rem + env(safe-area-inset-bottom, 0px)) !important;
+  }
+}
+
+/* 统一无障碍减弱动画 */
+@media (prefers-reduced-motion: reduce) {
+  .card-item, .flat-card, .batch-action-bar, .tab-pane-transition {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+
+.sub-interface-banner button {
+  height: 22px !important;
+  padding: 0 0.5rem !important;
+  font-family: var(--user-font-btn-secondary, inherit) !important;
+  font-size: var(--user-size-btn-secondary, 10px) !important;
+  font-weight: var(--user-weight-btn-secondary, 500) !important;
+  border-radius: 0px !important;
+}
+.sub-interface-banner button:first-of-type,
+.sub-interface-banner button.btn-primary,
+.sub-interface-banner button[title*="导入"] {
+  font-family: var(--user-font-btn-primary, inherit) !important;
+  font-size: var(--user-size-btn-primary, 10px) !important;
+  font-weight: var(--user-weight-btn-primary, 600) !important;
+}
+.sub-interface-banner h1,
+.sub-interface-banner h2,
+[data-design-id$="-header-banner"] h1,
+[data-design-id$="-header-banner"] h2,
+.sub-interface-title {
+  font-family: var(--user-font-page-title, inherit) !important;
+  font-size: var(--user-size-page-title, 13px) !important;
+  font-weight: var(--user-weight-page-title, 700) !important;
+  color: var(--user-color-page-title, var(--text, #3E3A39)) !important;
+  line-height: 1.3 !important;
+}
+.sub-interface-banner p {
+  font-family: var(--user-font-card-body, inherit) !important;
+  font-size: var(--user-size-card-body, 10px) !important;
+  font-weight: var(--user-weight-card-body, 400) !important;
+  color: var(--user-color-card-body, var(--dim, #7C6865)) !important;
+  margin-top: 2px !important;
+}
+.sub-interface-banner span[class*="text-[10px]"],
+.sub-interface-banner .header-tag {
+  padding: 0.1rem 0.3rem !important;
+  font-family: var(--user-font-badge-tag, inherit) !important;
+  font-size: var(--user-size-badge-tag, 9px) !important;
+  font-weight: var(--user-weight-badge-tag, 500) !important;
+  border-radius: 0px !important;
+  border: 1px solid var(--accent, #8C2F2D) !important;
+  background-color: var(--btn-primary-bg, rgba(140, 47, 45, 0.1)) !important;
+  color: var(--accent, #8C2F2D) !important;
+}

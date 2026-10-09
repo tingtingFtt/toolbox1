@@ -1,0 +1,583 @@
+
+/* Layout & Navigation */
+.nav-item,
+aside,
+.sidebar,
+[data-design-id="app-sidebar"],
+header,
+[data-design-id="app-header"],
+.top-header,
+[data-design-id="header-page-title"],
+.header-page-title {
+  font-family: var(--user-font-sidebar-menu, var(--font-sidebar));
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+[data-design-id="settings-tab-bar"] button,
+.tab-nav-bar,
+.tab-nav-btn {
+  font-family: var(--user-font-sidebar-menu, var(--font-sidebar));
+  font-size: var(--user-size-sidebar-menu, 13px);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+header,
+[data-design-id="app-header"] {
+  font-family: var(--user-font-sidebar-menu, var(--font-sidebar)) !important;
+  font-size: var(--user-size-sidebar-menu, 13px);
+}
+
+[data-design-id="header-page-title"],
+.header-page-title {
+  font-family: var(--user-font-sidebar-menu, var(--font-sidebar)) !important;
+  font-size: 16px !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.01em;
+}
+
+.sidebar-toolbox-title,
+[data-design-id="sidebar-header"] h2,
+[data-design-id="sidebar-toolbox-title"] {
+  font-family: var(--user-font-sidebar-menu, var(--font-sidebar)) !important;
+  font-size: calc(var(--user-size-sidebar-menu, 13px) + 2px) !important;
+  font-weight: 700 !important;
+  color: var(--dim, #647382) !important;
+}
+
+.nav-item {
+  width: 100%;
+  text-align: left;
+  padding: 0.55rem 0.75rem;
+  border-radius: 0;
+  font-size: var(--user-size-sidebar-menu, 0.8125rem);
+  font-family: var(--user-font-sidebar-menu, var(--font-sidebar)) !important;
+  font-weight: var(--user-weight-sidebar-menu, 500);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  background-color: transparent !important;
+  color: var(--user-color-sidebar-menu, var(--dim, #647382));
+  border-top: none !important;
+  border-left: none !important;
+  border-right: none !important;
+  border-bottom: 1px solid var(--line-soft, rgba(0, 0, 0, 0.08)) !important;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  user-select: none;
+}
+
+.nav-item span {
+  font-family: var(--user-font-sidebar-menu, var(--font-sidebar)) !important;
+  font-size: var(--user-size-sidebar-menu, 0.8125rem);
+  font-weight: inherit;
+}
+
+[data-design-id="sidebar-footer"],
+[data-design-id="sidebar-footer"] button,
+[data-design-id="sidebar-footer"] span,
+.sidebar-footer-btn {
+  font-family: var(--user-font-sidebar-footer, var(--font-sidebar)) !important;
+  font-size: var(--user-size-sidebar-footer, 11px);
+  font-weight: var(--user-weight-sidebar-footer, 500);
+}
+
+.nav-item:hover {
+  background-color: var(--btn-primary-bg, rgba(96, 126, 149, 0.14)) !important;
+  border-bottom: 1.5px solid var(--line-focus, rgba(96, 126, 149, 0.45)) !important;
+  border-bottom-color: var(--line-focus, rgba(96, 126, 149, 0.45)) !important;
+  color: var(--accent, #486175) !important;
+}
+
+.nav-item:active {
+  background-color: var(--btn-primary-hover, rgba(96, 126, 149, 0.28)) !important;
+  border-bottom: 2.5px solid var(--accent, #486175) !important;
+  border-bottom-color: var(--accent, #486175) !important;
+  color: var(--accent, #486175) !important;
+}
+
+.nav-item.active {
+  border-bottom: 2.5px solid var(--accent, #486175) !important;
+  border-bottom-color: var(--accent, #486175) !important;
+  color: var(--accent, #486175) !important;
+  background-color: var(--btn-primary-hover, rgba(96, 126, 149, 0.22)) !important;
+  font-weight: 700 !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+}
+
+.nav-item.active:hover {
+  background-color: var(--btn-primary-hover, rgba(96, 126, 149, 0.32)) !important;
+  border-bottom: 3px solid var(--accent, #486175) !important;
+  border-bottom-color: var(--accent, #486175) !important;
+}
+
+/* 侧边栏与 header 强力保底实色宣纸背景 */
+aside,
+.sidebar,
+:root.theme-flat aside,
+:root.theme-flat .sidebar {
+  background-color: var(--bg-paper, #f3eee8) !important;
+  border-top: none !important;
+  border-left: none !important;
+  border-bottom: none !important;
+  border-right: 1px solid var(--line, #e2d0bc) !important;
+  opacity: 1 !important;
+}
+aside .border-b,
+:root.theme-flat aside .border-b { border-bottom: 1px solid var(--line, #e2d0bc) !important; }
+header,
+:root.theme-flat header { border-bottom: 1px solid var(--line, #e2d0bc) !important; }
+
+/* ═════════════════════════════════════════════════════════════
+   主页顶部切换按键 (酒馆 \ 小手机) - 遵循主题与激活状态
+   ═════════════════════════════════════════════════════════════ */
+
+.home-top-tabs-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+  border-bottom: 1px solid var(--line-soft, rgba(96, 126, 149, 0.18)) !important;
+  width: 100%;
+}
+
+/* 未激活状态：主题色系的浅灰系，无边框(保留底线)，不是圆角 */
+.home-top-tab-btn,
+button.home-top-tab-btn,
+:root.theme-flat button.home-top-tab-btn {
+  padding: 0.5rem 1.25rem !important;
+  font-family: var(--user-font-nav-tabs, inherit) !important;
+  font-size: var(--user-size-nav-tabs, 13px) !important;
+  font-weight: 500 !important;
+  border: none !important;
+  border-bottom: 2px solid var(--line-soft, rgba(96, 126, 149, 0.28)) !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  color: var(--dim, #7f8e9d) !important;
+  border-radius: 0 !important;
+  border-top-left-radius: 0 !important;
+  border-top-right-radius: 0 !important;
+  border-bottom-left-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  margin-bottom: -1px;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+:root.dark .home-top-tab-btn,
+html.dark .home-top-tab-btn {
+  color: rgba(255, 255, 255, 0.5) !important;
+  border-bottom-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+.home-top-tab-btn:hover,
+button.home-top-tab-btn:hover,
+:root.theme-flat button.home-top-tab-btn:hover {
+  color: var(--accent, #607E95) !important;
+  border-bottom-color: var(--line-focus, rgba(96, 126, 149, 0.5)) !important;
+  border-radius: 0 !important;
+}
+
+/* 激活与页面停留状态：下划线加深加粗，字体加深，出现按钮背景，无圆角 */
+.home-top-tab-btn.active,
+button.home-top-tab-btn.active,
+:root.theme-flat button.home-top-tab-btn.active {
+  background: var(--btn-primary-bg, rgba(96, 126, 149, 0.16)) !important;
+  background-color: var(--btn-primary-bg, rgba(96, 126, 149, 0.16)) !important;
+  color: var(--accent, #607E95) !important;
+  font-weight: 700 !important;
+  border: none !important;
+  border-bottom: 3px solid var(--accent, #607E95) !important;
+  border-bottom-color: var(--accent, #607E95) !important;
+  border-radius: 0 !important;
+}
+
+:root.dark .home-top-tab-btn.active,
+html.dark .home-top-tab-btn.active {
+  background: var(--btn-primary-bg, rgba(96, 126, 149, 0.22)) !important;
+  background-color: var(--btn-primary-bg, rgba(96, 126, 149, 0.22)) !important;
+  color: var(--accent, #607E95) !important;
+  border-bottom-color: var(--accent, #607E95) !important;
+  border-radius: 0 !important;
+}
+
+/* ═════════════════════════════════════════════════════════════
+   主页介绍区 (Hero Banner) - 不需要背景与边框
+   ═════════════════════════════════════════════════════════════ */
+
+.home-hero-banner,
+[data-design-id="home-st-hero-banner"],
+[data-design-id="home-mobile-hero-banner"],
+:root.theme-flat [data-design-id="home-st-hero-banner"],
+:root.theme-flat [data-design-id="home-mobile-hero-banner"] {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0.5rem 0.25rem 0.75rem !important;
+}
+
+/* ═════════════════════════════════════════════════════════════
+   顶栏抽卡按钮 - 无背景颜色
+   ═════════════════════════════════════════════════════════════ */
+
+[data-design-id="header-gacha-btn"],
+button[data-design-id="header-gacha-btn"],
+:root.theme-flat [data-design-id="header-gacha-btn"],
+:root.theme-flat button[data-design-id="header-gacha-btn"],
+:root.theme-flat [data-design-id="header-gacha-btn"]:hover,
+:root.theme-flat button[data-design-id="header-gacha-btn"]:hover {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* ═════════════════════════════════════════════════════════════
+   简介里面的命运抽卡按钮 (Hero Gacha Button) - 有背景(主题色系)，无边框，取消圆角
+   ═════════════════════════════════════════════════════════════ */
+
+.home-gacha-btn,
+button.home-gacha-btn,
+[data-design-id="home-st-hero-gacha-btn"],
+[data-design-id="home-mobile-hero-gacha-btn"],
+:root.theme-flat button.home-gacha-btn,
+:root.theme-flat [data-design-id="home-st-hero-gacha-btn"],
+:root.theme-flat [data-design-id="home-mobile-hero-gacha-btn"] {
+  background: var(--accent, #607E95) !important;
+  background-color: var(--accent, #607E95) !important;
+  color: #ffffff !important;
+  border: none !important;
+  border-bottom: none !important;
+  border-radius: 0 !important; /* 取消圆角 */
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12) !important;
+  cursor: pointer !important;
+  outline: none !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.home-gacha-btn:hover,
+button.home-gacha-btn:hover,
+[data-design-id="home-st-hero-gacha-btn"]:hover,
+[data-design-id="home-mobile-hero-gacha-btn"]:hover,
+:root.theme-flat button.home-gacha-btn:hover,
+:root.theme-flat [data-design-id="home-st-hero-gacha-btn"]:hover,
+:root.theme-flat [data-design-id="home-mobile-hero-gacha-btn"]:hover {
+  background: var(--accent-hover, #4c6577) !important;
+  background-color: var(--accent-hover, #4c6577) !important;
+  color: #ffffff !important;
+  border: none !important;
+  border-bottom: none !important;
+  border-radius: 0 !important;
+}
+
+.home-gacha-btn *,
+button.home-gacha-btn *,
+:root.theme-flat button.home-gacha-btn * {
+  color: #ffffff !important;
+}
+
+/* ═════════════════════════════════════════════════════════════
+   主页四个展示框 (Home 4 Stats Cards) - 主题样式色系渐变背景，无圆角
+   ═════════════════════════════════════════════════════════════ */
+
+.home-stat-card,
+div.home-stat-card,
+:root.theme-flat .home-stat-card,
+:root.theme-flat div.home-stat-card {
+  background: linear-gradient(135deg, var(--btn-primary-bg, rgba(96, 126, 149, 0.18)) 0%, var(--btn-bg, rgba(226, 208, 188, 0.4)) 100%) !important;
+  border: 1px solid var(--line-soft, rgba(96, 126, 149, 0.2)) !important;
+  border-radius: 0 !important; /* 去除圆角 */
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03) !important;
+  backdrop-filter: blur(8px);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+:root.dark .home-stat-card,
+html.dark .home-stat-card,
+:root.theme-flat.dark .home-stat-card {
+  background: linear-gradient(135deg, var(--btn-primary-bg, rgba(96, 126, 149, 0.28)) 0%, rgba(255, 255, 255, 0.04) 100%) !important;
+  border-color: rgba(255, 255, 255, 0.09) !important;
+  border-radius: 0 !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2) !important;
+}
+
+.home-stat-card:hover,
+:root.theme-flat .home-stat-card:hover {
+  border-color: var(--line-focus, var(--accent)) !important;
+  border-radius: 0 !important;
+  transform: translateY(-1px);
+}
+
+/* ═════════════════════════════════════════════════════════════
+   主页功能模块条目 (Home Module Items) - 条目背景不改变，单底线动态
+   ═════════════════════════════════════════════════════════════ */
+
+.home-module-card,
+div.home-module-card,
+:root.theme-flat .home-module-card,
+:root.theme-flat div.home-module-card,
+:root.theme-flat [role="button"].home-module-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  cursor: pointer;
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+  padding-left: 0.875rem;
+  padding-right: 0.875rem;
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
+  user-select: none;
+  overflow: visible;
+  outline: none !important;
+  transition: none !important;
+}
+
+@media (min-width: 640px) {
+  .home-module-card,
+  div.home-module-card,
+  :root.theme-flat .home-module-card {
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+  }
+}
+
+/* 条目背景在悬停/激活/点击时严格不改变，始终保持透明 */
+.home-module-card:hover,
+.home-module-card:active,
+.home-module-card:focus,
+.home-module-card:focus-within,
+div.home-module-card:hover,
+div.home-module-card:active,
+:root.theme-flat .home-module-card:hover,
+:root.theme-flat .home-module-card:active,
+:root.theme-flat .home-module-card:focus,
+:root.theme-flat .home-module-card:focus-within {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
+}
+
+/* 1. 唯一动态底栏线：默认 1px 浅色，悬停/激活加粗为 2px 并下移模拟动态效果，变为主题色 */
+.home-module-bottom-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  width: 100%;
+  height: 1px;
+  bottom: 2px;
+  background-color: var(--line-soft, rgba(96, 126, 149, 0.18)) !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+}
+
+:root.dark .home-module-bottom-line,
+html.dark .home-module-bottom-line {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+.home-module-card:hover .home-module-bottom-line,
+.home-module-card:active .home-module-bottom-line,
+.home-module-card:focus .home-module-bottom-line,
+.home-module-card:focus-within .home-module-bottom-line {
+  height: 2px !important;
+  bottom: 0px !important;
+  background-color: var(--accent, #607E95) !important;
+}
+
+/* 2. 图标背景与图标：默认黑灰，悬停/激活变为主题背景色与主题色 */
+.home-module-icon-wrap {
+  padding: 0.375rem;
+  border-radius: 0.5rem;
+  background-color: transparent !important;
+  color: var(--text-serif, #2B3540) !important;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+:root.theme-flat .home-module-icon-wrap {
+  border-radius: 0 !important;
+}
+
+.home-module-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  color: inherit !important;
+  transition: color 0.2s ease;
+}
+
+.home-module-card:hover .home-module-icon-wrap,
+.home-module-card:active .home-module-icon-wrap,
+.home-module-card:focus .home-module-icon-wrap,
+.home-module-card:focus-within .home-module-icon-wrap {
+  background-color: var(--btn-primary-bg, rgba(96, 126, 149, 0.16)) !important;
+  color: var(--accent, #607E95) !important;
+}
+
+.home-module-card:hover .home-module-icon,
+.home-module-card:active .home-module-icon,
+.home-module-card:focus .home-module-icon,
+.home-module-card:focus-within .home-module-icon {
+  color: var(--accent, #607E95) !important;
+}
+
+/* 3. 第三类标题：条目小标题 (默认黑灰色，悬停/激活变为主题色) */
+.home-module-title {
+  font-family: var(--user-font-home-module, inherit) !important;
+  font-size: var(--user-size-home-module, 13px) !important;
+  font-weight: var(--user-weight-home-module, 600) !important;
+  color: var(--user-color-home-module, var(--text-serif, #2B3540)) !important;
+  transition: color 0.2s ease;
+  line-height: 1.35;
+  letter-spacing: 0.005em;
+}
+
+.home-module-card:hover .home-module-title,
+.home-module-card:active .home-module-title,
+.home-module-card:focus .home-module-title,
+.home-module-card:focus-within .home-module-title {
+  color: var(--accent, #607E95) !important;
+}
+
+/* 4. 统计数据与单位：纯黑色，点击悬停不改变颜色 */
+.home-module-stats {
+  display: flex;
+  align-items: baseline;
+  gap: 0.25rem;
+  color: #000000 !important;
+}
+
+:root.dark .home-module-stats,
+html.dark .home-module-stats {
+  color: #FFFFFF !important;
+}
+
+.home-module-count {
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  color: #000000 !important;
+}
+
+:root.dark .home-module-count,
+html.dark .home-module-count {
+  color: #FFFFFF !important;
+}
+
+.home-module-unit {
+  font-size: 10px !important;
+  opacity: 0.75;
+  color: #000000 !important;
+}
+
+:root.dark .home-module-unit,
+html.dark .home-module-unit {
+  color: #FFFFFF !important;
+}
+
+/* 标签 Tag */
+.home-module-tag {
+  padding: 1px 4px;
+  border-radius: 4px;
+  font-size: 8px;
+  font-weight: 600;
+  line-height: 1;
+  background-color: var(--btn-primary-bg, rgba(96, 126, 149, 0.12)) !important;
+  color: var(--accent, #607E95) !important;
+  border: 1px solid var(--line-soft, rgba(96, 126, 149, 0.15)) !important;
+  flex-shrink: 0;
+}
+
+:root.theme-flat .home-module-tag {
+  border-radius: 0 !important;
+}
+
+/* 5. 条目小字描述：黑灰色，向右移动5px，字号10px，悬停不改变颜色 */
+.home-module-desc {
+  font-family: var(--user-font-home-desc, inherit) !important;
+  font-size: var(--user-size-home-desc, 10px) !important;
+  font-weight: var(--user-weight-home-desc, 400) !important;
+  color: var(--user-color-home-desc, var(--dim, #647382)) !important;
+  line-height: 1.5;
+  margin: 0;
+}
+
+:root.dark .home-module-desc,
+html.dark .home-module-desc {
+  color: rgba(255, 255, 255, 0.6) !important;
+}
+
+/* 6. 分割线：始终为浅色，悬停/激活不改变颜色 */
+.home-module-separator {
+  border-top: 1px solid var(--line-soft, rgba(96, 126, 149, 0.18)) !important;
+}
+
+:root.dark .home-module-separator,
+html.dark .home-module-separator {
+  border-top-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* 7. 进入管理这四个字：字号11px，向左微调1.5px，默认黑灰，悬停/激活改变为主题色 */
+.home-module-manage {
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  color: var(--dim, #647382) !important;
+  margin-left: -1.5px;
+  transition: color 0.2s ease;
+  user-select: none;
+}
+
+.home-module-card:hover .home-module-manage,
+.home-module-card:active .home-module-manage,
+.home-module-card:focus .home-module-manage,
+.home-module-card:focus-within .home-module-manage {
+  color: var(--accent, #607E95) !important;
+}
+
+/* 8. 箭头：默认黑灰，悬停/激活改变为主题色并向右移动 4px */
+.home-module-arrow {
+  width: 1rem;
+  height: 1rem;
+  color: var(--dim, #929EA9) !important;
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), color 0.2s ease;
+  transform: translateX(-2px);
+}
+
+.home-module-card:hover .home-module-arrow,
+.home-module-card:active .home-module-arrow,
+.home-module-card:focus .home-module-arrow,
+.home-module-card:focus-within .home-module-arrow {
+  color: var(--accent, #607E95) !important;
+  transform: translateX(4px) !important;
+}
+
+/* 手机端箭头在小字右侧 */
+.home-module-mobile-arrow {
+  width: 1rem;
+  height: 1rem;
+  color: var(--dim, #929EA9) !important;
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), color 0.2s ease;
+  transform: translateX(-2px);
+}
+
+.home-module-card:hover .home-module-mobile-arrow,
+.home-module-card:active .home-module-mobile-arrow,
+.home-module-card:focus .home-module-mobile-arrow,
+.home-module-card:focus-within .home-module-mobile-arrow {
+  color: var(--accent, #607E95) !important;
+  transform: translateX(4px) !important;
+}

@@ -1,0 +1,613 @@
+/* ═════════════════════════════════════════════════════════════
+   11 种宋式 / 国风扁平主题变量定义
+   ═════════════════════════════════════════════════════════════ */
+
+/* 1. 雾蓝银灰 (默认) */
+:root,
+:root.theme-flat,
+:root.theme-flat[data-theme="wulan"],
+body[data-theme="wulan"] {
+  --theme-name: "宋式 · 雾蓝银灰";
+  --bg-paper: #F3EEE8;
+  --text: #2B3540;
+  --text-serif: #1A232D;
+  --dim: #647382;
+  --faint: #929EA9;
+  --accent: #607E95;
+  --accent-hover: #486175;
+  --btn-bg: rgba(226, 208, 188, 0.45);
+  --btn-primary-bg: rgba(96, 126, 149, 0.14);
+  --btn-primary-hover: rgba(96, 126, 149, 0.22);
+  --input-bg: rgba(226, 208, 188, 0.25);
+  --line: rgba(96, 126, 149, 0.18);
+  --line-soft: rgba(96, 126, 149, 0.09);
+  --line-focus: rgba(96, 126, 149, 0.45);
+  --warn: #B87A44;
+  --err: #A84848;
+  --ok: #607E95;
+  --npc: #7A8996;
+  --card-solid-bg: #E8EAEB;
+  --group-card-bg: #EBE4DA;
+  --card-dark-border: #607E95;
+  --jump-card-bg: #E8EAEB;
+  --modal-solid-bg: #E8EAEB;
+  --modal-bar-bg: #DFE5EA;
+  --detail-tabbar-gradient: linear-gradient(90deg, #DCE4EA 0%, #EAE2D7 50%, #DCE4EA 100%);
+  --bg-gradient: 
+    radial-gradient(ellipse at 85% -10%, rgba(168, 195, 214, 0.45) 0%, transparent 60%),
+    radial-gradient(ellipse at 15% 25%, rgba(226, 208, 188, 0.5) 0%, transparent 50%),
+    radial-gradient(ellipse at 75% 85%, rgba(184, 174, 166, 0.4) 0%, transparent 60%),
+    linear-gradient(180deg, rgba(243, 238, 232, 0.7) 0%, rgba(235, 229, 222, 0.8) 100%);
+  --tab-bg-gradient: linear-gradient(90deg, rgba(226, 208, 188, 0.45) 0%, rgba(168, 195, 214, 0.35) 60%, rgba(243, 238, 232, 0.6) 100%);
+  --actionbar-bg-gradient: linear-gradient(135deg, #4A5F70 0%, #5E7A8E 38%, #859BAC 72%, #B5A692 100%);
+  --batch-bar-bg: linear-gradient(105deg, #CFDCE5 0%, #DFD5C7 52%, #CDC4BD 100%);
+  --actionbar-border: #7B95A8;
+}
+
+/* 2. 墨红金砂 */
+:root.theme-flat[data-theme="jinsha"],
+body[data-theme="jinsha"] {
+  --theme-name: "宋式 · 墨红金砂";
+  --bg-paper: #F0E8DC;
+  --text: #3E3A39;
+  --text-serif: #291F1E;
+  --dim: #7C6865;
+  --faint: #9B8778;
+  --accent: #8C2F2D;
+  --accent-hover: #6F2321;
+  --btn-bg: rgba(209, 187, 147, 0.45);
+  --btn-primary-bg: rgba(140, 47, 45, 0.14);
+  --btn-primary-hover: rgba(140, 47, 45, 0.22);
+  --input-bg: rgba(209, 187, 147, 0.25);
+  --line: rgba(140, 47, 45, 0.18);
+  --line-soft: rgba(155, 135, 120, 0.16);
+  --line-focus: rgba(140, 47, 45, 0.45);
+  --warn: #8C2F2D;
+  --err: #A84848;
+  --ok: #6E5338;
+  --npc: #9B8778;
+  --card-solid-bg: #EBE2D5;
+  --group-card-bg: #E3D9C9;
+  --card-dark-border: #8C2F2D;
+  --jump-card-bg: #EBE2D5;
+  --modal-solid-bg: #EBE2D5;
+  --modal-bar-bg: #DFD5C7;
+  --detail-tabbar-gradient: linear-gradient(90deg, #D8C6AF 0%, #E8D9C7 50%, #D8C6AF 100%);
+  --bg-gradient: 
+    radial-gradient(ellipse at 88% -5%, rgba(140, 47, 45, 0.22) 0%, rgba(140, 47, 45, 0.08) 45%, transparent 70%),
+    radial-gradient(ellipse at 12% 25%, rgba(209, 187, 147, 0.52) 0%, rgba(209, 187, 147, 0.18) 48%, transparent 70%),
+    radial-gradient(ellipse at 80% 78%, rgba(209, 187, 147, 0.42) 0%, rgba(155, 135, 120, 0.22) 48%, transparent 68%),
+    radial-gradient(ellipse at 8% 88%, rgba(140, 47, 45, 0.16) 0%, transparent 60%),
+    linear-gradient(140deg, #F0E8DC 0%, #EADAC7 28%, #E3CDAE 65%, #DCBF9C 100%);
+  --tab-bg-gradient: linear-gradient(90deg, rgba(209, 187, 147, 0.55) 0%, rgba(140, 47, 45, 0.22) 50%, rgba(240, 232, 220, 0.6) 100%);
+  --actionbar-bg-gradient: linear-gradient(135deg, #702625 0%, #8C2F2D 30%, #9B6252 58%, #B68A62 82%, #D1BB93 100%);
+  --batch-bar-bg: linear-gradient(95deg, #DFCBAE 0%, #E2CDC5 50%, #D5BF9F 100%);
+  --actionbar-border: #9B8778;
+}
+
+/* 3. 槐黄石绿 */
+:root.theme-flat[data-theme="shilu"],
+body[data-theme="shilu"] {
+  --theme-name: "宋式 · 槐黄石绿";
+  --bg-paper: #F0EADB;
+  --text: #373A2B;
+  --text-serif: #24281B;
+  --dim: #70755C;
+  --faint: #9EA38B;
+  --accent: #6C7F4F;
+  --accent-hover: #52633A;
+  --btn-bg: rgba(217, 200, 154, 0.45);
+  --btn-primary-bg: rgba(108, 127, 79, 0.14);
+  --btn-primary-hover: rgba(108, 127, 79, 0.22);
+  --input-bg: rgba(217, 200, 154, 0.25);
+  --line: rgba(108, 127, 79, 0.18);
+  --line-soft: rgba(108, 127, 79, 0.09);
+  --line-focus: rgba(108, 127, 79, 0.45);
+  --warn: #C6A348;
+  --err: #A84848;
+  --ok: #6C7F4F;
+  --npc: #837E65;
+  --card-solid-bg: #EBE4D2;
+  --group-card-bg: #E3DCC8;
+  --card-dark-border: #6C7F4F;
+  --jump-card-bg: #EBE4D2;
+  --modal-solid-bg: #EBE4D2;
+  --modal-bar-bg: #DFD7C2;
+  --detail-tabbar-gradient: linear-gradient(90deg, #CAD5B9 0%, #E5DFCB 50%, #CAD5B9 100%);
+  --bg-gradient: 
+    radial-gradient(ellipse at 85% -10%, rgba(198, 208, 176, 0.6) 0%, transparent 60%),
+    radial-gradient(ellipse at 15% 25%, rgba(217, 200, 154, 0.5) 0%, transparent 50%),
+    radial-gradient(ellipse at 75% 85%, rgba(198, 163, 72, 0.25) 0%, transparent 60%),
+    linear-gradient(180deg, rgba(240, 234, 219, 0.7) 0%, rgba(232, 225, 207, 0.8) 100%);
+  --tab-bg-gradient: linear-gradient(90deg, rgba(217, 200, 154, 0.5) 0%, rgba(198, 208, 176, 0.4) 60%, rgba(240, 234, 219, 0.6) 100%);
+  --actionbar-bg-gradient: linear-gradient(135deg, #445432 0%, #596E42 38%, #829463 70%, #B8A66E 100%);
+  --batch-bar-bg: linear-gradient(105deg, #CAD5B9 0%, #DFD4B7 50%, #C8CCA7 100%);
+  --actionbar-border: #7B8E5F;
+}
+
+/* 4. 茶烟米褐 */
+:root.theme-flat[data-theme="chayan"],
+body[data-theme="chayan"] {
+  --theme-name: "宋式 · 茶烟米褐";
+  --bg-paper: #F5EEE4;
+  --text: #3D332D;
+  --text-serif: #291F1A;
+  --dim: #7A6C63;
+  --faint: #A69990;
+  --accent: #7E6554;
+  --accent-hover: #614D3E;
+  --btn-bg: rgba(233, 214, 190, 0.48);
+  --btn-primary-bg: rgba(126, 101, 84, 0.12);
+  --btn-primary-hover: rgba(126, 101, 84, 0.2);
+  --input-bg: rgba(233, 214, 190, 0.25);
+  --line: rgba(126, 101, 84, 0.16);
+  --line-soft: rgba(126, 101, 84, 0.08);
+  --line-focus: rgba(126, 101, 84, 0.45);
+  --warn: #7E6554;
+  --err: #A84848;
+  --ok: #655E50;
+  --npc: #7A6960;
+  --card-solid-bg: #EDE4D8;
+  --group-card-bg: #E5DBCE;
+  --card-dark-border: #7E6554;
+  --jump-card-bg: #EDE4D8;
+  --modal-solid-bg: #EDE4D8;
+  --modal-bar-bg: #DDD3C4;
+  --detail-tabbar-gradient: linear-gradient(90deg, #DACBB9 0%, #E6DDD0 50%, #DACBB9 100%);
+  --bg-gradient: 
+    radial-gradient(ellipse at 85% -10%, rgba(233, 214, 190, 0.65) 0%, transparent 60%),
+    radial-gradient(ellipse at 15% 25%, rgba(212, 183, 157, 0.45) 0%, transparent 50%),
+    radial-gradient(ellipse at 75% 85%, rgba(167, 138, 115, 0.28) 0%, transparent 60%),
+    linear-gradient(180deg, rgba(245, 238, 228, 0.7) 0%, rgba(236, 227, 216, 0.8) 100%);
+  --tab-bg-gradient: linear-gradient(90deg, rgba(233, 214, 190, 0.55) 0%, rgba(212, 183, 157, 0.35) 60%, rgba(245, 238, 228, 0.6) 100%);
+  --actionbar-bg-gradient: linear-gradient(135deg, #4E3C33 0%, #665044 38%, #866F61 70%, #BBA492 100%);
+  --batch-bar-bg: linear-gradient(105deg, #E8D7C4 0%, #DAC5B3 50%, #CEBEB0 100%);
+  --actionbar-border: #8A7261;
+}
+
+/* 5. 青瓦竹影 */
+:root.theme-flat[data-theme="bamboo"],
+body[data-theme="bamboo"] {
+  --theme-name: "宋式 · 青瓦竹影";
+  --bg-paper: #F3F1E6;
+  --text: #2D3A38;
+  --text-serif: #1E2927;
+  --dim: #607370;
+  --faint: #8E9F9C;
+  --accent: #4A6460;
+  --accent-hover: #364B48;
+  --btn-bg: rgba(221, 230, 214, 0.42);
+  --btn-primary-bg: rgba(74, 100, 96, 0.12);
+  --btn-primary-hover: rgba(74, 100, 96, 0.18);
+  --input-bg: rgba(221, 230, 214, 0.25);
+  --line: rgba(74, 100, 96, 0.15);
+  --line-soft: rgba(74, 100, 96, 0.08);
+  --line-focus: rgba(74, 100, 96, 0.45);
+  --warn: #B87A44;
+  --err: #A84848;
+  --ok: #4A6E5D;
+  --npc: #5A6075;
+  --card-solid-bg: #EAE8DC;
+  --group-card-bg: #E2DFD1;
+  --card-dark-border: #4A6460;
+  --jump-card-bg: #EAE8DC;
+  --modal-solid-bg: #EAE8DC;
+  --modal-bar-bg: #D9D6C8;
+  --detail-tabbar-gradient: linear-gradient(90deg, #CAD5C6 0%, #DFE5DA 50%, #CAD5C6 100%);
+  --bg-gradient: 
+    radial-gradient(ellipse at 85% -10%, rgba(221, 230, 214, 0.7) 0%, transparent 60%),
+    radial-gradient(ellipse at 15% 25%, rgba(191, 208, 184, 0.45) 0%, transparent 50%),
+    radial-gradient(ellipse at 75% 85%, rgba(221, 230, 214, 0.6) 0%, transparent 60%),
+    linear-gradient(180deg, rgba(243, 241, 230, 0.7) 0%, rgba(235, 233, 220, 0.8) 100%);
+  --tab-bg-gradient: linear-gradient(90deg, rgba(221, 230, 214, 0.55) 0%, rgba(191, 208, 184, 0.35) 60%, rgba(243, 241, 230, 0.6) 100%);
+  --actionbar-bg-gradient: linear-gradient(135deg, #324643 0%, #445E5A 38%, #64827D 70%, #9FB29E 100%);
+  --batch-bar-bg: linear-gradient(105deg, #D6E0CF 0%, #C6D8BD 52%, #DEDCCE 100%);
+  --actionbar-border: #4A6460;
+}
+
+/* 6. 宋瓷青绿 */
+:root.theme-flat[data-theme="songci"],
+body[data-theme="songci"] {
+  --theme-name: "宋式 · 宋瓷青绿";
+  --bg-paper: #F1F0E8;
+  --text: #213835;
+  --text-serif: #142624;
+  --dim: #54706C;
+  --faint: #85A19D;
+  --accent: #2E6A67;
+  --accent-hover: #1E4E4B;
+  --btn-bg: rgba(215, 230, 219, 0.55);
+  --btn-primary-bg: rgba(46, 106, 103, 0.12);
+  --btn-primary-hover: rgba(46, 106, 103, 0.2);
+  --input-bg: rgba(215, 230, 219, 0.3);
+  --line: rgba(46, 106, 103, 0.16);
+  --line-soft: rgba(46, 106, 103, 0.08);
+  --line-focus: rgba(46, 106, 103, 0.45);
+  --warn: #B87A44;
+  --err: #A84848;
+  --ok: #2E6A67;
+  --npc: #4E6B73;
+  --card-solid-bg: #E6ECE5;
+  --group-card-bg: #DEE6DD;
+  --card-dark-border: #2E6A67;
+  --jump-card-bg: #E6ECE5;
+  --modal-solid-bg: #E6ECE5;
+  --modal-bar-bg: #D2DCD2;
+  --detail-tabbar-gradient: linear-gradient(90deg, #C4D7D2 0%, #DFE8E6 50%, #C4D7D2 100%);
+  --bg-gradient: 
+    radial-gradient(ellipse at 85% -10%, rgba(215, 230, 219, 0.7) 0%, transparent 60%),
+    radial-gradient(ellipse at 15% 25%, rgba(169, 200, 190, 0.45) 0%, transparent 50%),
+    radial-gradient(ellipse at 75% 85%, rgba(94, 140, 135, 0.25) 0%, transparent 60%),
+    linear-gradient(180deg, rgba(241, 240, 232, 0.7) 0%, rgba(232, 230, 220, 0.8) 100%);
+  --tab-bg-gradient: linear-gradient(90deg, rgba(215, 230, 219, 0.55) 0%, rgba(169, 200, 190, 0.35) 60%, rgba(241, 240, 232, 0.6) 100%);
+  --actionbar-bg-gradient: linear-gradient(135deg, #204B48 0%, #2E6865 38%, #4A8581 70%, #8EB6B2 100%);
+  --batch-bar-bg: linear-gradient(105deg, #D0DFD5 0%, #B6D1C6 50%, #D4DDD5 100%);
+  --actionbar-border: #2E6A67;
+}
+
+/* 7. 胭脂暖灰 */
+:root.theme-flat[data-theme="yanzhi"],
+body[data-theme="yanzhi"] {
+  --theme-name: "宋式 · 胭脂暖灰";
+  --bg-paper: #F5F0EA;
+  --text: #3D2B33;
+  --text-serif: #29181F;
+  --dim: #7C606C;
+  --faint: #A68B97;
+  --accent: #A45668;
+  --accent-hover: #833E4F;
+  --btn-bg: rgba(231, 221, 211, 0.55);
+  --btn-primary-bg: rgba(164, 86, 104, 0.12);
+  --btn-primary-hover: rgba(164, 86, 104, 0.2);
+  --input-bg: rgba(231, 221, 211, 0.3);
+  --line: rgba(164, 86, 104, 0.16);
+  --line-soft: rgba(164, 86, 104, 0.08);
+  --line-focus: rgba(164, 86, 104, 0.45);
+  --warn: #B87A44;
+  --err: #A45668;
+  --ok: #6E535C;
+  --npc: #80616B;
+  --card-solid-bg: #EDE1DA;
+  --group-card-bg: #E6D7CE;
+  --card-dark-border: #A45668;
+  --jump-card-bg: #EDE1DA;
+  --modal-solid-bg: #EDE1DA;
+  --modal-bar-bg: #DFCECA;
+  --detail-tabbar-gradient: linear-gradient(90deg, #DEC9C2 0%, #E9DDD7 50%, #DEC9C2 100%);
+  --bg-gradient: 
+    radial-gradient(ellipse at 85% -10%, rgba(213, 155, 168, 0.38) 0%, transparent 60%),
+    radial-gradient(ellipse at 15% 25%, rgba(231, 221, 211, 0.6) 0%, transparent 50%),
+    radial-gradient(ellipse at 75% 85%, rgba(199, 193, 181, 0.4) 0%, transparent 60%),
+    linear-gradient(180deg, rgba(245, 240, 234, 0.7) 0%, rgba(237, 230, 222, 0.8) 100%);
+  --tab-bg-gradient: linear-gradient(90deg, rgba(231, 221, 211, 0.55) 0%, rgba(213, 155, 168, 0.3) 60%, rgba(245, 240, 234, 0.6) 100%);
+  --actionbar-bg-gradient: linear-gradient(135deg, #602F3C 0%, #7E4251 38%, #A36575 70%, #C9A99D 100%);
+  --batch-bar-bg: linear-gradient(105deg, #DFC2C9 0%, #E5D9CE 50%, #D4CDC0 100%);
+  --actionbar-border: #A45668;
+}
+
+/* 8. 国风 · 月白青鸾 */
+:root.theme-flat[data-theme="yuebai"],
+body[data-theme="yuebai"] {
+  --theme-name: "国风 · 月白青鸾";
+  --bg-paper: #F3F7FA;
+  --text: #263642;
+  --text-serif: #152430;
+  --dim: #607585;
+  --faint: #90A3B2;
+  --accent: #5F829A;
+  --accent-hover: #46677D;
+  --btn-bg: rgba(212, 229, 239, 0.55);
+  --btn-primary-bg: rgba(95, 130, 154, 0.12);
+  --btn-primary-hover: rgba(95, 130, 154, 0.2);
+  --input-bg: rgba(212, 229, 239, 0.3);
+  --line: rgba(95, 130, 154, 0.16);
+  --line-soft: rgba(95, 130, 154, 0.08);
+  --line-focus: rgba(95, 130, 154, 0.45);
+  --warn: #B87A44;
+  --err: #A84848;
+  --ok: #48727B;
+  --npc: #657788;
+  --card-solid-bg: #E7EFF5;
+  --group-card-bg: #DEE8F0;
+  --card-dark-border: #5F829A;
+  --jump-card-bg: #E7EFF5;
+  --modal-solid-bg: #E7EFF5;
+  --modal-bar-bg: #D3E0EA;
+  --detail-tabbar-gradient: linear-gradient(90deg, #C9D8E3 0%, #E0E9F0 50%, #C9D8E3 100%);
+  --bg-gradient: 
+    radial-gradient(ellipse at 85% -10%, rgba(212, 229, 239, 0.8) 0%, transparent 60%),
+    radial-gradient(ellipse at 15% 25%, rgba(178, 191, 195, 0.45) 0%, transparent 50%),
+    radial-gradient(ellipse at 75% 85%, rgba(152, 182, 194, 0.35) 0%, transparent 60%),
+    linear-gradient(180deg, rgba(243, 247, 250, 0.7) 0%, rgba(233, 240, 245, 0.8) 100%);
+  --tab-bg-gradient: linear-gradient(90deg, rgba(212, 229, 239, 0.6) 0%, rgba(178, 191, 195, 0.35) 60%, rgba(243, 247, 250, 0.6) 100%);
+  --actionbar-bg-gradient: linear-gradient(135deg, #354D5D 0%, #4A687D 38%, #6E8DA1 70%, #9EB7C6 100%);
+  --batch-bar-bg: linear-gradient(105deg, #CEE0EB 0%, #BBC9CE 50%, #D8E3EB 100%);
+  --actionbar-border: #5F829A;
+}
+
+/* 9. 天青 · 霁蓝水影 */
+:root.theme-flat[data-theme="jilan"],
+body[data-theme="jilan"] {
+  --theme-name: "天青 · 霁蓝水影";
+  --bg-paper: #F3F8FC;
+  --text: #233445;
+  --text-serif: #132230;
+  --dim: #5F7790;
+  --faint: #8EABC7;
+  --accent: #527A9C;
+  --accent-hover: #3B5F7E;
+  --btn-bg: rgba(189, 223, 239, 0.45);
+  --btn-primary-bg: rgba(82, 122, 156, 0.12);
+  --btn-primary-hover: rgba(82, 122, 156, 0.2);
+  --input-bg: rgba(189, 223, 239, 0.25);
+  --line: rgba(82, 122, 156, 0.16);
+  --line-soft: rgba(82, 122, 156, 0.08);
+  --line-focus: rgba(82, 122, 156, 0.45);
+  --warn: #B87A44;
+  --err: #A84848;
+  --ok: #427A7E;
+  --npc: #657488;
+  --card-solid-bg: #E5EFF7;
+  --group-card-bg: #DBE8F2;
+  --card-dark-border: #527A9C;
+  --jump-card-bg: #E5EFF7;
+  --modal-solid-bg: #E5EFF7;
+  --modal-bar-bg: #D0DFEB;
+  --detail-tabbar-gradient: linear-gradient(90deg, #C2D5E0 0%, #DBE6ED 50%, #C2D5E0 100%);
+  --bg-gradient: 
+    radial-gradient(ellipse at 85% -10%, rgba(189, 223, 239, 0.7) 0%, transparent 60%),
+    radial-gradient(ellipse at 15% 25%, rgba(180, 207, 245, 0.5) 0%, transparent 50%),
+    radial-gradient(ellipse at 75% 85%, rgba(154, 198, 229, 0.4) 0%, transparent 60%),
+    linear-gradient(180deg, rgba(243, 248, 252, 0.7) 0%, rgba(231, 240, 248, 0.8) 100%);
+  --tab-bg-gradient: linear-gradient(90deg, rgba(189, 223, 239, 0.55) 0%, rgba(180, 207, 245, 0.35) 60%, rgba(243, 248, 252, 0.6) 100%);
+  --actionbar-bg-gradient: linear-gradient(135deg, #2F4962 0%, #436484 38%, #6688A9 70%, #9EB8D1 100%);
+  --batch-bar-bg: linear-gradient(105deg, #C3DEF0 0%, #BED2F1 50%, #D4E2F2 100%);
+  --actionbar-border: #527A9C;
+}
+
+/* 10. 春水 · 浅荷淡翠 */
+:root.theme-flat[data-theme="qianhe"],
+body[data-theme="qianhe"] {
+  --theme-name: "春水 · 浅荷淡翠";
+  --bg-paper: #F3F7F2;
+  --text: #26382C;
+  --text-serif: #15261A;
+  --dim: #5C7564;
+  --faint: #8AA492;
+  --accent: #5E896E;
+  --accent-hover: #446951;
+  --btn-bg: rgba(217, 231, 216, 0.55);
+  --btn-primary-bg: rgba(94, 137, 110, 0.12);
+  --btn-primary-hover: rgba(94, 137, 110, 0.2);
+  --input-bg: rgba(217, 231, 216, 0.3);
+  --line: rgba(94, 137, 110, 0.16);
+  --line-soft: rgba(94, 137, 110, 0.08);
+  --line-focus: rgba(94, 137, 110, 0.45);
+  --warn: #B87A44;
+  --err: #A84848;
+  --ok: #5E896E;
+  --npc: #657A6C;
+  --card-solid-bg: #E7F0E6;
+  --group-card-bg: #DEE9DD;
+  --card-dark-border: #5E896E;
+  --jump-card-bg: #E7F0E6;
+  --modal-solid-bg: #E7F0E6;
+  --modal-bar-bg: #D2E2D1;
+  --detail-tabbar-gradient: linear-gradient(90deg, #C5D8C1 0%, #DFEADE 50%, #C5D8C1 100%);
+  --bg-gradient: 
+    radial-gradient(ellipse at 85% -10%, rgba(217, 231, 216, 0.8) 0%, transparent 60%),
+    radial-gradient(ellipse at 15% 25%, rgba(210, 231, 211, 0.55) 0%, transparent 50%),
+    radial-gradient(ellipse at 75% 85%, rgba(182, 214, 185, 0.4) 0%, transparent 60%),
+    linear-gradient(180deg, rgba(243, 247, 242, 0.7) 0%, rgba(230, 239, 229, 0.8) 100%);
+  --tab-bg-gradient: linear-gradient(90deg, rgba(217, 231, 216, 0.6) 0%, rgba(210, 231, 211, 0.35) 60%, rgba(243, 247, 242, 0.6) 100%);
+  --actionbar-bg-gradient: linear-gradient(135deg, #32503C 0%, #476E54 38%, #6B947A 70%, #A4C4AF 100%);
+  --batch-bar-bg: linear-gradient(105deg, #D2E4D1 0%, #C6E0C7 50%, #DAE6DA 100%);
+  --actionbar-border: #5E896E;
+}
+
+/* 11. 柔雾 · 浅水云粉 */
+:root.theme-flat[data-theme="yunfen"],
+body[data-theme="yunfen"] {
+  --theme-name: "柔雾 · 浅水云粉";
+  --bg-paper: #F7F5F7;
+  --text: #362E3B;
+  --text-serif: #241B29;
+  --dim: #776A7E;
+  --faint: #A69BAE;
+  --accent: #8A729A;
+  --accent-hover: #6C547D;
+  --btn-bg: rgba(229, 223, 229, 0.55);
+  --btn-primary-bg: rgba(138, 114, 154, 0.12);
+  --btn-primary-hover: rgba(138, 114, 154, 0.2);
+  --input-bg: rgba(229, 223, 229, 0.3);
+  --line: rgba(138, 114, 154, 0.16);
+  --line-soft: rgba(138, 114, 154, 0.08);
+  --line-focus: rgba(138, 114, 154, 0.45);
+  --warn: #B87A44;
+  --err: #A84848;
+  --ok: #63776C;
+  --npc: #8A729A;
+  --card-solid-bg: #EEE3F0;
+  --group-card-bg: #E6D9E8;
+  --card-dark-border: #8A729A;
+  --jump-card-bg: #EEE3F0;
+  --modal-solid-bg: #EEE3F0;
+  --modal-bar-bg: #DDD0E0;
+  --detail-tabbar-gradient: linear-gradient(90deg, #DEC5CB 0%, #EBE0E3 50%, #DEC5CB 100%);
+  --bg-gradient: 
+    radial-gradient(ellipse at 85% -10%, rgba(245, 214, 224, 0.5) 0%, transparent 60%),
+    radial-gradient(ellipse at 15% 25%, rgba(190, 225, 229, 0.45) 0%, transparent 50%),
+    radial-gradient(ellipse at 75% 85%, rgba(203, 228, 222, 0.4) 0%, transparent 60%),
+    linear-gradient(180deg, rgba(247, 245, 247, 0.7) 0%, rgba(239, 234, 240, 0.8) 100%);
+  --tab-bg-gradient: linear-gradient(90deg, rgba(245, 214, 224, 0.45) 0%, rgba(190, 225, 229, 0.35) 60%, rgba(247, 245, 247, 0.6) 100%);
+  --actionbar-bg-gradient: linear-gradient(135deg, #51405D 0%, #685377 38%, #8C759C 70%, #BDA8C7 100%);
+  --batch-bar-bg: linear-gradient(105deg, #EFC9D5 0%, #C1E2E5 50%, #E2D3E3 100%);
+  --actionbar-border: #8A729A;
+}
+
+/* 深色模式下的操作栏与卡片纯色变量 */
+.dark,
+[data-theme="dark"] {
+  --card-solid-bg: #2B2423;
+  --group-card-bg: #221D1C;
+  --card-dark-border: #6E5338;
+  --jump-card-bg: #2B2423;
+  --modal-solid-bg: #2B2423;
+  --modal-bar-bg: #1B1716;
+  --detail-tabbar-gradient: linear-gradient(90deg, #1B1716 0%, #291F1E 50%, #1B1716 100%);
+  --actionbar-bg-gradient: linear-gradient(135deg, #321413 0%, #461C1B 35%, #5D3720 68%, #856540 100%);
+  --batch-bar-bg: linear-gradient(105deg, #2A1C1A 0%, #38241C 50%, #261B18 100%);
+  --actionbar-border: #6B4E32;
+}
+
+.dark[data-theme="wulan"],
+body.dark[data-theme="wulan"] {
+  --card-solid-bg: #242C35;
+  --group-card-bg: #1C242E;
+  --card-dark-border: #607E95;
+  --jump-card-bg: #242C35;
+  --modal-solid-bg: #242C35;
+  --modal-bar-bg: #172029;
+  --detail-tabbar-gradient: linear-gradient(90deg, #172029 0%, #24323E 50%, #172029 100%);
+  --batch-bar-bg: linear-gradient(105deg, #1E2833 0%, #283747 50%, #1A232D 100%);
+}
+
+.dark[data-theme="shilu"],
+body.dark[data-theme="shilu"] {
+  --card-solid-bg: #292E24;
+  --group-card-bg: #1E231B;
+  --card-dark-border: #6C7F4F;
+  --jump-card-bg: #292E24;
+  --modal-solid-bg: #292E24;
+  --modal-bar-bg: #181E15;
+  --detail-tabbar-gradient: linear-gradient(90deg, #181E15 0%, #25331F 50%, #181E15 100%);
+  --batch-bar-bg: linear-gradient(105deg, #222B1E 0%, #2D3825 50%, #1E2619 100%);
+}
+
+.dark[data-theme="chayan"],
+body.dark[data-theme="chayan"] {
+  --card-solid-bg: #2E2822;
+  --group-card-bg: #221D17;
+  --card-dark-border: #7E6554;
+  --jump-card-bg: #2E2822;
+  --modal-solid-bg: #2E2822;
+  --modal-bar-bg: #1C1612;
+  --detail-tabbar-gradient: linear-gradient(90deg, #1C1612 0%, #2B2119 50%, #1C1612 100%);
+  --batch-bar-bg: linear-gradient(105deg, #2A231C 0%, #362C24 50%, #221C16 100%);
+}
+
+.dark[data-theme="bamboo"],
+body.dark[data-theme="bamboo"] {
+  --card-solid-bg: #222C2A;
+  --group-card-bg: #182220;
+  --card-dark-border: #4A6460;
+  --jump-card-bg: #222C2A;
+  --modal-solid-bg: #222C2A;
+  --modal-bar-bg: #141D1A;
+  --detail-tabbar-gradient: linear-gradient(90deg, #141D1A 0%, #1E2E2A 50%, #141D1A 100%);
+  --batch-bar-bg: linear-gradient(105deg, #1B2624 0%, #263531 50%, #182220 100%);
+}
+
+.dark[data-theme="songci"],
+body.dark[data-theme="songci"] {
+  --card-solid-bg: #202D2B;
+  --group-card-bg: #162220;
+  --card-dark-border: #2E6A67;
+  --jump-card-bg: #202D2B;
+  --modal-solid-bg: #202D2B;
+  --modal-bar-bg: #121D1B;
+  --detail-tabbar-gradient: linear-gradient(90deg, #121D1B 0%, #1C2E2B 50%, #121D1B 100%);
+  --batch-bar-bg: linear-gradient(105deg, #182827 0%, #243836 50%, #152422 100%);
+}
+
+.dark[data-theme="yanzhi"],
+body.dark[data-theme="yanzhi"] {
+  --card-solid-bg: #30242A;
+  --group-card-bg: #23191E;
+  --card-dark-border: #A45668;
+  --jump-card-bg: #30242A;
+  --modal-solid-bg: #30242A;
+  --modal-bar-bg: #1E1519;
+  --detail-tabbar-gradient: linear-gradient(90deg, #1E1519 0%, #2E1B23 50%, #1E1519 100%);
+  --batch-bar-bg: linear-gradient(105deg, #2D1E25 0%, #3C2630 50%, #24171D 100%);
+}
+
+.dark[data-theme="yuebai"],
+body.dark[data-theme="yuebai"] {
+  --card-solid-bg: #232C33;
+  --group-card-bg: #182126;
+  --card-dark-border: #5F829A;
+  --jump-card-bg: #232C33;
+  --modal-solid-bg: #232C33;
+  --modal-bar-bg: #151D23;
+  --detail-tabbar-gradient: linear-gradient(90deg, #151D23 0%, #202C35 50%, #151D23 100%);
+  --batch-bar-bg: linear-gradient(105deg, #1C2630 0%, #263544 50%, #18232B 100%);
+}
+
+.dark[data-theme="jilan"],
+body.dark[data-theme="jilan"] {
+  --card-solid-bg: #212C36;
+  --group-card-bg: #17212A;
+  --card-dark-border: #527A9C;
+  --jump-card-bg: #212C36;
+  --modal-solid-bg: #212C36;
+  --modal-bar-bg: #141E26;
+  --detail-tabbar-gradient: linear-gradient(90deg, #141E26 0%, #1F2E3B 50%, #141E26 100%);
+  --batch-bar-bg: linear-gradient(105deg, #1A2735 0%, #243649 50%, #17222F 100%);
+}
+
+.dark[data-theme="qianhe"],
+body.dark[data-theme="qianhe"] {
+  --card-solid-bg: #222E25;
+  --group-card-bg: #17221A;
+  --card-dark-border: #5E896E;
+  --jump-card-bg: #222E25;
+  --modal-solid-bg: #222E25;
+  --modal-bar-bg: #141E17;
+  --detail-tabbar-gradient: linear-gradient(90deg, #141E17 0%, #1E2E21 50%, #141E17 100%);
+  --batch-bar-bg: linear-gradient(105deg, #1B2920 0%, #25392C 50%, #17241A 100%);
+}
+
+.dark[data-theme="yunfen"],
+body.dark[data-theme="yunfen"] {
+  --card-solid-bg: #2B2530;
+  --group-card-bg: #1F1923;
+  --card-dark-border: #8A729A;
+  --jump-card-bg: #2B2530;
+  --modal-solid-bg: #2B2530;
+  --modal-bar-bg: #1B151F;
+  --detail-tabbar-gradient: linear-gradient(90deg, #1B151F 0%, #2B1D30 50%, #1B151F 100%);
+  --batch-bar-bg: linear-gradient(105deg, #28202D 0%, #37283E 50%, #211925 100%);
+}
+
+.dark[data-theme="jinsha"],
+body.dark[data-theme="jinsha"],
+html.dark[data-theme="jinsha"],
+:root.dark[data-theme="jinsha"] {
+  --bg-paper: #221D1C;
+  --text: #F0E8DC;
+  --text-serif: #FAF5EE;
+  --dim: #B3A090;
+  --faint: #9B8778;
+  --accent: #D18987;
+  --accent-hover: #E29E9C;
+  --line: rgba(209, 187, 147, 0.22);
+  --line-soft: rgba(155, 135, 120, 0.18);
+  --card-solid-bg: #312726;
+  --group-card-bg: #251D1C;
+  --card-dark-border: #8C2F2D;
+  --jump-card-bg: #312726;
+  --modal-solid-bg: #312726;
+  --modal-bar-bg: #1D1716;
+  --detail-tabbar-gradient: linear-gradient(90deg, #1D1716 0%, #2C1E1D 50%, #1D1716 100%);
+  --bg-gradient: 
+    radial-gradient(ellipse at 88% -5%, rgba(140, 47, 45, 0.40) 0%, transparent 65%),
+    radial-gradient(ellipse at 12% 25%, rgba(209, 187, 147, 0.24) 0%, transparent 60%),
+    radial-gradient(ellipse at 78% 75%, rgba(209, 187, 147, 0.20) 0%, rgba(155, 135, 120, 0.16) 45%, transparent 65%),
+    radial-gradient(ellipse at 8% 88%, rgba(140, 47, 45, 0.28) 0%, transparent 60%),
+    linear-gradient(140deg, #241D1C 0%, #1F1716 35%, #2B211C 70%, #362922 100%);
+  --actionbar-bg-gradient: linear-gradient(135deg, #3A1413 0%, #521C1A 30%, #6E3B28 65%, #9A7751 100%);
+  --batch-bar-bg: linear-gradient(105deg, #2D1A19 0%, #3C241D 50%, #281D1A 100%);
+  --actionbar-border: #7B5C3C;
+}
+
