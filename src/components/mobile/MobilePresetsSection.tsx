@@ -52,9 +52,8 @@ interface MobilePresetsSectionProps {
   sortItemList?: <T>(items: T[], sortOrder: any, getName: (item: T) => string, getCreatedAt?: (item: T) => number) => T[];
 }
 
-// 常见破限词与预设快速模版 (内置种子)
 // 破限/预设管理不再内置固定模板，列表只展示用户新增或导入的内容。
-const BUILTIN_TEMPLATES: Partial<MobilePresetEntry>[] = []
+const BUILTIN_TEMPLATES: Partial<MobilePresetEntry>[] = [];
 
 export const MobilePresetsSection: React.FC<MobilePresetsSectionProps> = ({
   appData,
