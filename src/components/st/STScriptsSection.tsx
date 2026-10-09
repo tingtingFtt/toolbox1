@@ -145,6 +145,7 @@ export const STScriptsSection = React.memo<STScriptsSectionProps>(({
         (item.author && item.author.toLowerCase().includes(q)) ||
         (item.description && item.description.toLowerCase().includes(q)) ||
         (item.sourceCardName && item.sourceCardName.toLowerCase().includes(q)) ||
+        ((item as any).sourcePresetName && (item as any).sourcePresetName.toLowerCase().includes(q)) ||
         (item.fileName && item.fileName.toLowerCase().includes(q))
       );
     });
@@ -358,12 +359,49 @@ export const STScriptsSection = React.memo<STScriptsSectionProps>(({
       updatedAt: Date.now(),
     };
 
-    updateAppData((prev) => ({
-      ...prev,
-      scripts: (prev.scripts || []).map((s) => (s.id === target.id ? updated : s)),
-    }));
+    updateAppData((prev) => {
+      let updatedPresets = prev.presets || [];
+      if ((updated as any).sourcePresetId) {
+        updatedPresets = updatedPresets.map((preset: any) => {
+          if (preset.id !== (updated as any).sourcePresetId) return preset;
+          const jsonData = JSON.parse(JSON.stringify(preset.jsonData || preset.settings || {}));
+          const scriptPayload = nextJson && typeof nextJson === 'object' ? nextJson : { name: updated.name, content: editingContent };
+          const existing = jsonData.extensions?.tavern_helper?.scripts;
+          let nextScripts: any[] = [];
+          if (Array.isArray(existing)) {
+            nextScripts = existing.map((item: any) => {
+              const itemId = item?.id || item?.uid || item?.name || item?.title;
+              const updatedId = scriptPayload?.id || scriptPayload?.uid || updated.name;
+              return itemId === updatedId || item?.name === updated.name ? { ...scriptPayload } : item;
+            });
+          }
+          const hadMatch = nextScripts.some((item: any) => (item?.id || item?.uid || item?.name) === (scriptPayload?.id || scriptPayload?.uid || updated.name));
+          const finalScripts = hadMatch ? nextScripts : [...nextScripts, scriptPayload];
+          jsonData.extensions = {
+            ...(jsonData.extensions || {}),
+            tavern_helper: {
+              ...(jsonData.extensions?.tavern_helper || {}),
+              scripts: finalScripts,
+            },
+          };
+          return {
+            ...preset,
+            jsonData,
+            settings: jsonData,
+            rawJsonString: JSON.stringify(jsonData, null, 2),
+            embeddedScripts: finalScripts,
+            updatedAt: Date.now(),
+          };
+        });
+      }
+      return {
+        ...prev,
+        presets: updatedPresets,
+        scripts: (prev.scripts || []).map((s) => (s.id === target.id ? updated : s)),
+      };
+    });
     setActiveScript(updated);
-    showToast('脚本已保存！', 'success');
+    showToast((updated as any).sourcePresetId ? '脚本已保存并同步回对应预设！' : '脚本已保存！', 'success');
   };
 
   const handleToggleSubEntry = (index: number) => {
