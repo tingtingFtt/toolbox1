@@ -380,6 +380,7 @@ export interface ScriptEntry {
   sourceCardName?: string;
   sourcePresetId?: string;
   sourcePresetName?: string;
+  sourceResources?: { key: string; path: (string | number)[]; folder: string }[];
   sourceResourceKey?: string;
   sourceResourcePath?: (string | number)[];
   sourceFolder?: string;
@@ -471,6 +472,7 @@ export interface STRegexEntry {
   sourceCardName?: string;
   sourcePresetId?: string;
   sourcePresetName?: string;
+  sourceResources?: { key: string; path: (string | number)[]; folder: string }[];
   sourceResourceKey?: string;
   sourceResourcePath?: (string | number)[];
   sourceFolder?: string;

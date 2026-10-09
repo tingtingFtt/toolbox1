@@ -8,14 +8,14 @@ import { TagEditor } from '../ui/TagEditor';
 import {
   FileCode, Plus, Search, Trash2, Edit3, FolderPlus, ArrowRightLeft,
   Download, Upload, Copy, Check, SlidersHorizontal, ArrowUpDown, X,
-  Maximize2, Minimize2, Sparkles, ExternalLink, ArrowLeft, History,
+  Layers, Maximize2, Minimize2, Sparkles, ExternalLink, ArrowLeft, History,
   CheckSquare, Square, Code, ListFilter, RotateCcw
 , Tag } from 'lucide-react';
 import { AppData, ScriptEntry, ScriptItemRule } from '../../types';
 import { normalizeResourceName, triggerFileDownload } from '../../utils';
 import { compareScripts } from '../../utils/diffEngine';
 import { sessionStore } from '../../utils/sessionStore';
-import { resourceSource } from '../../utils/presetResources';
+import { cleanPresetResource, bindPresetResourceItems, presetResourceId, resourceSource } from '../../utils/presetResources';
 import { ResourceSourceControls, ResourceSourceBadge, ResourceSourceFilter } from './ResourceSourceControls';
 
 interface STScriptsSectionProps {
@@ -88,15 +88,17 @@ export const STScriptsSection = React.memo<STScriptsSectionProps>(({
 
   // Modals & Detail
   const [activeScript, setActiveScript] = useState<ScriptEntry | null>(null);
+  const [focusedEntryKey, setFocusedEntryKey] = useState<string | null>(null);
 
   useEffect(() => {
     if (jumpTargetId && appData.scripts) {
-      const target = appData.scripts.find(r => r.id === jumpTargetId);
+      const target = appData.scripts.find(r => r.id === jumpTargetId || r.sourceResources?.some(resource => presetResourceId(r.sourcePresetId!, 'script', resource.key) === jumpTargetId));
       if (target) {
+        setFocusedEntryKey(target.sourceResources?.find(resource => presetResourceId(target.sourcePresetId!, 'script', resource.key) === jumpTargetId)?.key || null);
         setActiveScript(target);
         setEditingContent(target.rawContent || JSON.stringify(target.jsonData || {}, null, 2));
         setSelectedSubEntryIndex(null);
-        setDetailTab('info');
+        setDetailTab(target.entries?.length ? 'entries' : 'info');
         setSourceFilter(resourceSource(target));
         setCategoryFilter('全部分组');
         setTagFilter([]);
@@ -106,8 +108,21 @@ export const STScriptsSection = React.memo<STScriptsSectionProps>(({
     }
   }, [jumpTargetId, appData.scripts, onClearJumpTarget]);
 
-  const [detailTab, setDetailTab] = useState<'info' | 'code' | 'versions'>('info');
+  useEffect(() => {
+    if (!activeScript?.sourcePresetId) return;
+    const fresh = appData.scripts?.find(item => item.id === activeScript.id);
+    setActiveScript(fresh || null);
+    if (fresh) setEditingContent(fresh.rawContent || '');
+  }, [appData.scripts]);
+
+  const [detailTab, setDetailTab] = useState<'info' | 'entries' | 'code' | 'versions'>('info');
   const [selectedSubEntryIndex, setSelectedSubEntryIndex] = useState<number | null>(null);
+  useEffect(() => {
+    if (detailTab !== 'entries' || !focusedEntryKey) return;
+    const target = Array.from(document.querySelectorAll<HTMLElement>('[data-resource-key]')).find(item => item.dataset.resourceKey === focusedEntryKey);
+    target?.scrollIntoView({ block: 'nearest' });
+  }, [detailTab, activeScript?.id, focusedEntryKey]);
+
   const [isCodeFullscreen, setIsCodeFullscreen] = useState(false);
   const [editingContent, setEditingContent] = useState('');
   const [showAddSubEntryModal, setShowAddSubEntryModal] = useState(false);
@@ -159,7 +174,8 @@ export const STScriptsSection = React.memo<STScriptsSectionProps>(({
         (item.description && item.description.toLowerCase().includes(q)) ||
         (item.sourceCardName && item.sourceCardName.toLowerCase().includes(q)) ||
         ((item as any).sourcePresetName && (item as any).sourcePresetName.toLowerCase().includes(q)) ||
-        (item.fileName && item.fileName.toLowerCase().includes(q))
+        (item.fileName && item.fileName.toLowerCase().includes(q)) ||
+        item.entries?.some((entry: any) => (entry.name || '').toLowerCase().includes(q) || (entry.content || '').toLowerCase().includes(q))
       );
     });
   }, [rawScripts, categoryFilter, tagFilter, searchQuery, sourceFilter]);
@@ -350,8 +366,9 @@ export const STScriptsSection = React.memo<STScriptsSectionProps>(({
 
   const handleOpenDetail = (script: ScriptEntry) => {
     setActiveScript(script);
+    setFocusedEntryKey(null);
     setSelectedSubEntryIndex(null);
-    setDetailTab('info');
+    setDetailTab(script.entries?.length ? 'entries' : 'info');
     const content = script.rawContent || (script.jsonData ? JSON.stringify(script.jsonData, null, 2) : '');
     setEditingContent(content);
   };
@@ -359,25 +376,30 @@ export const STScriptsSection = React.memo<STScriptsSectionProps>(({
   const handleSaveActiveScript = (scriptOverride?: ScriptEntry) => {
     const target = scriptOverride || activeScript;
     if (!target) return;
-    let nextJson: any = target.jsonData;
     const content = !scriptOverride && detailTab === 'code' ? editingContent : target.rawContent || editingContent;
-    try {
-      nextJson = JSON.parse(content);
-    } catch {
-      if (target.sourcePresetId) nextJson = { ...(target.jsonData || {}), content };
+    let nextJson: any = target.jsonData;
+    let entries = target.entries;
+    if (target.sourceResources) {
+      if (!scriptOverride && detailTab === 'code' && content !== target.rawContent) {
+        try {
+          const parsed = JSON.parse(content);
+          if (!Array.isArray(parsed) || parsed.some(item => !item || typeof item !== 'object' || Array.isArray(item)))
+            throw new Error('需要包含脚本对象的 JSON 数组');
+          entries = bindPresetResourceItems(parsed, target.entries || []);
+        } catch (error: any) {
+          showToast(`脚本集合格式错误：${error.message}`, 'error');
+          return;
+        }
+      }
+      nextJson = (entries || []).map(cleanPresetResource);
+    } else {
+      try { nextJson = JSON.parse(content); } catch { /* Independent scripts may contain plain JavaScript. */ }
     }
-    if (target.sourcePresetId && nextJson && typeof nextJson === 'object' && !Array.isArray(nextJson)) {
-      const previous = appData.scripts?.find(item => item.id === target.id);
-      if (previous && target.name !== previous.name) nextJson.name = target.name;
-      if (previous && target.description !== previous.description) nextJson[Object.prototype.hasOwnProperty.call(nextJson, 'info') ? 'info' : 'description'] = target.description;
-    }
-
     const updated: ScriptEntry = {
       ...target,
-      name: target.sourcePresetId ? nextJson?.name || target.name : target.name,
-      rawContent: target.sourcePresetId ? JSON.stringify(nextJson, null, 2) : content,
+      entries,
+      rawContent: target.sourceResources ? JSON.stringify(nextJson, null, 2) : content,
       jsonData: nextJson,
-      entries: target.sourcePresetId && nextJson && typeof nextJson === 'object' && !Array.isArray(nextJson) ? [nextJson] : target.entries,
       updatedAt: Date.now(),
     };
 
@@ -402,7 +424,7 @@ export const STScriptsSection = React.memo<STScriptsSectionProps>(({
     const updated: ScriptEntry = {
       ...activeScript,
       entries: newEntries,
-      ...(activeScript.sourcePresetId && newEntries.length === 1 ? { jsonData: newEntries[0], rawContent: JSON.stringify(newEntries[0], null, 2) } : {}),
+      ...(activeScript.sourceResources ? { jsonData: newEntries.map(cleanPresetResource), rawContent: JSON.stringify(newEntries.map(cleanPresetResource), null, 2) } : {}),
       updatedAt: Date.now()
     };
     setActiveScript(updated);
@@ -420,6 +442,7 @@ export const STScriptsSection = React.memo<STScriptsSectionProps>(({
       const updated: ScriptEntry = {
         ...activeScript,
         entries: newEntries,
+        ...(activeScript.sourceResources ? { jsonData: newEntries.map(cleanPresetResource), rawContent: JSON.stringify(newEntries.map(cleanPresetResource), null, 2) } : {}),
         updatedAt: Date.now()
       };
       setActiveScript(updated);
@@ -455,7 +478,7 @@ export const STScriptsSection = React.memo<STScriptsSectionProps>(({
     const updated: ScriptEntry = {
       ...activeScript,
       entries: currentEntries,
-      ...(activeScript.sourcePresetId && currentEntries.length === 1 ? { jsonData: currentEntries[0], rawContent: JSON.stringify(currentEntries[0], null, 2) } : {}),
+      ...(activeScript.sourceResources ? { jsonData: currentEntries.map(cleanPresetResource), rawContent: JSON.stringify(currentEntries.map(cleanPresetResource), null, 2) } : {}),
       updatedAt: Date.now()
     };
     setActiveScript(updated);
@@ -781,7 +804,7 @@ export const STScriptsSection = React.memo<STScriptsSectionProps>(({
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+        <div className="resource-card-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
           {visibleSorted.map((script: ScriptEntry) => {
             const isSelected = selectedIds.includes(script.id);
             const subEntriesCount = script.entries?.length || 0;
@@ -1019,6 +1042,7 @@ export const STScriptsSection = React.memo<STScriptsSectionProps>(({
               <div className="flex items-center gap-1 overflow-x-auto scrollbar-none">
                 {[
                   { id: 'info' as const, label: '基本属性', icon: FileCode },
+                  { id: 'entries' as const, label: `脚本条目 (${activeScript.entries?.length || 0})`, icon: Layers },
                   { id: 'versions' as const, label: '版本管理', icon: History },
                   { id: 'code' as const, label: '代码编辑', icon: Code },
                 ].map(tab => (
@@ -1038,7 +1062,7 @@ export const STScriptsSection = React.memo<STScriptsSectionProps>(({
               </div>
             </div>
             
-            <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+            <div className="file-detail-body flex-1 overflow-y-auto p-4 custom-scrollbar">
               <div className="mb-3"><ResourceSourceBadge item={activeScript} onOpenPreset={onOpenPresetDetail} onOpenCard={onOpenCardDetail} /></div>
               {/* TAB 1: Info */}
               {detailTab === 'info' && (
@@ -1077,6 +1101,38 @@ export const STScriptsSection = React.memo<STScriptsSectionProps>(({
                 </div>
               )}
 
+              {detailTab === 'entries' && (
+                <div className="space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-xs text-[var(--dim)]">共 {activeScript.entries?.length || 0} 个脚本条目，编辑后同步到所属预设。</p>
+                    <button type="button" className="px-3 py-2 text-xs border-b border-[var(--line)] text-[var(--accent)]" onClick={() => {
+                      setSelectedSubEntryIndex(null);
+                      setSubEntryForm({ name: '', type: 'script', content: '', enabled: true });
+                      setShowAddSubEntryModal(true);
+                    }}><Plus className="w-3 h-3 inline mr-1" />添加条目</button>
+                  </div>
+                  <div className="resource-card-grid grid gap-3">
+                    {(activeScript.entries || []).map((entry, index) => (
+                      <article key={entry.__presetResourceKey || entry.id || index} data-resource-key={entry.__presetResourceKey} className={`min-w-0 border border-[var(--line)] p-3 space-y-2 ${focusedEntryKey === entry.__presetResourceKey ? 'ring-2 ring-[var(--accent)]' : ''}`}>
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <h4 className="min-w-0 break-words text-xs font-bold">{entry.name || `脚本 #${index + 1}`}</h4>
+                          <span className="text-[10px] text-[var(--dim)]">{entry.enabled !== false ? '已启用' : '已禁用'}</span>
+                        </div>
+                        {entry.__presetSourceFolder && <p className="text-[10px] text-[var(--dim)] break-words">文件夹：{entry.__presetSourceFolder}</p>}
+                        <pre className="text-[10px] max-h-24 overflow-auto whitespace-pre-wrap break-words">{entry.content || entry.code || entry.script || ''}</pre>
+                        <div className="flex flex-wrap gap-2">
+                          <button className="px-2 py-1.5 text-xs border-b border-[var(--line)]" onClick={() => {
+                            setSelectedSubEntryIndex(index); setSubEntryForm({ ...entry }); setShowAddSubEntryModal(true);
+                          }}><Edit3 className="w-3 h-3 inline mr-1" />编辑条目</button>
+                          <button className="px-2 py-1.5 text-xs border-b border-[var(--line)]" onClick={() => handleToggleSubEntry(index)}>{entry.enabled !== false ? '禁用' : '启用'}</button>
+                          <button className="px-2 py-1.5 text-xs border-b border-[var(--line)]" onClick={() => handleDeleteSubEntry(index)}>删除条目</button>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* TAB 3: Code Editor */}
               {detailTab === 'code' && (
                 <div className="space-y-2 flex-1 flex flex-col h-full">
@@ -1103,7 +1159,10 @@ export const STScriptsSection = React.memo<STScriptsSectionProps>(({
               )}
 
               {/* TAB 4: Versions (版本历史) */}
-              {detailTab === 'versions' && (
+              {detailTab === 'versions' && activeScript.sourcePresetId && (
+                <div className="space-y-3"><p>此集合随所属预设统一记录版本，恢复时同时更新全部内嵌资源。</p><ResourceSourceBadge item={activeScript} onOpenPreset={onOpenPresetDetail} /></div>
+              )}
+              {detailTab === 'versions' && !activeScript.sourcePresetId && (
                 <div className="space-y-3">
                   <div className="pb-2 border-b border-zinc-200 dark:border-zinc-800 space-y-1">
                     <div className="flex items-center justify-between gap-2">
@@ -1239,7 +1298,7 @@ export const STScriptsSection = React.memo<STScriptsSectionProps>(({
       <BottomSheetModal
         isOpen={showAddSubEntryModal}
         onClose={() => setShowAddSubEntryModal(false)}
-        title="添加脚本子条目"
+        title={selectedSubEntryIndex === null ? "添加脚本子条目" : "编辑脚本子条目"}
         subtitle="向当前脚本集合中添加新的子条目或逻辑单元"
         maxWidth="md"
         footer={
@@ -1254,7 +1313,7 @@ export const STScriptsSection = React.memo<STScriptsSectionProps>(({
               onClick={handleSaveSubEntryForm}
               className="px-3 py-1.5 text-[10px] font-semibold rounded bg-emerald-600 text-white hover:bg-emerald-700"
             >
-              确认添加
+              {selectedSubEntryIndex === null ? '确认添加' : '保存条目'}
             </button>
           </>
         }

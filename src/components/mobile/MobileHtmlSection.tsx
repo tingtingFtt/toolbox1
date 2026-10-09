@@ -792,7 +792,7 @@ export const MobileHtmlSection: React.FC<MobileHtmlSectionProps> = ({
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="resource-card-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {sortedList.map((item) => {
             const isSelected = selectedIds.includes(item.id);
             const totalLines = (item.htmlContent || '').split('\n').length;
@@ -1608,3 +1608,4 @@ export const MobileHtmlSection: React.FC<MobileHtmlSectionProps> = ({
     </div>
   );
 };
+

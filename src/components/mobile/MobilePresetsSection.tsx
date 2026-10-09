@@ -849,7 +849,7 @@ export const MobilePresetsSection: React.FC<MobilePresetsSectionProps> = ({
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="resource-card-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {sortedPresets.map((item) => {
             const isSelected = selectedIds.includes(item.id);
             const promptSnippet = item.jailbreakPrompt || item.systemPrompt || item.description || '';
@@ -1713,3 +1713,4 @@ export const MobilePresetsSection: React.FC<MobilePresetsSectionProps> = ({
     </div>
   );
 };
+

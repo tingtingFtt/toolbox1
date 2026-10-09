@@ -217,75 +217,87 @@ export function savePresetVersion(
   };
 }
 
+// Each preset owns one management collection per resource kind. Child identities stay local.
+export const presetCollectionId = (presetId: string, kind: 'regex' | 'script') =>
+  `preset_${kind}_${presetId}`;
+
+export function cleanPresetResource(value: any): any {
+  if (!value || typeof value !== 'object') return value;
+  const { __presetResourceKey, __presetSourceFolder, ...native } = value;
+  return native;
+}
+
+export function bindPresetResourceItems(values: any[], previous: any[] = []): any[] {
+  const used = new Set<string>();
+  return values.map((value, index) => {
+    let match = value.__presetResourceKey
+      ? previous.find(item => item.__presetResourceKey === value.__presetResourceKey)
+      : previous.find(item => !used.has(item.__presetResourceKey) &&
+          (value.id != null || value.uid != null) &&
+          String(item.id ?? item.uid) === String(value.id ?? value.uid));
+    if (!match && value.id == null && value.uid == null && !value.__presetResourceKey)
+      match = previous[index];
+    if (match) used.add(match.__presetResourceKey);
+    return {
+      ...(match || {}),
+      ...value,
+      ...(match ? { __presetResourceKey: match.__presetResourceKey, __presetSourceFolder: match.__presetSourceFolder } : {}),
+    };
+  });
+}
+
 export function syncPresetResources(data: AppData): PresetResourceData {
   const presets = (data.presets || []).map(normalizePreset);
-  const regexes: STRegexEntry[] = (data.stRegexScripts || []).filter(
-    (item) => !item.sourcePresetId,
-  );
-  const scripts: ScriptEntry[] = (data.scripts || []).filter((item) => !item.sourcePresetId);
-  const project = (preset: PresetEntry, kind: 'regex' | 'script') => {
-    const oldList = kind === 'regex' ? data.stRegexScripts || [] : data.scripts || [];
-    return getPresetResources(getPresetJson(preset), kind).map((resource) => {
-      const id = presetResourceId(preset.id, kind, resource.key);
-      const previous: any = oldList.find(
-        (item) =>
-          item.id === id ||
-          (item.sourcePresetId === preset.id && item.sourceResourceKey === resource.key),
-      );
+  const regexes: STRegexEntry[] = (data.stRegexScripts || []).filter(item => !item.sourcePresetId);
+  const scripts: ScriptEntry[] = (data.scripts || []).filter(item => !item.sourcePresetId);
+  presets.forEach(preset => {
+    (['regex', 'script'] as const).forEach(kind => {
+      const resources = getPresetResources(getPresetJson(preset), kind);
+      if (!resources.length) return;
+      const oldList = kind === 'regex' ? data.stRegexScripts || [] : data.scripts || [];
+      const id = presetCollectionId(preset.id, kind);
+      const previous = oldList.find(item => item.id === id) || oldList.find(item => item.sourcePresetId === preset.id);
+      const native = resources.map(resource => clone(resource.value));
+      const children = resources.map(resource => ({
+        ...clone(resource.value),
+        __presetResourceKey: resource.key,
+        __presetSourceFolder: resource.folder,
+        ...(kind === 'regex' ? {
+          scriptName: resource.name,
+          findRegex: String(resource.value.findRegex ?? resource.value.find_regex ?? resource.value.pattern ?? ''),
+          replaceString: String(resource.value.replaceString ?? resource.value.replace_string ?? resource.value.replacement ?? ''),
+        } : { name: resource.name, enabled: resource.value.enabled !== false }),
+      }));
       const common = {
-        ...previous,
         id,
         fileName: preset.fileName,
         createdAt: previous?.createdAt || preset.createdAt,
         updatedAt: preset.updatedAt || preset.createdAt,
         category: previous?.category || '默认',
         customTags: previous?.customTags || [],
+        author: previous?.author ?? preset.author,
+        description: previous?.description || '',
         sourcePresetId: preset.id,
         sourcePresetName: preset.name,
         sourceScope: 'preset',
-        sourceResourceKey: resource.key,
-        sourceResourcePath: resource.path,
-        sourceFolder: resource.folder,
-        sourceCardId: undefined,
-        sourceCardName: undefined,
-        author: previous?.author ?? preset.author,
-        description: resource.value.info || resource.value.description || '',
-        jsonData: clone(resource.value),
+        sourceResources: resources.map(resource => ({ key: resource.key, path: resource.path, folder: resource.folder })),
+        activeVersionLabel: preset.activeVersionLabel,
+        activeVersionNumber: preset.activeVersionNumber,
+        jsonData: native,
       };
-      if (kind === 'script')
-        return {
-          ...common,
-          name: resource.name,
-          type: 'script',
-          rawContent: JSON.stringify(resource.value, null, 2),
-          entries: [clone(resource.value)],
-        };
-      const rule = {
-        ...resource.value,
-        scriptName: resource.name,
-        findRegex: String(
-          resource.value.findRegex ?? resource.value.find_regex ?? resource.value.pattern ?? '',
-        ),
-        replaceString: String(
-          resource.value.replaceString ??
-            resource.value.replace_string ??
-            resource.value.replacement ??
-            '',
-        ),
-      };
-      return {
-        ...common,
-        scriptName: resource.name,
-        findRegex: rule.findRegex,
-        replaceString: rule.replaceString,
-        disabled: !!rule.disabled,
-        rules: [rule],
-      };
+      if (kind === 'regex') regexes.push({ ...common,
+        scriptName: `${preset.name} · 内嵌正则`,
+        findRegex: children[0].findRegex,
+        replaceString: children[0].replaceString,
+        rules: children,
+      });
+      else scripts.push({ ...common,
+        name: `${preset.name} · 内嵌脚本`,
+        type: 'collection',
+        rawContent: JSON.stringify(native, null, 2),
+        entries: children,
+      });
     });
-  };
-  presets.forEach((preset) => {
-    regexes.push(...(project(preset, 'regex') as STRegexEntry[]));
-    scripts.push(...(project(preset, 'script') as ScriptEntry[]));
   });
   return { ...data, presets, stRegexScripts: regexes, scripts };
 }
@@ -294,118 +306,108 @@ function replaceAt(json: any, path: Path, values: any[]) {
   const parent = read(json, path.slice(0, -1));
   const key = path[path.length - 1];
   if (!parent) return;
-  if (Array.isArray(parent) && typeof key === 'number') parent.splice(key, 1, ...values);
+  // Tavern Helper also stores leaves as ["script", {...}]; preserve that wrapper.
+  if (Array.isArray(parent) && key === 1 && parent[0] === 'script') {
+    replaceAt(json, path.slice(0, -1), values.map(value => ['script', value]));
+  } else if (Array.isArray(parent) && typeof key === 'number') parent.splice(key, 1, ...values);
   else if (values.length) parent[key] = values[0];
   else delete parent[key];
 }
 
-function resourcePayload(old: any, updated: any, kind: 'regex' | 'script'): any[] {
-  const original = old.jsonData || {};
-  if (kind === 'regex') {
-    if (!equal(old.rules, updated.rules))
-      return (updated.rules || []).map((rule: any) => ({ ...original, ...rule }));
-    if (!equal(old.jsonData, updated.jsonData))
-      return Array.isArray(updated.jsonData) ? updated.jsonData : [updated.jsonData];
-    return [
-      {
-        ...original,
-        scriptName: updated.scriptName,
-        findRegex: updated.findRegex,
-        replaceString: updated.replaceString,
-        disabled: updated.disabled,
-      },
-    ];
+function appendResources(json: any, kind: 'regex' | 'script', values: any[]) {
+  if (!values.length) return;
+  // Append in the original container, preserving folders, dictionary keys and alternate roots.
+  const resources = getPresetResources(json, kind);
+  let path = resources[resources.length - 1]?.path.slice(0, -1);
+  if (path && read(json, path)?.[0] === 'script') path = path.slice(0, -1);
+  let parent = path ? read(json, path) : null;
+  if (parent && !Array.isArray(parent) && typeof parent === 'object') {
+    values.forEach((value, index) => {
+      let key = String(value.id || `script_${Date.now()}_${index}`);
+      while (Object.prototype.hasOwnProperty.call(parent, key)) key += '_new';
+      parent[key] = value;
+    });
+    return;
   }
-  if (!equal(old.entries, updated.entries))
-    return (updated.entries || []).map((entry: any) => ({ ...original, ...entry }));
-  let payload = { ...original };
-  if (old.rawContent !== updated.rawContent) {
-    try {
-      const parsed = JSON.parse(updated.rawContent);
-      payload =
-        parsed && typeof parsed === 'object' && !Array.isArray(parsed)
-          ? { ...original, ...parsed }
-          : { ...original, content: updated.rawContent };
-    } catch {
-      payload = { ...original, content: updated.rawContent };
+  if (!Array.isArray(parent)) {
+    json.extensions ||= {};
+    if (kind === 'regex') parent = json.extensions.regex_scripts ||= [];
+    else {
+      json.extensions.tavern_helper ||= {};
+      parent = json.extensions.tavern_helper.scripts ||= [];
     }
-  } else if (!equal(old.jsonData, updated.jsonData)) payload = { ...original, ...updated.jsonData };
-  if (old.name !== updated.name) payload.name = updated.name;
-  if (old.description !== updated.description)
-    payload[Object.prototype.hasOwnProperty.call(original, 'info') ? 'info' : 'description'] =
-      updated.description;
-  return [payload];
+  }
+  const wrapped = kind === 'script' && parent.some((value: any) => Array.isArray(value) && value[0] === 'script');
+  parent.push(...values.map(value => wrapped ? ['script', value] : value));
 }
 
-// Reconcile a single state transaction so all editors, deletes and version restores use the same owner data.
-export function reconcilePresetResources(previous: AppData, next: AppData): PresetResourceData {
-  if (
-    previous.presets === next.presets &&
-    previous.stRegexScripts === next.stRegexScripts &&
-    previous.scripts === next.scripts &&
-    next.presets &&
-    next.stRegexScripts &&
-    next.scripts
-  )
-    return next as PresetResourceData;
-  const changedJson = new Set(
-    (next.presets || [])
-      .filter((p) => {
-        const old = previous.presets?.find((item) => item.id === p.id);
-        return !old || !equal(getPresetJson(old), getPresetJson(p));
-      })
-      .map((p) => p.id),
-  );
-  const pending = new Map<string, { kind: 'regex' | 'script'; old: any; payload: any[] }[]>();
-  const collect = (kind: 'regex' | 'script', oldList: any[], newList: any[]) => {
-    if (oldList === newList) return;
-    oldList.forEach((old) => {
-      if (
-        !old.sourcePresetId ||
-        changedJson.has(old.sourcePresetId) ||
-        !next.presets?.some((p) => p.id === old.sourcePresetId)
-      )
-        return;
-      const updated = newList.find((item) => item.id === old.id);
-      const fields =
-        kind === 'regex'
-          ? ['rules', 'jsonData', 'scriptName', 'findRegex', 'replaceString', 'disabled']
-          : ['entries', 'jsonData', 'rawContent', 'name', 'description'];
-      if (updated && fields.every((field) => equal(old[field], updated[field]))) return;
-      const payload = updated ? resourcePayload(old, updated, kind) : [];
-      if (updated && equal(payload, [old.jsonData])) return;
-      const list = pending.get(old.sourcePresetId) || [];
-      list.push({ kind, old, payload });
-      pending.set(old.sourcePresetId, list);
-    });
-  };
-  collect('regex', previous.stRegexScripts || [], next.stRegexScripts || []);
-  collect('script', previous.scripts || [], next.scripts || []);
-  const presets = (next.presets || []).map((preset) => {
-    const edits = pending.get(preset.id);
-    let draft = preset;
-    if (edits?.length) {
-      const json = clone(getPresetJson(preset));
-      const resources = {
-        regex: getPresetResources(json, 'regex'),
-        script: getPresetResources(json, 'script'),
-      };
-      // Reverse document order keeps array paths valid during batch deletions.
-      edits.sort(
-        (a, b) =>
-          resources[b.kind].findIndex((r) => r.key === b.old.sourceResourceKey) -
-          resources[a.kind].findIndex((r) => r.key === a.old.sourceResourceKey),
-      );
-      edits.forEach((edit) => {
-        const target = resources[edit.kind].find((r) => r.key === edit.old.sourceResourceKey);
-        if (target) replaceAt(json, target.path, edit.payload);
-      });
-      draft = { ...preset, jsonData: json, currentVersionSummary: '更新内嵌资源' };
+function collectionItems(old: any, updated: any, kind: 'regex' | 'script'): any[] {
+  const field = kind === 'regex' ? 'rules' : 'entries';
+  let values = updated[field] || [];
+  if (equal(old[field], values)) {
+    if (kind === 'script' && old.rawContent !== updated.rawContent) {
+      const parsed = JSON.parse(updated.rawContent);
+      if (!Array.isArray(parsed)) throw new Error('预设脚本集合需要 JSON 数组，请在子条目中编辑单个脚本');
+      values = parsed;
+    } else if (!equal(old.jsonData, updated.jsonData)) {
+      values = Array.isArray(updated.jsonData) ? updated.jsonData : [updated.jsonData];
     }
-    const old = previous.presets?.find((p) => p.id === preset.id);
-    if (!old) return normalizePreset(draft);
-    if (!equal(old.versions, draft.versions)) return normalizePreset(draft);
-    return savePresetVersion(old, draft, edits?.length ? '更新内嵌资源' : '保存修改');
+  }
+  return bindPresetResourceItems(values, old[field] || []);
+}
+
+function updateCollection(json: any, old: any, updated: any, kind: 'regex' | 'script') {
+  const resources = getPresetResources(json, kind);
+  const items = updated ? collectionItems(old, updated, kind) : [];
+  const replacements = new Map(items.filter(item => item.__presetResourceKey).map(item => [item.__presetResourceKey, item]));
+  // Add before deleting so an emptied last folder/container remains identifiable.
+  appendResources(json, kind, items.filter(item => !item.__presetResourceKey).map(cleanPresetResource));
+  [...resources].reverse().forEach(resource => {
+    const item = replacements.get(resource.key);
+    const oldChild = (kind === 'regex' ? old.rules : old.entries)?.find((entry: any) => entry.__presetResourceKey === resource.key);
+    if (item && oldChild && equal(item, oldChild)) return;
+    const payload = item ? { ...resource.value, ...cleanPresetResource(item) } : null;
+    // Preserve alternate spellings when the editor changes canonical fields.
+    if (payload && kind === 'script' && oldChild?.content !== item?.content) {
+      if ('code' in resource.value) payload.code = payload.content;
+      if ('script' in resource.value) payload.script = payload.content;
+    }
+    if (payload && kind === 'regex') {
+      if ('find_regex' in resource.value) payload.find_regex = payload.findRegex;
+      if ('pattern' in resource.value) payload.pattern = payload.findRegex;
+      if ('replace_string' in resource.value) payload.replace_string = payload.replaceString;
+      if ('replacement' in resource.value) payload.replacement = payload.replaceString;
+    }
+    replaceAt(json, resource.path, payload ? [payload] : []);
+  });
+}
+
+// A transaction edits the owner's JSON once, then regenerates its two management collections.
+export function reconcilePresetResources(previous: AppData, next: AppData): PresetResourceData {
+  if (previous.presets === next.presets && previous.stRegexScripts === next.stRegexScripts && previous.scripts === next.scripts && next.presets && next.stRegexScripts && next.scripts)
+    return next as PresetResourceData;
+  const presets = (next.presets || []).map(preset => {
+    const oldPreset = previous.presets?.find(item => item.id === preset.id);
+    let draft = preset;
+    const ownerChanged = !oldPreset || !equal(getPresetJson(oldPreset), getPresetJson(preset));
+    if (!ownerChanged) {
+      const json = clone(getPresetJson(preset));
+      (['regex', 'script'] as const).forEach(kind => {
+        const oldList = kind === 'regex' ? previous.stRegexScripts : previous.scripts;
+        const newList = kind === 'regex' ? next.stRegexScripts : next.scripts;
+        if (oldList === newList) return;
+        const old = oldList?.find(item => item.sourcePresetId === preset.id && item.sourceResources);
+        if (!old) return;
+        const updated = newList?.find(item => item.id === old.id);
+        const fields = kind === 'regex' ? ['rules', 'jsonData'] : ['entries', 'jsonData', 'rawContent'];
+        if (updated && fields.every(field => equal((old as any)[field], (updated as any)[field]))) return;
+        updateCollection(json, old, updated, kind);
+      });
+      if (!equal(json, getPresetJson(preset))) draft = { ...preset, jsonData: json };
+    }
+    if (!oldPreset) return normalizePreset(draft);
+    if (!equal(oldPreset.versions, draft.versions)) return normalizePreset(draft);
+    return savePresetVersion(oldPreset, draft, '更新内嵌资源');
   });
   return syncPresetResources({ ...next, presets });
 }

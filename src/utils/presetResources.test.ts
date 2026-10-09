@@ -57,7 +57,7 @@ test('import projects leaf scripts and regex with fixed owners and preserves JSO
   const state = setup();
   assert.equal(state.stRegexScripts.length, 1);
   assert.equal(state.scripts.length, 1);
-  assert.equal(state.scripts[0].sourceFolder, 'Folder');
+  assert.equal(state.scripts[0].entries![0].__presetSourceFolder, 'Folder');
   assert.equal(state.scripts[0].sourcePresetId, state.presets[0].id);
   assert.deepEqual(state.presets[0].jsonData, fixture());
   assert.deepEqual(syncPresetResources(state), state);
@@ -109,7 +109,7 @@ test('script sub-entry editing and raw code editing preserve metadata and folder
     exported.button,
     fixture().extensions.tavern_helper.scripts[0].scripts[0].button,
   );
-  const edited = { ...after.scripts[0], rawContent: 'plain JS code' };
+  const edited = { ...after.scripts[0], rawContent: JSON.stringify([{ ...after.scripts[0].jsonData[0], content: 'plain JS code' }]) };
   after = reconcilePresetResources(after, { ...after, scripts: [edited] });
   exported = after.presets[0].jsonData.extensions.tavern_helper.scripts[0].scripts[0];
   assert.equal(exported.content, 'plain JS code');
@@ -160,8 +160,8 @@ test('batch deletes keep array paths valid and do not touch standalone or card r
     { ...json.extensions.regex_scripts[0], id: 'rx3' },
   );
   const before = syncPresetResources(data([createPresetEntry(json, 'example.json')]));
-  const retained = before.stRegexScripts[2];
-  const after = reconcilePresetResources(before, { ...before, stRegexScripts: [retained] });
+  const retained = before.stRegexScripts[0];
+  const after = reconcilePresetResources(before, { ...before, stRegexScripts: [{ ...retained, rules: [retained.rules![2]] }] });
   assert.equal(after.presets[0].jsonData.extensions.regex_scripts.length, 1);
   assert.equal(after.presets[0].jsonData.extensions.regex_scripts[0].id, 'rx3');
   const independent = { ...retained, id: 'standalone', sourcePresetId: undefined };
@@ -192,4 +192,69 @@ test('duplicate native IDs and dictionary scripts do not collide', () => {
   };
   assert.equal(new Set(getPresetResources(json, 'regex').map((item) => item.key)).size, 2);
   assert.equal(new Set(getPresetResources(json, 'script').map((item) => item.key)).size, 2);
+});
+
+test('many embedded resources produce exactly one collection per preset and kind', () => {
+  const json = fixture();
+  json.extensions.regex_scripts = Array.from({ length: 117 }, (_, index) => ({ ...json.extensions.regex_scripts[0], id: `rx${index}` }));
+  json.extensions.tavern_helper.scripts[0].scripts.push({ ...json.extensions.tavern_helper.scripts[0].scripts[0], id: 'script2', name: 'Second' });
+  const state = syncPresetResources(data([createPresetEntry(json, 'many.json')]));
+  assert.equal(state.stRegexScripts.length, 1);
+  assert.equal(state.stRegexScripts[0].rules?.length, 117);
+  assert.equal(state.scripts.length, 1);
+  assert.equal(state.scripts[0].entries?.length, 2);
+  assert.deepEqual(state.presets[0].jsonData, json);
+});
+
+test('legacy leaf resources migrate without duplicate collections or loss of user grouping', () => {
+  const preset = createPresetEntry(fixture(), 'legacy.json');
+  const state = syncPresetResources({ ...data([preset]), scripts: [{ id: 'legacy', sourcePresetId: preset.id, name: 'Script', createdAt: 1, category: 'My group', customTags: ['Custom'] }] });
+  assert.equal(state.scripts.length, 1);
+  assert.equal(state.scripts[0].category, 'My group');
+  assert.deepEqual(state.scripts[0].customTags, ['Custom']);
+  assert.deepEqual(state.presets[0].jsonData, fixture());
+});
+
+test('editing and deleting a middle rule preserves its siblings and does not leak linkage metadata', () => {
+  const json = fixture();
+  json.extensions.regex_scripts.push({ ...json.extensions.regex_scripts[0], id: 'second' }, { ...json.extensions.regex_scripts[0], id: 'third' });
+  const before = syncPresetResources(data([createPresetEntry(json, 'multi.json')]));
+  const collection = before.stRegexScripts[0];
+  const rules = [collection.rules![0], { ...collection.rules![2], replaceString: 'third-edited' }];
+  const after = reconcilePresetResources(before, { ...before, stRegexScripts: [{ ...collection, rules }] });
+  assert.deepEqual(after.presets[0].jsonData.extensions.regex_scripts.map((item: any) => item.id), ['rx', 'third']);
+  assert.equal(after.presets[0].jsonData.extensions.regex_scripts[1].replaceString, 'third-edited');
+  assert.ok(!JSON.stringify(after.presets[0].jsonData).includes('__preset'));
+  assert.deepEqual(after.presets[0].jsonData.extensions.regex_scripts[0], json.extensions.regex_scripts[0]);
+});
+
+test('script wrappers and multiple folders survive edits, deletes, additions and version restore', () => {
+  const json: any = fixture();
+  const original = json.extensions.tavern_helper.scripts[0].scripts[0];
+  json.extensions.tavern_helper.scripts = [
+    { type: 'folder', name: 'A', scripts: [['script', { ...original, id: 'one' }]] },
+    { type: 'folder', name: 'B', scripts: [['script', { ...original, id: 'two' }], ['script', { ...original, id: 'three' }]] },
+  ];
+  const before = syncPresetResources(data([createPresetEntry(json, 'wrapped.json')]));
+  const collection = before.scripts[0];
+  const entries = [{ ...collection.entries![0], content: 'edited one' }, collection.entries![2], { id: 'new', name: 'New', content: 'new code', enabled: true }];
+  const after = reconcilePresetResources(before, { ...before, scripts: [{ ...collection, entries }] });
+  const folders = after.presets[0].jsonData.extensions.tavern_helper.scripts;
+  assert.equal(folders[0].scripts[0][1].content, 'edited one');
+  assert.equal(folders[1].scripts[0][1].id, 'three');
+  assert.equal(folders[1].scripts[1][1].id, 'new');
+  assert.equal(after.scripts[0].entries?.length, 3);
+  assert.ok(!JSON.stringify(after.presets[0].jsonData).includes('__preset'));
+  const restored = savePresetVersion(after.presets[0], { ...after.presets[0], ...after.presets[0].versions![0].data });
+  const final = reconcilePresetResources(after, { ...after, presets: [restored] });
+  assert.deepEqual(final.presets[0].jsonData, json);
+});
+
+test('deleting a collection removes all embedded resources while retaining owner and other kinds', () => {
+  const before = setup();
+  const after = reconcilePresetResources(before, { ...before, stRegexScripts: [] });
+  assert.equal(after.presets.length, 1);
+  assert.equal(after.presets[0].jsonData.extensions.regex_scripts.length, 0);
+  assert.equal(after.scripts[0].entries?.length, 1);
+  assert.equal(after.presets[0].versions?.length, 1);
 });

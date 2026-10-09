@@ -5,6 +5,7 @@
 @import "./styles/themes.css";
 @import "./styles/ui.css";
 @import "./styles/layout.css";
+@import "./styles/responsive.css";
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
@@ -142,3 +143,4 @@ aside {
   -ms-overflow-style: none !important;
   scrollbar-width: none !important;
 }
+

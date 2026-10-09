@@ -284,7 +284,7 @@ export const UserPersonasSection = ({ appData, updateAppData, showToast }: any) 
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+        <div className="resource-card-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
           {filteredPersonas.map((p: UserPersonaEntry) => (
             <div key={p.id} className="sub-block-card p-3 bg-[var(--card-solid-bg,#EADAC7)] border-none rounded-none flex items-center justify-between gap-3">
               <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -335,6 +335,7 @@ export const UserPersonasSection = ({ appData, updateAppData, showToast }: any) 
     </div>
   );
 };
+
 
 
 

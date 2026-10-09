@@ -612,7 +612,7 @@ export const ChatLogsSection = React.memo<ChatLogsSectionProps>(({
           </p>
         </BaseCard>
       ) : (
-        <div data-design-id="chatlogs-grid" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div data-design-id="chatlogs-grid" className="resource-card-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {sorted.map((log) => {
             const isSelected = selectedIds.includes(log.id);
             const msgCount = log.messages?.length || log.messageCount || 0;
@@ -1157,4 +1157,5 @@ export const ChatLogsSection = React.memo<ChatLogsSectionProps>(({
 }, (prev, next) => {
   return prev.appData === next.appData;
 });
+
 

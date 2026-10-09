@@ -1,0 +1,130 @@
+/* Layout responds to the available page/panel width on phones, tablets and desktops. */
+.app-shell-root,
+.app-shell-root > .flex,
+#app-content,
+.file-detail-modal,
+.modal-panel {
+  min-width: 0;
+  min-height: 0;
+}
+
+#app-content,
+.file-detail-modal {
+  container-type: inline-size;
+}
+
+#app-content {
+  overscroll-behavior: contain;
+  padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+}
+
+:where(#app-content, .file-detail-modal, .modal-panel) :where(.grid > *, .flex > *) {
+  min-width: 0;
+}
+
+:where(#app-content, .file-detail-modal, .modal-panel) :where(input, textarea, select, img, video, iframe) {
+  max-width: 100%;
+}
+
+:where(#app-content, .file-detail-modal, .modal-panel) :where(p, h1, h2, h3, h4, label) {
+  overflow-wrap: anywhere;
+}
+
+.resource-card-grid {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr));
+  align-items: stretch;
+}
+
+.file-detail-modal > :where(header, footer, .tab-nav-bar, [data-design-id="card-detail-header"], [data-design-id="card-detail-footer"]) {
+  flex-shrink: 0;
+  min-width: 0;
+}
+
+.file-detail-modal > :where(footer, [data-design-id="card-detail-footer"]) {
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
+}
+
+.file-detail-modal > .flex-1,
+.modal-panel > .overflow-y-auto {
+  min-height: 0;
+  overscroll-behavior: contain;
+}
+
+.tab-nav-bar {
+  max-width: 100%;
+  overscroll-behavior-inline: contain;
+}
+
+.tab-nav-bar > .flex {
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* Viewport breakpoints alone cannot account for a narrow pane or a tablet sidebar. */
+@container (max-width: 47.99rem) {
+  :where(.grid):not(.resource-card-grid)[class~="md:grid-cols-2"],
+  :where(.grid):not(.resource-card-grid)[class~="md:grid-cols-3"] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@container (max-width: 39.99rem) {
+  :where(.grid):not(.resource-card-grid)[class~="sm:grid-cols-2"],
+  :where(.grid):not(.resource-card-grid):not([class~="grid-cols-2"])[class~="sm:grid-cols-3"] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .file-detail-body .grid[class~="grid-cols-2"] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  #app-content:not(.p-0) {
+    padding-inline: clamp(0.5rem, 3vw, 1rem);
+  }
+
+  .sub-interface-banner {
+    max-width: 100%;
+  }
+
+  .sub-interface-banner .flex.items-center.justify-between,
+  .file-detail-modal .flex.items-start.justify-between,
+  .file-detail-modal > footer > .flex {
+    flex-wrap: wrap;
+    row-gap: 0.5rem;
+  }
+
+  .file-detail-modal .grid[class~="grid-cols-2"] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .file-detail-modal.modal-panel {
+    height: 100dvh;
+    max-height: 100dvh !important;
+    width: 100%;
+  }
+
+  .modal-panel:not(.file-detail-modal) {
+    max-width: calc(100vw - 1rem);
+    max-height: calc(100dvh - 1rem) !important;
+  }
+
+  [data-design-id="app-sidebar"] {
+    width: min(16rem, calc(100vw - 2rem));
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+}
+
+/* Phone landscape and tablet split-screen: leave scrolling to the body, keep actions reachable. */
+@media (max-height: 540px) {
+  .modal-panel:not(.file-detail-modal) {
+    max-height: calc(100dvh - 0.5rem) !important;
+  }
+
+  .file-detail-modal :where(header, footer, .tab-nav-bar) {
+    padding-block: 0.375rem;
+  }
+}

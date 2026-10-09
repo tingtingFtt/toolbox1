@@ -490,7 +490,7 @@ export const STPluginsSection = React.memo<STPluginsSectionProps>(({
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="resource-card-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {sorted.map((plugin: any) => {
             const isSelected = selectedIds.includes(plugin.id);
             return (
@@ -1007,5 +1007,6 @@ export const STPluginsSection = React.memo<STPluginsSectionProps>(({
 }, (prev, next) => {
   return prev.appData === next.appData;
 });
+
 
 

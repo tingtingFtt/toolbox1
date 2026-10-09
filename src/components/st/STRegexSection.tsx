@@ -16,7 +16,7 @@ import { AppData, STRegexEntry, STRegexRule } from '../../types';
 import { normalizeStRegexRules, syncStRegexBackToCards, normalizeResourceName, triggerFileDownload } from '../../utils';
 import { compareRegexScripts } from '../../utils/diffEngine';
 import { sessionStore } from '../../utils/sessionStore';
-import { resourceSource } from '../../utils/presetResources';
+import { cleanPresetResource, bindPresetResourceItems, presetResourceId, resourceSource } from '../../utils/presetResources';
 import { ResourceSourceControls, ResourceSourceBadge, ResourceSourceFilter } from './ResourceSourceControls';
 
 interface STRegexSectionProps {
@@ -90,7 +90,8 @@ export const STRegexSection = React.memo<STRegexSectionProps>(({
 
   useEffect(() => {
     if (jumpTargetId && appData.stRegexScripts) {
-      const target = appData.stRegexScripts.find(r => r.id === jumpTargetId);
+      const target = appData.stRegexScripts.find(r => r.id === jumpTargetId || r.sourceResources?.some(resource => presetResourceId(r.sourcePresetId!, 'regex', resource.key) === jumpTargetId));
+      const childIndex = target?.sourceResources?.findIndex(resource => presetResourceId(target.sourcePresetId!, 'regex', resource.key) === jumpTargetId) ?? -1;
       if (target) {
         setActiveRegex(target);
         setRawJsonDraft(JSON.stringify(target.jsonData || target.rules || [], null, 2));
@@ -100,11 +101,18 @@ export const STRegexSection = React.memo<STRegexSectionProps>(({
         setCategoryFilter('全部分组');
         setTagFilter([]);
         setSearchQuery('');
-        setSelectedSubRuleIndex(null);
+        setSelectedSubRuleIndex(childIndex >= 0 ? childIndex : null);
         if (onClearJumpTarget) onClearJumpTarget();
       }
     }
   }, [jumpTargetId, appData.stRegexScripts, onClearJumpTarget]);
+
+  useEffect(() => {
+    if (!activeRegex?.sourcePresetId) return;
+    const fresh = appData.stRegexScripts?.find(item => item.id === activeRegex.id);
+    setActiveRegex(fresh || null);
+    if (fresh) setRawJsonDraft(JSON.stringify(fresh.jsonData, null, 2));
+  }, [appData.stRegexScripts]);
 
   const [detailTab, setDetailTab] = useState<'info' | 'rules' | 'tester' | 'json' | 'versions'>('info');
   const [testInputText, setTestInputText] = useState('【系统提示】这里是一段用于测试酒馆正则替换的示例文本。<thought>这是思考内容</thought>');
@@ -140,6 +148,9 @@ export const STRegexSection = React.memo<STRegexSectionProps>(({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const rawRegexList = appData.stRegexScripts || [];
+  const activeVersionCount = activeRegex?.sourcePresetId
+    ? (appData.presets?.find(preset => preset.id === activeRegex.sourcePresetId)?.versions?.length || 0) + 1
+    : (activeRegex?.versions?.length || 0) + 1;
   const categories = Array.from(
     new Set(['默认', ...(appData.stRegexCategories || []), ...rawRegexList.map((p: any) => p.category || '默认')])
   );
@@ -349,13 +360,8 @@ export const STRegexSection = React.memo<STRegexSectionProps>(({
   };
 
   const handleSaveActiveRegex = (updatedRx: STRegexEntry) => {
-    if (updatedRx.sourcePresetId && updatedRx.rules?.length) {
-      const previous = appData.stRegexScripts?.find(item => item.id === updatedRx.id);
-      const rule = { ...(updatedRx.jsonData || {}), ...updatedRx.rules[0] };
-      (['scriptName', 'findRegex', 'replaceString', 'disabled'] as const).forEach(key => {
-        if (previous && updatedRx[key] !== previous[key]) rule[key] = updatedRx[key];
-      });
-      updatedRx = { ...updatedRx, scriptName: rule.scriptName, findRegex: rule.findRegex, replaceString: rule.replaceString, disabled: rule.disabled, rules: [rule, ...updatedRx.rules.slice(1)], jsonData: rule };
+    if (updatedRx.sourceResources) {
+      updatedRx = { ...updatedRx, jsonData: (updatedRx.rules || []).map(cleanPresetResource) };
     }
     updateAppData((prev) => {
       let updatedCards = prev.cards || [];
@@ -388,7 +394,7 @@ export const STRegexSection = React.memo<STRegexSectionProps>(({
       const currentSnapshot = {
         versionId: 'ver_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
         versionNumber: (activeRegex.versions?.length || 0) + 1,
-        versionLabel: activeRegex.activeVersionLabel || `v${(activeRegex.versions?.length || 0) + 1}`,
+        versionLabel: activeRegex.activeVersionLabel || `v${activeVersionCount}`,
         updatedAt: Date.now(),
         changeSummary: '还原版本前自动保存当前快照',
         data: {
@@ -563,7 +569,9 @@ export const STRegexSection = React.memo<STRegexSectionProps>(({
     if (!activeRegex) return;
     try {
       const parsed = JSON.parse(rawJsonDraft);
-      const rules = normalizeStRegexRules(parsed);
+      const rules = activeRegex.sourceResources
+        ? bindPresetResourceItems(normalizeStRegexRules(parsed), activeRegex.rules || [])
+        : normalizeStRegexRules(parsed);
       const first = rules[0] || { findRegex: '', replaceString: '' };
       const updated: STRegexEntry = {
         ...activeRegex,
@@ -837,7 +845,7 @@ export const STRegexSection = React.memo<STRegexSectionProps>(({
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="resource-card-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {visibleSorted.map((rx) => {
             const isSelected = selectedIds.includes(rx.id);
             const rulesCount = rx.rules?.length || 1;
@@ -996,7 +1004,7 @@ export const STRegexSection = React.memo<STRegexSectionProps>(({
                     {activeRegex.scriptName}
                   </h3>
                   <span className="px-1.5 py-0.5 text-[9px] font-bold rounded-full bg-rose-100 dark:bg-rose-900/60 text-rose-800 dark:text-rose-200 border border-rose-300 dark:border-rose-700 whitespace-nowrap shrink-0">
-                    {activeRegex.activeVersionLabel || `v${(activeRegex.versions?.length || 0) + 1}`}
+                    {activeRegex.activeVersionLabel || `v${activeVersionCount}`}
                   </span>
                   <span className="px-1.5 py-0.5 text-[9px] font-medium rounded-full bg-zinc-200/70 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 whitespace-nowrap shrink-0">
                     {activeRegex.category || '默认'}
@@ -1022,7 +1030,7 @@ export const STRegexSection = React.memo<STRegexSectionProps>(({
               <div className="flex items-center justify-between gap-2 min-w-0 text-[10px] text-zinc-500">
                 <div className="flex items-center gap-2 min-w-0 flex-1 overflow-hidden py-0.5">
                   <span className="whitespace-nowrap shrink-0 text-zinc-500 dark:text-zinc-400">
-                    {(activeRegex.rules || []).length} 个规则 · {(activeRegex.versions?.length || 0) + 1} 个版本
+                    {(activeRegex.rules || []).length} 个规则 · {activeVersionCount} 个版本
                   </span>
                   <TagEditor
                     customTags={activeRegex.customTags || []}
@@ -1353,7 +1361,7 @@ export const STRegexSection = React.memo<STRegexSectionProps>(({
                       }`}
                     >
                       <History className="w-3 h-3 text-amber-500" />
-                      版本历史 ({(activeRegex.versions?.length || 0) + 1})
+                      版本历史 ({activeVersionCount})
                     </button>
                   </div>
 
@@ -1377,7 +1385,7 @@ export const STRegexSection = React.memo<STRegexSectionProps>(({
                 </div>
 
                 {/* Modal Body */}
-                <div className="p-6 flex-1 overflow-y-auto">
+                <div className="file-detail-body p-3 sm:p-6 flex-1 overflow-y-auto">
                   <div className="mb-3"><ResourceSourceBadge item={activeRegex} onOpenPreset={onOpenPresetDetail} onOpenCard={onOpenCardDetail} /></div>
                   {/* TAB 1: RULES LIST */}
                   {detailTab === 'rules' && (
@@ -1564,6 +1572,7 @@ export const STRegexSection = React.memo<STRegexSectionProps>(({
                         <input
                           type="text"
                           value={activeRegex.scriptName}
+                            readOnly={!!activeRegex.sourcePresetId}
                           onChange={(e: any) => setActiveRegex({ ...activeRegex, scriptName: e.target.value })}
                           className="w-full px-3 py-2 text-xs rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100"
                         />
@@ -1603,7 +1612,10 @@ export const STRegexSection = React.memo<STRegexSectionProps>(({
                   )}
 
                   {/* TAB 5: VERSIONS */}
-                  {detailTab === 'versions' && (
+                  {detailTab === 'versions' && activeRegex.sourcePresetId && (
+                    <div className="space-y-3"><p>此集合随所属预设统一记录版本，恢复时同时更新全部内嵌资源。</p><ResourceSourceBadge item={activeRegex} onOpenPreset={onOpenPresetDetail} /></div>
+                  )}
+                  {detailTab === 'versions' && !activeRegex.sourcePresetId && (
                     <div className="space-y-6">
                       <div className="pb-2 border-b border-zinc-200 dark:border-zinc-800 space-y-1">
                         <div className="flex items-center justify-between gap-2">
@@ -1612,7 +1624,7 @@ export const STRegexSection = React.memo<STRegexSectionProps>(({
                             正则脚本版本归档时间线
                           </h3>
                           <span className="px-1.5 py-0.5 text-[9px] font-medium rounded-full bg-amber-100/80 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300">
-                            共 {(activeRegex.versions?.length || 0) + 1} 个版本
+                            共 {activeVersionCount} 个版本
                           </span>
                         </div>
                         <p className="text-[10px] text-zinc-400">
@@ -1626,7 +1638,7 @@ export const STRegexSection = React.memo<STRegexSectionProps>(({
                           <div>
                             <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 text-[10px] font-bold rounded-full bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200">
                               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                              {activeRegex.activeVersionLabel || `v${(activeRegex.versions?.length || 0) + 1}`} (当前正在使用)
+                              {activeRegex.activeVersionLabel || `v${activeVersionCount}`} (当前正在使用)
                             </span>
                           </div>
                           <div className="flex items-center justify-between gap-2 pl-1">

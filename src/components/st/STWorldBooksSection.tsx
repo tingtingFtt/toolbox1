@@ -695,7 +695,7 @@ export const STWorldBooksSection = React.memo<STWorldBooksSectionProps>(({
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="resource-card-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {visibleSorted.map((wb) => {
             const isSelected = selectedIds.includes(wb.id);
             const totalTokens = (Array.isArray(wb.entries) ? wb.entries : (Object.values(wb.entries || {}) as any[])).reduce(
@@ -1606,5 +1606,6 @@ export const STWorldBooksSection = React.memo<STWorldBooksSectionProps>(({
   return prev.appData === next.appData &&
          prev.jumpTargetId === next.jumpTargetId;
 });
+
 
 
