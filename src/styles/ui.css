@@ -751,7 +751,7 @@ div[aria-label="关闭遮罩"] {
 .modal-title,
 [data-design-id*="modal"] h2,
 [data-design-id*="modal"] h3.modal-title,
-[data-design-id="card-detail-header"] h2,
+:is([data-design-id="card-detail-header"], .detail-header) h2,
 [data-design-id*="modal-header"] h2,
 [data-design-id*="modal-header"] h3,
 .modal-panel h2,
@@ -1303,30 +1303,16 @@ html.dark:not(.theme-flat) .file-detail-modal .tab-nav-bar {
 }
 
 /* 详情页顶栏与底栏颜色一致 */
-.st-preset-detail.modal-panel,
-:root.theme-flat .st-preset-detail.modal-panel,
-[data-theme] .st-preset-detail.modal-panel {
-  background: var(--card-solid-bg, var(--modal-solid-bg)) !important;
-}
-
-.st-preset-detail .preset-detail-bar,
-:root.theme-flat .st-preset-detail .preset-detail-bar,
-[data-theme] .st-preset-detail .preset-detail-bar {
-  background: var(--modal-bar-bg) !important;
-  background-image: none !important;
-  color: var(--text);
-}
-
 .st-preset-detail fieldset:disabled {
   opacity: 0.85;
 }
 
-.file-detail-modal [data-design-id="card-detail-header"],
-.file-detail-modal [data-design-id="card-detail-footer"],
-:root.theme-flat .file-detail-modal [data-design-id="card-detail-header"],
-:root.theme-flat .file-detail-modal [data-design-id="card-detail-footer"],
-[data-theme] .file-detail-modal [data-design-id="card-detail-header"],
-[data-theme] .file-detail-modal [data-design-id="card-detail-footer"] {
+.file-detail-modal :is([data-design-id="card-detail-header"], .detail-header),
+.file-detail-modal :is([data-design-id="card-detail-footer"], .detail-footer),
+:root.theme-flat .file-detail-modal :is([data-design-id="card-detail-header"], .detail-header),
+:root.theme-flat .file-detail-modal :is([data-design-id="card-detail-footer"], .detail-footer),
+[data-theme] .file-detail-modal :is([data-design-id="card-detail-header"], .detail-header),
+[data-theme] .file-detail-modal :is([data-design-id="card-detail-footer"], .detail-footer) {
   background: var(--modal-bar-bg) !important;
   background-color: var(--modal-bar-bg) !important;
   background-image: none !important;
@@ -1334,17 +1320,17 @@ html.dark:not(.theme-flat) .file-detail-modal .tab-nav-bar {
 }
 
 /* 详情页顶栏高度压缩与微调 */
-.file-detail-modal [data-design-id="card-detail-header"],
-:root.theme-flat .file-detail-modal [data-design-id="card-detail-header"],
-[data-theme] .file-detail-modal [data-design-id="card-detail-header"] {
+.file-detail-modal :is([data-design-id="card-detail-header"], .detail-header),
+:root.theme-flat .file-detail-modal :is([data-design-id="card-detail-header"], .detail-header),
+[data-theme] .file-detail-modal :is([data-design-id="card-detail-header"], .detail-header) {
   padding-top: 4px !important;
   padding-bottom: 4px !important;
 }
 
 /* 详情页底栏按钮尺寸压缩与微调 */
-.file-detail-modal [data-design-id="card-detail-footer"] button,
-:root.theme-flat .file-detail-modal [data-design-id="card-detail-footer"] button,
-[data-theme] .file-detail-modal [data-design-id="card-detail-footer"] button {
+.file-detail-modal :is([data-design-id="card-detail-footer"], .detail-footer) button,
+:root.theme-flat .file-detail-modal :is([data-design-id="card-detail-footer"], .detail-footer) button,
+[data-theme] .file-detail-modal :is([data-design-id="card-detail-footer"], .detail-footer) button {
   min-height: 24px !important;
   max-height: 26px !important;
   font-size: 9px !important;

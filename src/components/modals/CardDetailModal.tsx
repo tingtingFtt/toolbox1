@@ -7,6 +7,7 @@ import { CustomSelect } from '../ui/CustomSelect';
 import { AppData, CardEntry } from '../../types';
 import { getCardDisplayName, getCardCreator, getCardDescription, getCardPersonality, getCardGreeting, getCardAlternateGreetings, getCardWorldBook, getCardRegex, getCardTags, getPureVersionLabel, estimateTokens, normalizeAssociationName } from '../../utils';
 import { TagEditor } from '../ui/TagEditor';
+import { DetailHeader, DetailTabs, detailPanelClass } from '../ui/DetailChrome';
 import { Search, Plus, Trash2, FolderPlus, Edit3, Download, Upload, Home, Maximize2, ChevronDown, ChevronUp, Check, ImageIcon, Tag, Folder, CheckSquare, Square, MoreHorizontal, RefreshCw, FileText, CheckCircle2, Circle, ArrowRightLeft, Move, Copy, Sliders, ZoomIn, FileCode, Save, Dices, QrCode, ArrowUpDown, Sparkles, Link2, HardDrive, Layers, ExternalLink, Palette, AlertCircle, AlertTriangle, Info, Settings, History, RotateCcw, ArrowLeft, Book, BookOpen, Eye, X, Code2, Cpu } from 'lucide-react';
 import { BatchAIRefineModal } from './BatchAIRefineModal';
 
@@ -185,7 +186,7 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
             aria-label="关闭遮罩"
           />
           {/* Requirement 1: Fixed Modal Dimensions so no matter which tab is clicked, modal NEVER changes size */}
-          <div data-design-id="card-detail-modal-panel" className="file-detail-modal modal-panel modal-card relative z-10 w-full h-full bg-[var(--modal-solid-bg,#E8EAEB)] text-[var(--text,#2B3540)] flex flex-col overflow-hidden transition-none rounded-none border-0 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+          <div data-design-id="card-detail-modal-panel" className={detailPanelClass} onClick={(e) => e.stopPropagation()}>
             {/* Modal Header */}
             
   {previewVersionId && (
@@ -194,78 +195,35 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
       您当前正在预览历史版本：{displayDetailCard.versions?.find((v:any) => v.versionId === previewVersionId)?.versionLabel}。所有修改均不生效，点击 <BaseButton size="xs" designId="card-detail-exit-preview-btn" className="underline cursor-pointer" onClick={() => setPreviewVersionId(null)}>退出预览</BaseButton> 即可恢复。
     </div>
   )}
-  <div data-design-id="card-detail-header" className="px-3 sm:px-4 py-1 border-0 flex flex-col gap-0 flex-shrink-0 bg-[var(--modal-bar-bg,#DFE5EA)] dark:bg-[var(--modal-bar-bg,#172029)] transition-colors">
-    {/* Row 1: Title, Version, and Close X */}
-    <div className="flex items-center justify-between gap-2 min-w-0">
-      <div className="flex items-center gap-2 min-w-0 flex-1">
-        <h2 className="!text-[18px] font-bold truncate text-[var(--text-serif,#1A232D)] flex items-center gap-1.5 leading-tight">
-          {getCardDisplayName(displayDetailCard)}
-          <span className="px-1.5 py-0 text-[9px] font-bold rounded-none bg-[var(--btn-primary-bg,rgba(96,126,149,0.18))] text-[var(--accent,#607E95)] border border-[var(--line-focus,rgba(96,126,149,0.4))] whitespace-nowrap shrink-0">
-            {getPureVersionLabel((displayDetailCard as any).activeVersionLabel, (displayDetailCard.versions?.length || 0) + 1)}
-          </span>
-          <span className="px-1.5 py-0 text-[9px] font-bold rounded-none bg-[var(--btn-bg,rgba(226,208,188,0.45))] text-[var(--dim,#647382)] border border-[var(--line-soft,rgba(96,126,149,0.2))] whitespace-nowrap shrink-0">
-            {displayDetailCard.source === 'tavern' ? '酒馆导入' : '本地导入'}
-          </span>
-        </h2>
-      </div>
-
-      <div className="flex items-center gap-1 flex-shrink-0 ml-auto">
-        <span role="button" onClick={handleCancelCardEdit} className="p-1 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors cursor-pointer flex items-center justify-center shrink-0" title="关闭 (Esc)"><X className="w-4 h-4" /></span>
-      </div>
-    </div>
-
-    {/* Row 2: Tag Editor */}
-    <div className="flex items-center justify-between gap-2 min-w-0 text-[10px] text-[var(--dim,#647382)]">
-      <div className="flex items-center min-w-0 flex-1 overflow-hidden py-0">
-        <TagEditor
-          customTags={displayDetailCard.customTags || []}
-          availableTags={appData.cardTags || []}
-          maxDisplay={3}
-          onChange={(newTags) => {
-            const updated = { ...displayDetailCard, customTags: newTags };
-            updateAppData((prev) => {
-              const newGlobalTags = Array.from(new Set([...(prev.cardTags || []), ...newTags]));
-              return {
-                ...prev,
-                cardTags: newGlobalTags,
-                cards: prev.cards.map(c => c.id === updated.id ? updated : c)
-              };
-            });
-          }}
-        />
-      </div>
-    </div>
-  </div>
-
-            {/* Modal Navigation Tabs */}
-            <div data-design-id="card-detail-tabbar" className="tab-nav-bar flex items-center justify-between border-b border-[var(--line,rgba(96,126,149,0.2))] px-3 sm:px-4 flex-shrink-0 gap-2 overflow-x-auto scrollbar-none bg-[var(--detail-tabbar-gradient,linear-gradient(90deg,#DCE4EA_0%,#EAE2D7_50%,#DCE4EA_100%))] transition-colors">
-              <div className="flex items-center gap-1 overflow-x-auto scrollbar-none">
-                {[
-                  { id: 'overview', name: '概览' },
-                  { id: 'versions', name: `版本历史${(displayDetailCard.versions?.length || 0) > 0 ? ` (${(displayDetailCard.versions?.length || 0) + 1})` : ''}` },
-                  { id: 'links', name: '外部关联' },
-                  { id: 'greetings', name: '开场白' },
-                  { id: 'worldbook', name: '世界书' },
-                  { id: 'regex', name: '正则' },
-                  { id: 'qr', name: 'QR' },
-                  { id: 'raw', name: '原始数据' },
-                  { id: 'extras', name: '其他' },
-                ].map((tab) => (
-                  <button
-                    key={tab.id}
-                    data-design-id={`card-detail-tab-${tab.id}`}
-                    onClick={() => setDetailTab(tab.id as any)}
-                    className={`!py-0 h-[28px] px-2 sm:px-3 !text-[12px] !leading-none flex items-center justify-center transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
-                      detailTab === tab.id
-                        ? 'text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-900/30'
-                        : 'border-b-transparent text-zinc-500 hover:text-blue-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:text-blue-400 dark:hover:bg-zinc-800'
-                    }`}
-                  >
-                    {tab.name}
-                  </button>
-                ))}
-              </div>
-            </div>
+  <DetailHeader
+    designPrefix="card-detail"
+    title={getCardDisplayName(displayDetailCard)}
+    version={getPureVersionLabel((displayDetailCard as any).activeVersionLabel, (displayDetailCard.versions?.length || 0) + 1)}
+    badge={displayDetailCard.source === 'tavern' ? '酒馆导入' : '本地导入'}
+    onClose={handleCancelCardEdit}
+    tags={<TagEditor
+      customTags={displayDetailCard.customTags || []}
+      availableTags={appData.cardTags || []}
+      maxDisplay={3}
+      onChange={(newTags) => {
+        const updated = { ...displayDetailCard, customTags: newTags };
+        updateAppData((prev) => ({ ...prev,
+          cardTags: Array.from(new Set([...(prev.cardTags || []), ...newTags])),
+          cards: prev.cards.map(c => c.id === updated.id ? updated : c),
+        }));
+      }}
+    />}
+  />
+  <DetailTabs
+    designPrefix="card-detail" label="角色卡详情页签" activeTab={detailTab} onChange={setDetailTab}
+    tabs={[
+      { id: 'overview', name: '概览' },
+      { id: 'versions', name: `版本历史${(displayDetailCard.versions?.length || 0) > 0 ? ` (${(displayDetailCard.versions?.length || 0) + 1})` : ''}` },
+      { id: 'links', name: '外部关联' }, { id: 'greetings', name: '开场白' },
+      { id: 'worldbook', name: '世界书' }, { id: 'regex', name: '正则' },
+      { id: 'qr', name: 'QR' }, { id: 'raw', name: '原始数据' }, { id: 'extras', name: '其他' },
+    ]}
+  />
 
             {/* Modal Body: Scrollable Vertical Area within Fixed Height */}
             <div key={detailTab} className="flex-1 overflow-y-auto p-6 space-y-6">
@@ -2540,3 +2498,4 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
     </>
   );
 };
+

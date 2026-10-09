@@ -35,12 +35,12 @@
   align-items: stretch;
 }
 
-.file-detail-modal > :where(header, footer, .tab-nav-bar, [data-design-id="card-detail-header"], [data-design-id="card-detail-footer"]) {
+.file-detail-modal > :where(header, footer, .tab-nav-bar, .detail-header, [data-design-id="card-detail-header"], .detail-footer, [data-design-id="card-detail-footer"]) {
   flex-shrink: 0;
   min-width: 0;
 }
 
-.file-detail-modal > :where(footer, [data-design-id="card-detail-footer"]) {
+.file-detail-modal > :where(footer, .detail-footer, [data-design-id="card-detail-footer"]) {
   flex-wrap: wrap;
   gap: 0.5rem;
   padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));

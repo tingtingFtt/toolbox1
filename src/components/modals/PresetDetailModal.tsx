@@ -21,6 +21,7 @@ import {
 import { triggerFileDownload } from '../../utils';
 import { TagEditor } from '../ui/TagEditor';
 import { CustomSelect } from '../ui/CustomSelect';
+import { DetailHeader, DetailTabs, detailPanelClass, detailFooterClass, detailIconButtonClass } from '../ui/DetailChrome';
 
 type Tab = 'details' | 'prompts' | 'regex' | 'scripts' | 'json' | 'versions';
 interface Props {
@@ -214,7 +215,7 @@ export function PresetDetailModal({
       aria-modal="true"
       aria-labelledby="preset-detail-title"
     >
-      <div className="file-detail-modal st-preset-detail modal-panel modal-card relative z-10 w-full h-full flex flex-col overflow-hidden rounded-none border-0 text-[var(--text)] shadow-2xl">
+      <div className={`${detailPanelClass} st-preset-detail`}>
         {preview && (
           <div className="px-4 py-2 text-xs bg-[var(--btn-primary-bg)] border-b border-[var(--line)] flex flex-wrap items-center gap-2">
             <Eye className="w-3.5 h-3.5" /> 正在预览 {preview.versionLabel}
@@ -223,87 +224,27 @@ export function PresetDetailModal({
             </button>
           </div>
         )}
-        <header className="preset-detail-bar px-4 py-2 shrink-0 space-y-1">
-          <div className="flex items-center justify-between gap-2 min-w-0">
-            <div className="flex items-center gap-2 min-w-0">
-              <h2
-                id="preset-detail-title"
-                className="text-sm font-bold truncate"
-                title={shown.name}
-              >
-                {shown.name}
-              </h2>
-              <span className="text-[10px] px-1.5 border border-[var(--line-focus)] text-[var(--accent)] shrink-0">
-                {preview?.versionLabel || draft.activeVersionLabel || 'v1'}
-              </span>
-              <span className="text-[10px] text-[var(--dim)] shrink-0">
-                {shown.category || '默认'}
-              </span>
-            </div>
-            <div className="flex items-center gap-1 shrink-0">
-              <button
-                title="导出预设 JSON"
-                aria-label="导出预设 JSON"
-                className={buttonClass}
-                onClick={() => {
-                  const payload = preview ? json : parseJson();
-                  if (!payload) {
-                    setTab('json');
-                    return;
-                  }
-                  triggerFileDownload(
-                    new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }),
-                    `${shown.name}.json`,
-                  );
-                }}
-              >
-                <Download className="w-4 h-4" />
-              </button>
-              <button title="关闭" aria-label="关闭" className={buttonClass} onClick={onClose}>
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-          <div className="flex flex-wrap items-center gap-2 text-[10px] text-[var(--dim)]">
-            <span>
-              {prompts.length} 个提示词 · {regexes.length} 条正则 · {scripts.length} 个脚本 ·{' '}
-              {(draft.versions?.length || 0) + 1} 个版本
-            </span>
-            {!preview && (
-              <TagEditor
-                customTags={draft.customTags || []}
-                availableTags={appData.presetTags || []}
-                maxDisplay={3}
-                onChange={(customTags) => setDraft({ ...draft, customTags })}
-              />
-            )}
-          </div>
-        </header>
-        <nav
-          className="tab-nav-bar px-3 shrink-0 flex gap-1 overflow-x-auto scrollbar-none"
-          aria-label="预设详情页签"
-        >
-          {(
-            [
-              ['details', '基本属性'],
-              ['prompts', `提示词 (${prompts.length})`],
-              ['regex', `内嵌正则 (${regexes.length})`],
-              ['scripts', `内嵌脚本 (${scripts.length})`],
-              ['json', 'JSON 原始数据'],
-              ['versions', `版本历史 (${(draft.versions?.length || 0) + 1})`],
-            ] as [Tab, string][]
-          ).map(([id, label]) => (
-            <button
-              key={id}
-              onClick={() => changeTab(id)}
-              aria-current={tab === id ? 'page' : undefined}
-              className={`h-8 px-3 text-xs whitespace-nowrap border-b-2 cursor-pointer ${tab === id ? 'border-[var(--accent)] text-[var(--accent)] bg-[var(--btn-primary-bg)]' : 'border-transparent text-[var(--dim)] hover:text-[var(--text)]'}`}
-            >
-              {label}
-            </button>
-          ))}
-        </nav>
-        <div className="file-detail-body flex-1 min-h-0 overflow-y-auto p-4 sm:p-5">
+        <DetailHeader
+          designPrefix="preset-detail" titleId="preset-detail-title" title={shown.name}
+          version={preview?.versionLabel || draft.activeVersionLabel || 'v1'} badge={shown.category || '默认'}
+          onClose={onClose}
+          actions={<button type="button" title="导出预设 JSON" aria-label="导出预设 JSON" className={detailIconButtonClass} onClick={() => {
+            const payload = preview ? json : parseJson();
+            if (!payload) { setTab('json'); return; }
+            triggerFileDownload(new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }), `${shown.name}.json`);
+          }}><Download className="w-4 h-4" /></button>}
+          tags={!preview ? <TagEditor customTags={draft.customTags || []} availableTags={appData.presetTags || []} maxDisplay={3} onChange={(customTags) => setDraft({ ...draft, customTags })} /> : <TagEditor customTags={shown.customTags || []} availableTags={[]} maxDisplay={3} hideAddButton onChange={() => {}} />}
+        />
+        <DetailTabs<Tab>
+          designPrefix="preset-detail" label="预设详情页签" activeTab={tab} onChange={changeTab}
+          tabs={[
+            { id: 'details', name: '基本属性' }, { id: 'prompts', name: `提示词 (${prompts.length})` },
+            { id: 'regex', name: `内嵌正则 (${regexes.length})` }, { id: 'scripts', name: `内嵌脚本 (${scripts.length})` },
+            { id: 'json', name: 'JSON 原始数据' }, { id: 'versions', name: `版本历史 (${(draft.versions?.length || 0) + 1})` },
+          ]}
+        />
+        <div className="file-detail-body flex-1 min-h-0 overflow-y-auto p-3 sm:p-6">
+          <p className="mb-3 text-[10px] text-[var(--dim)]">{prompts.length} 个提示词 · {regexes.length} 条正则 · {scripts.length} 个脚本 · {(draft.versions?.length || 0) + 1} 个版本</p>
           {tab === 'details' && (
             <fieldset disabled={!!preview} className="max-w-4xl space-y-4 min-w-0">
               <label className="block text-xs font-semibold">
@@ -681,7 +622,7 @@ export function PresetDetailModal({
             </div>
           )}
         </div>
-        <footer className="preset-detail-bar px-4 py-2 shrink-0 border-t border-[var(--line)] flex justify-end gap-2">
+        <footer data-design-id="preset-detail-footer" className={`${detailFooterClass} justify-end`}>
           <button className={buttonClass} onClick={onClose}>
             关闭
           </button>

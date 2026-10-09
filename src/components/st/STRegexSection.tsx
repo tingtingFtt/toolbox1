@@ -18,6 +18,7 @@ import { compareRegexScripts } from '../../utils/diffEngine';
 import { sessionStore } from '../../utils/sessionStore';
 import { cleanPresetResource, bindPresetResourceItems, presetResourceId, resourceSource } from '../../utils/presetResources';
 import { ResourceSourceControls, ResourceSourceBadge, ResourceSourceFilter } from './ResourceSourceControls';
+import { DetailHeader, DetailTabs, detailPanelClass, detailFooterClass, detailIconButtonClass } from '../ui/DetailChrome';
 
 interface STRegexSectionProps {
   appData: AppData;
@@ -992,67 +993,40 @@ export const STRegexSection = React.memo<STRegexSectionProps>(({
             className="absolute inset-0 bg-transparent transition-opacity"
             aria-label="关闭遮罩"
           />
-          <div className="file-detail-modal modal-panel modal-card relative z-10 w-full h-full bg-[#fafafa] dark:bg-[#09090b] flex flex-col overflow-hidden rounded-none border-0 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+          <div className={`${detailPanelClass} st-regex-detail`} onClick={(e) => e.stopPropagation()}>
             
-            {/* Modal Top Bar (Clean 2-Row Compact Layout, No Overlap) */}
-            <div className="px-3 sm:px-6 py-2 border-b border-[var(--line,#e6e3dd)] dark:border-zinc-800 flex flex-col gap-1.5 flex-shrink-0 bg-zinc-100/80 dark:bg-zinc-900/80">
-              {/* Row 1: Title, Version, Category, and Action Buttons + Close X */}
-              <div className="flex items-center justify-between gap-2 min-w-0">
-                <div className="flex items-center gap-2 min-w-0 flex-1">
-                  <Sparkles className="w-4 h-4 text-rose-500 shrink-0" />
-                  <h3 className="text-xs sm:text-sm font-bold text-zinc-900 dark:text-zinc-100 truncate">
-                    {activeRegex.scriptName}
-                  </h3>
-                  <span className="px-1.5 py-0.5 text-[9px] font-bold rounded-full bg-rose-100 dark:bg-rose-900/60 text-rose-800 dark:text-rose-200 border border-rose-300 dark:border-rose-700 whitespace-nowrap shrink-0">
-                    {activeRegex.activeVersionLabel || `v${activeVersionCount}`}
-                  </span>
-                  <span className="px-1.5 py-0.5 text-[9px] font-medium rounded-full bg-zinc-200/70 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 whitespace-nowrap shrink-0">
-                    {activeRegex.category || '默认'}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-                  <button
-                    onClick={() => handleExportRegex(activeRegex)}
-                    className="flex items-center gap-1 px-2 py-1 text-[10px] font-medium rounded-lg border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-200/60 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 cursor-pointer whitespace-nowrap shrink-0 transition-colors"
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                    <span className="hidden xs:inline">导出 JSON</span>
-                  </button>
-                  <span role="button" onClick={() => {
-                      setActiveRegex(null);
-                      setSelectedSubRuleIndex(null);
-                    }} className="p-1 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors cursor-pointer flex items-center justify-center shrink-0"><X className="w-4 h-4" /></span>
-                </div>
-              </div>
-
-              {/* Row 2: Metadata stats + Tag Editor */}
-              <div className="flex items-center justify-between gap-2 min-w-0 text-[10px] text-zinc-500">
-                <div className="flex items-center gap-2 min-w-0 flex-1 overflow-hidden py-0.5">
-                  <span className="whitespace-nowrap shrink-0 text-zinc-500 dark:text-zinc-400">
-                    {(activeRegex.rules || []).length} 个规则 · {activeVersionCount} 个版本
-                  </span>
-                  <TagEditor
-                    customTags={activeRegex.customTags || []}
-                    availableTags={appData.stRegexTags || []}
-                    maxDisplay={2}
-                    onChange={(newTags) => {
-                      const updated = { ...activeRegex, customTags: newTags };
-                      setActiveRegex(updated);
-                      updateAppData((prev: any) => {
-                         const newList = (prev.stRegexScripts || []).map((i: any) => i.id === updated.id ? updated : i);
-                         const globalTags = prev.stRegexTags || [];
-                         return { 
-                           ...prev, 
-                           stRegexScripts: newList,
-                           stRegexTags: Array.from(new Set([...globalTags, ...newTags]))
-                         };
-                      });
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
+            <DetailHeader
+              designPrefix="regex-detail" title={activeRegex.scriptName}
+              version={activeRegex.activeVersionLabel || `v${activeVersionCount}`}
+              badge={activeRegex.category || '默认'}
+              onClose={() => { setActiveRegex(null); setSelectedSubRuleIndex(null); }}
+              actions={<button type="button" title="导出正则 JSON" aria-label="导出正则 JSON" className={detailIconButtonClass} onClick={() => handleExportRegex(activeRegex)}><Download className="w-4 h-4" /></button>}
+              tags={<TagEditor
+                customTags={activeRegex.customTags || []} availableTags={appData.stRegexTags || []} maxDisplay={3}
+                onChange={(newTags) => {
+                  const updated = { ...activeRegex, customTags: newTags };
+                  setActiveRegex(updated);
+                  updateAppData((prev) => ({ ...prev,
+                    stRegexScripts: (prev.stRegexScripts || []).map(item => item.id === updated.id ? updated : item),
+                    stRegexTags: Array.from(new Set([...(prev.stRegexTags || []), ...newTags])),
+                  }));
+                }}
+              />}
+            />
+            <DetailTabs
+              designPrefix="regex-detail" label="正则详情页签" activeTab={detailTab}
+              onChange={(next) => { setSelectedSubRuleIndex(null); setDetailTab(next); }}
+              tabs={[
+                { id: 'info' as const, name: '基本属性' }, { id: 'rules' as const, name: `条目列表 (${(activeRegex.rules || []).length})` },
+                { id: 'tester' as const, name: '实时沙盒测试' }, { id: 'json' as const, name: 'JSON 原始数据' },
+                { id: 'versions' as const, name: `版本历史 (${activeVersionCount})` },
+              ]}
+              actions={detailTab === 'rules' && selectedSubRuleIndex === null ? <button type="button" onClick={() => {
+                setEditingRuleIndex(null);
+                setRuleForm({ scriptName: `规则 #${(activeRegex.rules || []).length + 1}`, findRegex: '', replaceString: '', disabled: false });
+                setShowRuleModal(true);
+              }} className="flex items-center gap-1 px-2 py-1 text-[10px] font-semibold text-[var(--accent)] bg-[var(--btn-primary-bg)] whitespace-nowrap cursor-pointer"><Plus className="w-3 h-3" />添加子规则</button> : null}
+            />
 
             {/* Sub-entry Drilldown View: 新起一页具体条目详情 */}
             {selectedSubRuleIndex !== null && activeRegex.rules && activeRegex.rules[selectedSubRuleIndex] ? (
@@ -1062,7 +1036,7 @@ export const STRegexSection = React.memo<STRegexSectionProps>(({
                 return (
                   <div className="flex-1 flex flex-col overflow-hidden bg-white dark:bg-zinc-900">
                     {/* Sub-Page Top Navigation Bar */}
-                    <div className="px-6 py-3 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/80 dark:bg-zinc-800/40 flex items-center justify-between flex-shrink-0">
+                    <div className="detail-subnav px-3 sm:px-4 py-2 border-b border-[var(--line)] bg-[var(--modal-bar-bg)] flex flex-wrap items-center justify-between gap-2 flex-shrink-0">
                       <div className="flex items-center gap-3">
                         <button
                           onClick={() => setSelectedSubRuleIndex(null)}
@@ -1290,7 +1264,7 @@ export const STRegexSection = React.memo<STRegexSectionProps>(({
                     </div>
 
                     {/* Sub-Page Footer */}
-                    <div className="p-4 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 flex items-center justify-between flex-shrink-0">
+                    <div data-design-id="regex-detail-footer" className={detailFooterClass}>
                       <button
                         onClick={() => setSelectedSubRuleIndex(null)}
                         className="px-4 py-2 text-xs font-medium rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100"
@@ -1309,83 +1283,9 @@ export const STRegexSection = React.memo<STRegexSectionProps>(({
               })()
             ) : (
               <>
-                {/* Detail Tabs Bar */}
-                <div className="tab-nav-bar flex flex-wrap items-center justify-between border-b border-zinc-200 dark:border-zinc-800 px-4 flex-shrink-0 bg-white dark:bg-zinc-900 gap-2 overflow-x-auto scrollbar-none">
-                  <div className="flex items-center gap-1 overflow-x-auto scrollbar-none">
-                    <button
-                      onClick={() => setDetailTab('info')}
-                      className={`py-2.5 px-3 text-[10px] font-semibold border-b transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
-                        detailTab === 'info'
-                          ? 'border-rose-500 text-rose-600 dark:text-rose-400'
-                          : 'border-transparent text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
-                      }`}
-                    >
-                      基本属性
-                    </button>
-                    <button
-                      onClick={() => setDetailTab('rules')}
-                      className={`py-2.5 px-3 text-[10px] font-semibold border-b transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
-                        detailTab === 'rules'
-                          ? 'border-rose-500 text-rose-600 dark:text-rose-400'
-                          : 'border-transparent text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
-                      }`}
-                    >
-                      条目列表 ({(activeRegex.rules || []).length})
-                    </button>
-                    <button
-                      onClick={() => setDetailTab('tester')}
-                      className={`py-2.5 px-3 text-[10px] font-semibold border-b transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
-                        detailTab === 'tester'
-                          ? 'border-rose-500 text-rose-600 dark:text-rose-400'
-                          : 'border-transparent text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
-                      }`}
-                    >
-                      实时沙盒测试
-                    </button>
-                    <button
-                      onClick={() => setDetailTab('json')}
-                      className={`py-2.5 px-3 text-[10px] font-semibold border-b transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
-                        detailTab === 'json'
-                          ? 'border-rose-500 text-rose-600 dark:text-rose-400'
-                          : 'border-transparent text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
-                      }`}
-                    >
-                      JSON 原始数据
-                    </button>
-                    <button
-                      onClick={() => setDetailTab('versions')}
-                      className={`py-2.5 px-3 text-[10px] font-semibold border-b transition-colors cursor-pointer flex items-center gap-1 whitespace-nowrap shrink-0 ${
-                        detailTab === 'versions'
-                          ? 'border-rose-500 text-rose-600 dark:text-rose-400'
-                          : 'border-transparent text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
-                      }`}
-                    >
-                      <History className="w-3 h-3 text-amber-500" />
-                      版本历史 ({activeVersionCount})
-                    </button>
-                  </div>
-
-                  {detailTab === 'rules' && (
-                    <button
-                      onClick={() => {
-                        setEditingRuleIndex(null);
-                        setRuleForm({
-                          scriptName: `规则 #${(activeRegex.rules || []).length + 1}`,
-                          findRegex: '',
-                          replaceString: '',
-                          disabled: false,
-                        });
-                        setShowRuleModal(true);
-                      }}
-                      className="flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 text-[9px] sm:text-xs font-semibold rounded-lg bg-rose-600 text-white hover:bg-rose-700 shadow-xs cursor-pointer whitespace-nowrap shrink-0 my-1"
-                    >
-                      <Plus className="w-3 sm:w-3.5 h-3 sm:h-3.5" /> 添加子规则
-                    </button>
-                  )}
-                </div>
-
                 {/* Modal Body */}
                 <div className="file-detail-body p-3 sm:p-6 flex-1 overflow-y-auto">
+                  <p className="mb-3 text-[10px] text-[var(--dim)]">{(activeRegex.rules || []).length} 个规则 · {activeVersionCount} 个版本</p>
                   <div className="mb-3"><ResourceSourceBadge item={activeRegex} onOpenPreset={onOpenPresetDetail} onOpenCard={onOpenCardDetail} /></div>
                   {/* TAB 1: RULES LIST */}
                   {detailTab === 'rules' && (
@@ -1724,7 +1624,7 @@ export const STRegexSection = React.memo<STRegexSectionProps>(({
                 </div>
 
                 {/* Modal Footer */}
-                <div className="p-4 border-t border-zinc-200 dark:border-zinc-800 flex items-center justify-end gap-2 flex-shrink-0 bg-white dark:bg-zinc-900">
+                <div data-design-id="regex-detail-footer" className={`${detailFooterClass} justify-end`}>
                   <button
                     onClick={() => {
                       setActiveRegex(null);

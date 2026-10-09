@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { BaseButton } from './BaseButton';
 import { BaseInput } from './BaseInput';
 import { BaseCard } from './BaseCard';
@@ -29,34 +30,34 @@ export const TagEditor: React.FC<TagEditorProps> = ({
   const [popupPos, setPopupPos] = useState<{ top: number; left: number; right?: number }>({ top: 0, left: 0 });
   const ref = useRef<HTMLDivElement>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
+  const popupRef = useRef<HTMLDivElement>(null);
 
-  // Reposition popup safely within viewport boundaries
+  // Portal coordinates stay relative to the viewport, including inside contained detail panels.
   useEffect(() => {
-    if (isOpen && btnRef.current) {
+    if (!isOpen) return;
+    const reposition = () => {
+      if (!btnRef.current) return;
       const rect = btnRef.current.getBoundingClientRect();
       const popupWidth = Math.min(260, window.innerWidth - 32);
-      let left = rect.left;
-      
-      // Prevent overflowing right edge
-      if (left + popupWidth > window.innerWidth - 16) {
-        left = Math.max(16, window.innerWidth - 16 - popupWidth);
-      }
-      
-      // Prevent overflowing left edge
-      if (left < 16) {
-        left = 16;
-      }
-
-      setPopupPos({
-        top: rect.bottom + 6,
-        left: left,
-      });
-    }
+      const popupHeight = Math.min(popupRef.current?.offsetHeight || 220, window.innerHeight - 32);
+      const left = Math.max(16, Math.min(rect.left, window.innerWidth - 16 - popupWidth));
+      const below = rect.bottom + 6;
+      const top = below + popupHeight <= window.innerHeight - 16
+        ? below : Math.max(16, Math.min(rect.top - popupHeight - 6, window.innerHeight - 16 - popupHeight));
+      setPopupPos({ top, left });
+    };
+    reposition();
+    window.addEventListener('resize', reposition);
+    window.addEventListener('scroll', reposition, true);
+    return () => {
+      window.removeEventListener('resize', reposition);
+      window.removeEventListener('scroll', reposition, true);
+    };
   }, [isOpen]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (ref.current && !ref.current.contains(event.target as Node)) {
+      if (ref.current && !ref.current.contains(event.target as Node) && !popupRef.current?.contains(event.target as Node)) {
         setIsOpen(false);
       }
     };
@@ -150,16 +151,18 @@ export const TagEditor: React.FC<TagEditorProps> = ({
               <Plus className="w-3 h-3" />
               <span>标签</span>
             </BaseButton>
-            {isOpen && (
-              <div 
+            {isOpen && createPortal(
+              <div ref={popupRef}
                 style={{
                   position: 'fixed',
                   top: `${popupPos.top}px`,
                   left: `${popupPos.left}px`,
                   width: `${Math.min(260, window.innerWidth - 32)}px`,
                   maxWidth: 'calc(100vw - 32px)',
+                  maxHeight: 'calc(100dvh - 32px)',
+                  overflowY: 'auto',
                 }}
-                className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-2xl z-[999] flex flex-col p-2.5 animate-in fade-in zoom-in-95"
+                className="tag-editor-dropdown bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-2xl z-[999] flex flex-col p-2.5 animate-in fade-in zoom-in-95"
                 onClick={e => e.stopPropagation()}
               >
                 <div className="flex items-center gap-1.5">
@@ -201,14 +204,14 @@ export const TagEditor: React.FC<TagEditorProps> = ({
                   </div>
                 )}
               </div>
-            )}
+            , document.body)}
           </div>
         )}
       </div>
 
       {/* Full Tags Modal with Safe Boundaries */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in" role="dialog" aria-modal="true">
+      {isModalOpen && createPortal(
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in" role="dialog" aria-modal="true" onClick={event => event.stopPropagation()}>
           <div 
             className="fixed inset-0 cursor-pointer"
             onClick={() => setIsModalOpen(false)}
@@ -296,8 +299,9 @@ export const TagEditor: React.FC<TagEditorProps> = ({
             </div>
           </div>
         </div>
-      )}
+      , document.body)}
     </>
   );
 };
+
 
