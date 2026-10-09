@@ -174,7 +174,7 @@ export const STPresetsSection = (props: any) => {
   const localFileInputRef = useRef<HTMLInputElement>(null);
   const [showBatchTagModal, setShowBatchTagModal] = React.useState(false);
   const [activePreset, setActivePreset] = React.useState<any | null>(null);
-  const [detailTab, setDetailTab] = React.useState<'details' | 'prompts' | 'regex' | 'scripts' | 'json'>('details');
+  const [detailTab, setDetailTab] = React.useState<'details' | 'prompts' | 'regex' | 'scripts' | 'versions' | 'json'>('details');
   const [jsonDraft, setJsonDraft] = React.useState('');
   const customTags = appData.presetTags || [];
   const builtInTags: string[] = [];
@@ -227,7 +227,7 @@ export const STPresetsSection = (props: any) => {
     }
   };
 
-  const openPresetDetail = (preset: any, tab: 'details' | 'prompts' | 'regex' | 'scripts' | 'json' = 'details') => {
+  const openPresetDetail = (preset: any, tab: 'details' | 'prompts' | 'regex' | 'scripts' | 'versions' | 'json' = 'details') => {
     const normalized = {
       ...preset,
       jsonData: getPresetJson(preset),
@@ -237,6 +237,53 @@ export const STPresetsSection = (props: any) => {
     setActivePreset(normalized);
     setJsonDraft(safeStringifyPreset(normalized.jsonData));
     setDetailTab(tab);
+  };
+
+  const restorePresetVersion = (version: any) => {
+    if (!activePreset || !version?.data) return;
+    const restoredJson = version.data.jsonData || {};
+    const regexScripts = version.data.regexScripts || normalizeEmbeddedRegexScripts(restoredJson);
+    const embeddedScripts = version.data.embeddedScripts || normalizeEmbeddedScripts(restoredJson);
+    const currentSnapshot = {
+      versionId: 'prever_' + activePreset.id + '_' + Date.now(),
+      versionNumber: (activePreset.versions?.length || 0) + 1,
+      versionLabel: activePreset.activeVersionLabel || '当前版本',
+      updatedAt: activePreset.updatedAt || Date.now(),
+      fileName: activePreset.fileName,
+      changeSummary: '还原版本前自动保存当前快照',
+      data: {
+        name: activePreset.name,
+        fileName: activePreset.fileName,
+        rawJsonString: activePreset.rawJsonString,
+        jsonData: activePreset.jsonData,
+        regexScripts: activePreset.regexScripts || [],
+        embeddedScripts: activePreset.embeddedScripts || [],
+      },
+    };
+    const restoredPreset = {
+      ...activePreset,
+      name: version.data.name || activePreset.name,
+      fileName: version.data.fileName || activePreset.fileName,
+      jsonData: restoredJson,
+      settings: restoredJson,
+      rawJsonString: version.data.rawJsonString || safeStringifyPreset(restoredJson),
+      regexScripts,
+      embeddedScripts,
+      activeVersionNumber: version.versionNumber,
+      activeVersionLabel: version.versionLabel || `v${version.versionNumber}`,
+      activeVersionId: version.versionId,
+      currentVersionSummary: `已还原至 ${version.versionLabel || `v${version.versionNumber}`}`,
+      updatedAt: Date.now(),
+      versions: [currentSnapshot, ...(activePreset.versions || []).filter((item: any) => item.versionId !== version.versionId)],
+    };
+    setActivePreset(restoredPreset);
+    setJsonDraft(safeStringifyPreset(restoredJson));
+    setDetailTab('details');
+    updateAppData((prev: any) => ({
+      ...prev,
+      presets: (prev.presets || []).map((item: any) => item.id === restoredPreset.id ? restoredPreset : item),
+    }));
+    showToast('预设版本已还原', 'success');
   };
 
   const saveActivePreset = () => {
@@ -253,6 +300,24 @@ export const STPresetsSection = (props: any) => {
 
     const regexScripts = normalizeEmbeddedRegexScripts(parsedJson);
     const embeddedScripts = normalizeEmbeddedScripts(parsedJson);
+    const exists = (appData.presets || []).some((item: any) => item.id === activePreset.id);
+    const currentVersions = activePreset.versions || [];
+    const prevSnapshot = exists ? {
+      versionId: 'prever_' + activePreset.id + '_' + Date.now(),
+      versionNumber: currentVersions.length + 1,
+      versionLabel: activePreset.activeVersionLabel || `v${currentVersions.length + 1}`,
+      updatedAt: activePreset.updatedAt || Date.now(),
+      fileName: activePreset.fileName,
+      changeSummary: '保存修改前自动快照',
+      data: {
+        name: activePreset.name,
+        fileName: activePreset.fileName,
+        rawJsonString: activePreset.rawJsonString,
+        jsonData: activePreset.jsonData,
+        regexScripts: activePreset.regexScripts || [],
+        embeddedScripts: activePreset.embeddedScripts || [],
+      },
+    } : null;
     const updatedPreset = {
       ...activePreset,
       jsonData: parsedJson,
@@ -260,6 +325,11 @@ export const STPresetsSection = (props: any) => {
       regexScripts,
       embeddedScripts,
       rawJsonString: safeStringifyPreset(parsedJson),
+      activeVersionNumber: exists ? currentVersions.length + 2 : 1,
+      activeVersionLabel: exists ? `v${currentVersions.length + 2}` : 'v1',
+      activeVersionId: 'current',
+      currentVersionSummary: exists ? '手动保存修改' : '新建预设',
+      versions: prevSnapshot ? [prevSnapshot, ...currentVersions] : currentVersions,
       customTags: Array.from(new Set([
         ...(activePreset.customTags || []),
         'ST预设',
@@ -667,7 +737,7 @@ export const STPresetsSection = (props: any) => {
                   return (
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 modal-backdrop p-3 animate-in fade-in" role="dialog" aria-modal="true">
                       <div className="absolute inset-0" onClick={() => setActivePreset(null)} />
-                      <div className="relative z-10 w-full max-w-6xl max-h-[92vh] overflow-hidden bg-[var(--bg-paper,#faf7f2)] dark:bg-zinc-950 border border-[var(--line,#e6e3dd)] dark:border-zinc-800 rounded-2xl shadow-2xl flex flex-col">
+                      <div className="relative z-10 w-full max-w-7xl max-h-[92vh] overflow-hidden bg-[var(--bg-paper,#faf7f2)] dark:bg-zinc-950 border border-[var(--line,#e6e3dd)] dark:border-zinc-800 rounded-2xl shadow-2xl flex flex-col">
                         <div className="px-4 py-3 border-b border-[var(--line,#e6e3dd)] dark:border-zinc-800 flex items-center justify-between gap-3">
                           <div className="min-w-0">
                             <h3 className="text-sm font-bold text-[var(--text,#3E3A39)] dark:text-zinc-100 truncate">{activePreset.name || '未命名 ST 预设'}</h3>
@@ -687,6 +757,7 @@ export const STPresetsSection = (props: any) => {
                             ['prompts', `提示词(${promptList.length})`],
                             ['regex', `内嵌正则(${regexList.length})`],
                             ['scripts', `内嵌脚本(${scriptList.length})`],
+                            ['versions', `版本(${activePreset.versions?.length || 0})`],
                             ['json', 'JSON模板'],
                           ].map(([key, label]) => (
                             <button key={key} type="button" onClick={() => setDetailTab(key as any)} className={`px-3 py-1.5 text-[10px] rounded-lg transition-colors whitespace-nowrap ${detailTab === key ? 'bg-[var(--btn-primary-bg,rgba(140,47,45,0.1))] text-[var(--accent,#8C2F2D)] font-bold' : 'text-[var(--dim,#7C6865)] hover:bg-black/5 dark:hover:bg-white/10'}`}>
@@ -697,8 +768,20 @@ export const STPresetsSection = (props: any) => {
 
                         <div className="flex-1 overflow-y-auto p-4">
                           {detailTab === 'details' && (
-                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                              <div className="lg:col-span-2 space-y-3">
+                            <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr_280px] gap-4">
+                              <aside className="space-y-2 bg-white/70 dark:bg-zinc-900/70 border border-[var(--line,#e6e3dd)] dark:border-zinc-800 rounded-xl p-3">
+                                <div className="text-[10px] font-bold text-[var(--dim,#7C6865)]">预设档案</div>
+                                <div className="text-xs font-bold text-[var(--text,#3E3A39)] dark:text-zinc-100 break-words">{activePreset.name || '未命名 ST 预设'}</div>
+                                <div className="text-[10px] text-[var(--dim,#7C6865)] break-words">{activePreset.fileName || '新建模板'}</div>
+                                <div className="flex flex-wrap gap-1 pt-1">
+                                  <span className="px-1.5 py-0.5 rounded bg-[var(--btn-primary-bg,rgba(140,47,45,0.1))] text-[var(--accent,#8C2F2D)] text-[9px]">{activePreset.activeVersionLabel || 'v1'}</span>
+                                  <span className="px-1.5 py-0.5 rounded bg-[var(--bg-soft,#f4f0ea)] dark:bg-zinc-800 text-[var(--dim,#7C6865)] text-[9px]">提示词 {promptList.length}</span>
+                                  <span className="px-1.5 py-0.5 rounded bg-[var(--bg-soft,#f4f0ea)] dark:bg-zinc-800 text-[var(--dim,#7C6865)] text-[9px]">正则 {regexList.length}</span>
+                                  <span className="px-1.5 py-0.5 rounded bg-[var(--bg-soft,#f4f0ea)] dark:bg-zinc-800 text-[var(--dim,#7C6865)] text-[9px]">脚本 {scriptList.length}</span>
+                                </div>
+                                {activePreset.currentVersionSummary && <p className="text-[10px] text-[var(--dim,#7C6865)] leading-relaxed">{activePreset.currentVersionSummary}</p>}
+                              </aside>
+                              <div className="space-y-3">
                                 <label className="block text-[10px] font-bold text-[var(--dim,#7C6865)]">预设名称</label>
                                 <input value={activePreset.name || ''} onChange={(e) => setActivePreset({ ...activePreset, name: e.target.value, title: e.target.value })} className="w-full px-3 py-2 text-xs bg-white dark:bg-zinc-900 border border-[var(--line,#e6e3dd)] dark:border-zinc-800 rounded-lg text-[var(--text,#3E3A39)] dark:text-zinc-100" />
                                 <label className="block text-[10px] font-bold text-[var(--dim,#7C6865)]">说明</label>
@@ -756,6 +839,26 @@ export const STPresetsSection = (props: any) => {
                                   <pre className="max-h-56 overflow-auto whitespace-pre-wrap text-[10px] bg-[var(--bg-soft,#f4f0ea)] dark:bg-zinc-950 rounded-lg p-2 text-[var(--text,#3E3A39)] dark:text-zinc-200">{script.content || safeStringifyPreset(script)}</pre>
                                 </div>
                               ))}
+                            </div>
+                          )}
+
+                          {detailTab === 'versions' && (
+                            <div className="space-y-2">
+                              {(activePreset.versions || []).length === 0 ? (
+                                <p className="text-xs text-[var(--dim,#7C6865)]">暂无历史版本。导入同名更新或保存修改后会自动生成版本快照。</p>
+                              ) : (
+                                (activePreset.versions || []).map((version: any) => (
+                                  <div key={version.versionId} className="bg-white dark:bg-zinc-900 border border-[var(--line,#e6e3dd)] dark:border-zinc-800 rounded-xl p-3 flex items-center justify-between gap-3">
+                                    <div className="min-w-0">
+                                      <div className="text-xs font-bold text-[var(--text,#3E3A39)] dark:text-zinc-100">{version.versionLabel || `v${version.versionNumber}`}</div>
+                                      <div className="text-[10px] text-[var(--dim,#7C6865)] truncate">{version.fileName || '未记录文件'} · {version.changeSummary || '历史快照'}</div>
+                                    </div>
+                                    <button type="button" onClick={() => restorePresetVersion(version)} className="px-2.5 py-1.5 text-[10px] rounded-lg bg-[var(--btn-primary-bg,rgba(140,47,45,0.1))] text-[var(--accent,#8C2F2D)] hover:bg-[var(--btn-primary-hover,rgba(140,47,45,0.18))] transition-colors shrink-0">
+                                      还原
+                                    </button>
+                                  </div>
+                                ))
+                              )}
                             </div>
                           )}
 
