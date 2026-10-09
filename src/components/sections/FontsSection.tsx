@@ -1,3 +1,5 @@
+import { ManagementSearch, ManagementHeader, ManagementToolbarFrame, ManagementBatchBar, ManagementBatchOverlay } from '../ui/ManagementChrome';
+import { ActionButton } from '../ui/ActionButton';
 import React from 'react';
 import { GroupCategoryBar, CategoryFilterDropdown } from '../ui/GroupCategoryBar';
 import { BatchTagModal } from '../ui/BatchTagModal';
@@ -43,45 +45,28 @@ export const FontsSection = (props: any) => {
 
       <div className="space-y-3 md:space-y-4 mb-6">
                 {/* Sub-interface Header Banner with Formats & Action Buttons */}
-                            <div data-design-id="fonts-header-banner" className="sub-interface-banner py-1 sm:py-1.5 px-0 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-[var(--line,rgba(140,47,45,0.18))]">
-        <div className="flex items-start sm:items-center gap-2 min-w-0 w-full sm:w-auto">
-          <div className="header-icon-box w-7 h-7 sm:w-7 sm:h-7 border border-[var(--accent,#8C2F2D)] bg-[var(--btn-primary-bg,rgba(140,47,45,0.1))] text-[var(--accent,#8C2F2D)] flex items-center justify-center flex-shrink-0 mt-0.5 sm:mt-0">
+                            <ManagementHeader data-design-id="fonts-header-banner"
+        icon={<>
             <FileText className="w-4 h-4" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <h2 className="text-xs sm:text-sm font-bold text-[var(--text,#3E3A39)] leading-tight">字体库管理</h2>
-              <span className="header-tag text-[9px] px-1.5 py-0.5 border border-[var(--accent,#8C2F2D)] bg-[var(--btn-primary-bg,rgba(140,47,45,0.1))] text-[var(--accent,#8C2F2D)] font-medium leading-none">
+          </>}
+        title={<>字体库管理</>}
+        badge={<>
                 格式：.ttf / .otf / .woff / .woff2
-              </span>
-            </div>
-            <p className="text-[10px] text-[var(--dim,#7C6865)] mt-0.5 leading-tight -ml-[5px] sm:ml-0">
+              </>}
+        description={<>
               安装与预览自定义中英文字体文件，支持全局界面字体及酒馆卡面字体切换
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-1.5 w-full sm:w-auto justify-end flex-wrap">
-          <button 
-                      title="导入字体文件 (.ttf, .otf, .woff, .woff2)"
-                     className="h-5.5 px-2 text-[10px] rounded-none border-0 border-b-2 border-b-[var(--accent,#8C2F2D)] bg-[var(--btn-primary-bg,rgba(140,47,45,0.1))] text-[var(--accent,#8C2F2D)] font-semibold transition-all flex items-center justify-center gap-1 cursor-pointer hover:bg-[var(--btn-primary-hover)] active:scale-95 whitespace-nowrap">
+            </>}
+        actions={<>
+          <ActionButton onClick={triggerUpload} title="导入字体文件 (.ttf, .otf, .woff, .woff2)" action="import" context="toolbar" tone="primary">
                       <Plus className="w-3 h-3" />
                       <span>导入字体文件</span>
-                    </button>
-        </div>
-      </div>
+                    </ActionButton>
+        </>}
+      />
 
                 {/* Search Bar & Categories Toolbar */}
-                <div data-design-id="fonts-toolbar" className="space-y-2.5 mb-6">
-                  <div className="relative w-full ">
-                    <Search className="w-3 h-3 absolute left-3 top-1/2 -translate-y-1/2 z-10" />
-                    <BaseInput
-                      type="text"
-                      value={fontSearchQuery}
-                      onChange={(e: any) => setFontSearchQuery(e.target.value)}
-                      placeholder="搜索字体名称..."
-                      className="w-full pl-9 pr-4 py-1.5 text-[10px] rounded-lg"
-                    />
-                  </div>
+                <ManagementToolbarFrame data-design-id="fonts-toolbar">
+                  <ManagementSearch type="text" value={fontSearchQuery} onChange={(e: any) => setFontSearchQuery(e.target.value)} placeholder="搜索字体名称..." />
 
                   <div className="flex flex-wrap items-center gap-2 flex-shrink-0">
                     <CategoryFilterDropdown 
@@ -137,76 +122,53 @@ export const FontsSection = (props: any) => {
                         totalCount={appData.fonts?.length || 0} 
                         allGroupName="全部分组" onDeleteGroup={(g) => { setManagingFontCategory(g); /* trigger delete modal later via App.tsx logic */ }} />
                   </BaseCard>
-                </div>
+                </ManagementToolbarFrame>
 
                 {/* Batch Mode Toolbar */}
                 {fontBatchMode && (
-                  <div className="fixed top-16 left-1/2 -translate-x-1/2 z-40 w-[calc(100%-1.5rem)] sm:w-[calc(100%-2rem)] max-w-4xl animate-in fade-in zoom-in-95 duration-200 pointer-events-auto">
-                    <div data-design-id="fonts-batch-bar" className="batch-floating-card py-[5px] px-[8px] flex flex-col gap-[4px]">
+                  <ManagementBatchOverlay >
+                    <ManagementBatchBar data-design-id="fonts-batch-bar">
                       <div className="flex items-center justify-between w-full">
                         <span className="text-[9px] font-medium text-zinc-700 dark:text-zinc-300 tracking-wide leading-none">
                           已选 {selectedFontIds.length} 项
                         </span>
-                        <span role="button" onClick={() => {
+                        <ActionButton onClick={() => {
                             setFontBatchMode(false);
                             setSelectedFontIds([]);
-                          }} className="p-1 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors cursor-pointer flex items-center justify-center shrink-0"><X className="w-3.5 h-3.5" /></span>
+                          }} aria-label="关闭选择" action="close" context="icon"><X className="w-3.5 h-3.5" /></ActionButton>
                       </div>
                       
                       <div className="flex flex-wrap items-center gap-x-[6px] gap-y-[4px] w-full mt-1">
-                        <button
-                          type="button"
-                          onClick={() => {
+                        <ActionButton type="button" onClick={() => {
                             if (selectedFontIds.length === filteredFonts.length && filteredFonts.length > 0) {
                               setSelectedFontIds([]);
                             } else {
                               setSelectedFontIds(filteredFonts.map((p: any) => p.id));
                             }
-                          }}
-                          className="batch-btn"
-                        >
+                          }} action="select" context="batch">
                           {selectedFontIds.length === filteredFonts.length && filteredFonts.length > 0 ? '取消' : '全选'}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
+                        </ActionButton>
+                        <ActionButton type="button" onClick={() => {
                             const currentSet = new Set(selectedFontIds);
                             const newSelected = filteredFonts
                               .map((c: any) => c.id)
                               .filter((id: string) => !currentSet.has(id));
                             setSelectedFontIds(newSelected);
-                          }}
-                          className="batch-btn"
-                        >
+                          }} action="invert" context="batch">
                           反选
-                        </button>
-                        <button
-                          type="button"
-                          disabled={selectedFontIds.length === 0}
-                          onClick={() => setShowFontBatchMoveModal(true)}
-                          className="batch-btn batch-btn-primary"
-                        >
+                        </ActionButton>
+                        <ActionButton type="button" disabled={selectedFontIds.length === 0} onClick={() => setShowFontBatchMoveModal(true)} action="move" context="batch" tone="primary">
                           移动分组
-                        </button>
-                        <button
-                          type="button"
-                          disabled={selectedFontIds.length === 0}
-                          onClick={() => setShowBatchTagModal(true)}
-                          className="batch-btn batch-btn-primary"
-                        >
+                        </ActionButton>
+                        <ActionButton type="button" disabled={selectedFontIds.length === 0} onClick={() => setShowBatchTagModal(true)} action="create" context="batch" tone="primary">
                           添加标签
-                        </button>
-                        <button
-                          type="button"
-                          disabled={selectedFontIds.length === 0}
-                          onClick={handleBatchDeleteFonts}
-                          className="batch-btn batch-btn-danger"
-                        >
+                        </ActionButton>
+                        <ActionButton type="button" disabled={selectedFontIds.length === 0} onClick={handleBatchDeleteFonts} action="delete" context="batch" tone="danger">
                           删除
-                        </button>
+                        </ActionButton>
                       </div>
-                    </div>
-                  </div>
+                    </ManagementBatchBar>
+                  </ManagementBatchOverlay>
                 )}
 
                 {/* Font Cards List */}
@@ -358,5 +320,6 @@ export const FontsSection = (props: any) => {
               </div>
     );
 };
+
 
 

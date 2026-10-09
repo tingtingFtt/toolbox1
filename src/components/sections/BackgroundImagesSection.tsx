@@ -1,3 +1,5 @@
+import { ActionButton } from '../ui/ActionButton';
+import { ManagementHeader } from '../ui/ManagementChrome';
 import React, { useState, useMemo, useRef } from 'react';
 import { BaseCard } from '../ui/BaseCard';
 import { BaseButton } from '../ui/BaseButton';
@@ -68,33 +70,22 @@ export const BackgroundImagesSection = ({ appData, updateAppData, showToast }: a
     <div className="max-w-7xl mx-auto space-y-4">
       <input type="file" ref={fileInputRef} multiple accept="image/*" onChange={handleFileUpload} className="hidden" />
       
-      <div data-design-id="background-images-header-banner" className="sub-interface-banner py-1 sm:py-1.5 px-0 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-[var(--line,rgba(140,47,45,0.18))]">
-        <div className="flex items-start sm:items-center gap-2 min-w-0 w-full sm:w-auto">
-          <div className="header-icon-box w-7 h-7 sm:w-7 sm:h-7 border border-[var(--accent,#8C2F2D)] bg-[var(--btn-primary-bg,rgba(140,47,45,0.1))] text-[var(--accent,#8C2F2D)] flex items-center justify-center flex-shrink-0 mt-0.5 sm:mt-0">
+      <ManagementHeader data-design-id="background-images-header-banner"
+        icon={<>
             <ImageIcon className="w-4 h-4" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <h2 className="text-xs sm:text-sm font-bold text-[var(--text,#3E3A39)] leading-tight sub-interface-title">聊天背景图</h2>
-              <span className="header-tag text-[9px] px-1.5 py-0.5 border border-[var(--accent,#8C2F2D)] bg-[var(--btn-primary-bg,rgba(140,47,45,0.1))] text-[var(--accent,#8C2F2D)] font-medium leading-none">
+          </>}
+        title={<>聊天背景图</>}
+        badge={<>
                 格式: 图片
-              </span>
-            </div>
-            <p className="text-[10px] text-[var(--dim,#7C6865)] mt-0.5 leading-tight">管理聊天界面的背景图片</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-1.5 w-full sm:w-auto justify-end flex-wrap">
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="h-5.5 px-2 text-[10px] rounded-none border-0 border-b-2 border-b-[var(--accent,#8C2F2D)] bg-[var(--btn-primary-bg,rgba(140,47,45,0.1))] text-[var(--accent,#8C2F2D)] font-semibold transition-all flex items-center justify-center gap-1 cursor-pointer hover:bg-[var(--btn-primary-hover)] active:scale-95 whitespace-nowrap"
-            title="导入背景图"
-          >
+              </>}
+        description={<>管理聊天界面的背景图片</>}
+        actions={<>
+          <ActionButton type="button" onClick={() => fileInputRef.current?.click()} title="导入背景图" action="import" context="toolbar" tone="primary">
             <Upload className="w-3 h-3" />
             <span>导入背景图</span>
-          </button>
-        </div>
-      </div>
+          </ActionButton>
+        </>}
+      />
 
       <div className="flex items-center gap-3">
         <div className="relative flex-1">
@@ -136,3 +127,4 @@ export const BackgroundImagesSection = ({ appData, updateAppData, showToast }: a
     </div>
   );
 };
+

@@ -1,3 +1,5 @@
+import { ActionButton } from '../ui/ActionButton';
+import { ManagementBatchBar, ManagementBatchOverlay } from '../ui/ManagementChrome';
 import React from 'react';
 import { BatchTagModal } from '../ui/BatchTagModal';
 import { Upload, Search, Plus, Trash2, Smartphone, Download, Settings, RefreshCw, X, MessageSquare, Phone, Map, Globe, Maximize2, Copy, FileText, CheckCircle2, AlertCircle, Info, Home, Book, FileJson, Image as ImageIcon, Music, Video, Archive, Link as LinkIcon, Edit3 } from 'lucide-react';
@@ -69,68 +71,50 @@ export const STMobileSection = (props: any) => {
 
                     {/* 批量操作悬浮卡片：纯悬浮覆盖层，点击选择直接悬浮浮于页面之上，不向下挤压页面内容 */}
                     {phoneBatchMode && (
-                      <div className="fixed top-16 left-1/2 -translate-x-1/2 z-40 w-[calc(100%-1.5rem)] sm:w-[calc(100%-2rem)] max-w-4xl animate-in fade-in zoom-in-95 duration-200 pointer-events-auto">
-                        <div className="batch-floating-card py-[5px] px-[8px] flex flex-col gap-[4px]">
+                      <ManagementBatchOverlay >
+                        <ManagementBatchBar>
                           {/* 第一行：左侧文字计数（字体比按键字体小一号，呈灰黑色），右侧叉号退出按钮 */}
                           <div className="flex items-center justify-between w-full">
                             <span className="text-[9px] font-medium text-zinc-700 dark:text-zinc-300 tracking-wide leading-none">
                               已选 {selectedPhoneIds.length} 项
                             </span>
-                            <span role="button" onClick={() => {
+                            <ActionButton onClick={() => {
                                 setPhoneBatchMode(false);
                                 setSelectedPhoneIds([]);
-                              }} className="p-1 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors cursor-pointer flex items-center justify-center shrink-0"><X className="w-3.5 h-3.5" /></span>
+                              }} aria-label="关闭选择" action="close" context="icon"><X className="w-3.5 h-3.5" /></ActionButton>
                           </div>
                           
                                       {/* 第二行：操作按键，按键之间的左右间距与上下间距压缩紧凑 */}
             <div className="flex flex-wrap items-center gap-x-[6px] gap-y-[4px] w-full mt-1">
               {/* 全选 / 取消 */}
-              <button
-                type="button"
-                onClick={() => {
+              <ActionButton type="button" onClick={() => {
                   if (selectedPhoneIds.length === filteredPhoneLinks.length && filteredPhoneLinks.length > 0) {
                     setSelectedPhoneIds([]);
                   } else {
                     setSelectedPhoneIds(filteredPhoneLinks.map((c: any) => c.id));
                   }
-                }}
-                className="batch-btn"
-              >
+                }} action="select" context="batch">
                 {selectedPhoneIds.length === filteredPhoneLinks.length && filteredPhoneLinks.length > 0 ? '取消' : '全选'}
-              </button>
+              </ActionButton>
               {/* 反选 */}
-              <button
-                type="button"
-                onClick={() => {
+              <ActionButton type="button" onClick={() => {
                   const currentSet = new Set(selectedPhoneIds);
                   const inversed = filteredPhoneLinks.filter((c: any) => !currentSet.has(c.id)).map((c: any) => c.id);
                   setSelectedPhoneIds(inversed);
-                }}
-                className="batch-btn"
-              >
+                }} action="invert" context="batch">
                 反选
-              </button>
+              </ActionButton>
               {/* 标签 */}
-              <button
-                type="button"
-                disabled={selectedPhoneIds.length === 0}
-                onClick={() => setShowBatchTagModal(true)}
-                className="batch-btn batch-btn-primary"
-              >
+              <ActionButton type="button" disabled={selectedPhoneIds.length === 0} onClick={() => setShowBatchTagModal(true)} action="tag" context="batch" tone="primary">
                 标签
-              </button>
+              </ActionButton>
               {/* 删除 */}
-              <button
-                type="button"
-                disabled={selectedPhoneIds.length === 0}
-                onClick={handleBatchDeletePhoneLinks}
-                className="batch-btn batch-btn-danger"
-              >
+              <ActionButton type="button" disabled={selectedPhoneIds.length === 0} onClick={handleBatchDeletePhoneLinks} action="delete" context="batch" tone="danger">
                 删除
-              </button>
+              </ActionButton>
             </div>
-          </div>
-        </div>
+          </ManagementBatchBar>
+        </ManagementBatchOverlay>
       )}
                   </div>
                 </div>
@@ -234,3 +218,4 @@ export const STMobileSection = (props: any) => {
 
     );
 };
+

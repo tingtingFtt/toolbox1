@@ -1,3 +1,5 @@
+import { ManagementSearch, ManagementHeader, ManagementToolbarFrame, ManagementBatchBar, ManagementBatchOverlay } from '../ui/ManagementChrome';
+import { ActionButton } from '../ui/ActionButton';
 import React, { useRef, useState } from 'react';
 import { GroupCategoryBar, CategoryFilterDropdown } from '../ui/GroupCategoryBar';
 import { BatchTagModal } from '../ui/BatchTagModal';
@@ -116,57 +118,32 @@ export const ApiStorageSection = (props: any) => {
 
       <div className="space-y-3 md:space-y-4 mb-6">
                 {/* Sub-interface Header Banner with Formats & Action Buttons */}
-                            <div data-design-id="api-storage-header-banner" className="sub-interface-banner py-1 sm:py-1.5 px-0 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-[var(--line,rgba(140,47,45,0.18))]">
-        <div className="flex items-start sm:items-center gap-2 min-w-0 w-full sm:w-auto">
-          <div className="header-icon-box w-7 h-7 sm:w-7 sm:h-7 border border-[var(--accent,#8C2F2D)] bg-[var(--btn-primary-bg,rgba(140,47,45,0.1))] text-[var(--accent,#8C2F2D)] flex items-center justify-center flex-shrink-0 mt-0.5 sm:mt-0">
+                            <ManagementHeader data-design-id="api-storage-header-banner"
+        icon={<>
             <Key className="w-4 h-4" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <h2 className="text-xs sm:text-sm font-bold text-[var(--text,#3E3A39)] leading-tight">API 节点与密钥库</h2>
-              <span className="header-tag text-[9px] px-1.5 py-0.5 border border-[var(--accent,#8C2F2D)] bg-[var(--btn-primary-bg,rgba(140,47,45,0.1))] text-[var(--accent,#8C2F2D)] font-medium leading-none">
+          </>}
+        title={<>API 节点与密钥库</>}
+        badge={<>
                 格式：.json (API 配置文件) / .txt / .docx
-              </span>
-            </div>
-            <p className="text-[10px] text-[var(--dim,#7C6865)] mt-0.5 leading-tight -ml-[5px] sm:ml-0">
+              </>}
+        description={<>
               安全存储各家大模型接口、中转代理地址、自定义密钥及模型映射配置
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-1.5 w-full sm:w-auto justify-end flex-wrap">
-          <button
-                      type="button"
-                      onClick={triggerUpload}
-                      className="h-5.5 px-2 text-[10px] rounded-none border-0 border-b-2 border-b-[var(--accent,#8C2F2D)] bg-[var(--btn-primary-bg,rgba(140,47,45,0.1))] text-[var(--accent,#8C2F2D)] font-semibold transition-all flex items-center justify-center gap-1 cursor-pointer hover:bg-[var(--btn-primary-hover)] active:scale-95 whitespace-nowrap"
-                      title="导入 API 配置文件 (.json, .txt, .docx)"
-                    >
+            </>}
+        actions={<>
+          <ActionButton type="button" onClick={triggerUpload} title="导入 API 配置文件 (.json, .txt, .docx)" action="import" context="toolbar" tone="primary">
                       <Upload className="w-3 h-3" />
                       <span>导入 API 配置</span>
-                    </button>
-          <button
-                      type="button"
-                      onClick={handleCreateNewApi}
-                      className="h-5.5 px-2 text-[10px] rounded-none border-0 border-b border-b-[var(--line-focus,rgba(96,126,149,0.5))] bg-transparent text-[var(--text,#3E3A39)] font-medium transition-all flex items-center justify-center gap-1 cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 whitespace-nowrap"
-                    >
+                    </ActionButton>
+          <ActionButton type="button" onClick={handleCreateNewApi} action="create" context="toolbar">
                       <Plus className="w-3 h-3" />
                       <span>新建 API</span>
-                    </button>
-        </div>
-      </div>
+                    </ActionButton>
+        </>}
+      />
 
                 {/* Search Bar & Category Toolbar */}
-                <div data-design-id="api-storage-toolbar" className="space-y-2.5 mb-6">
-                  <div className="relative w-full ">
-                    <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 z-10" />
-                    <BaseInput
-                      designId="api-storage-search-input"
-                      type="text"
-                      value={apiSearchQuery}
-                      onChange={(e: any) => setApiSearchQuery(e.target.value)}
-                      placeholder="搜索 API 名称、地址、Key、描述..."
-                      className="w-full pl-9 pr-4 py-1.5 text-[10px] rounded-lg"
-                    />
-                  </div>
+                <ManagementToolbarFrame data-design-id="api-storage-toolbar">
+                  <ManagementSearch designId="api-storage-search-input" type="text" value={apiSearchQuery} onChange={(e: any) => setApiSearchQuery(e.target.value)} placeholder="搜索 API 名称、地址、Key、描述..." />
 
                   <div className="flex flex-wrap items-center gap-2 flex-shrink-0">
                     <CategoryFilterDropdown 
@@ -223,76 +200,53 @@ export const ApiStorageSection = (props: any) => {
                         totalCount={appData.apiKeys?.length || 0} 
                         allGroupName="全部分组" onDeleteGroup={(g) => { setManagingApiCategory(g); /* trigger delete modal later via App.tsx logic */ }} />
                   </BaseCard>
-                </div>
+                </ManagementToolbarFrame>
 
                 {/* Batch Mode Toolbar */}
                 {apiBatchMode && (
-                  <div className="fixed top-16 left-1/2 -translate-x-1/2 z-40 w-[calc(100%-1.5rem)] sm:w-[calc(100%-2rem)] max-w-4xl animate-in fade-in zoom-in-95 duration-200 pointer-events-auto">
-                    <div data-design-id="api-storage-batch-bar" className="batch-floating-card py-[5px] px-[8px] flex flex-col gap-[4px]">
+                  <ManagementBatchOverlay >
+                    <ManagementBatchBar data-design-id="api-storage-batch-bar">
                       <div className="flex items-center justify-between w-full">
                         <span className="text-[9px] font-medium text-zinc-700 dark:text-zinc-300 tracking-wide leading-none">
                           已选 {selectedApiIds.length} 项
                         </span>
-                        <span role="button" onClick={() => {
+                        <ActionButton onClick={() => {
                             setApiBatchMode(false);
                             setSelectedApiIds([]);
-                          }} className="p-1 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors cursor-pointer flex items-center justify-center shrink-0"><X className="w-3.5 h-3.5" /></span>
+                          }} aria-label="关闭选择" action="close" context="icon"><X className="w-3.5 h-3.5" /></ActionButton>
                       </div>
                       
                       <div className="flex flex-wrap items-center gap-x-[6px] gap-y-[4px] w-full mt-1">
-                        <button
-                          type="button"
-                          onClick={() => {
+                        <ActionButton type="button" onClick={() => {
                             if (selectedApiIds.length === filteredApis.length && filteredApis.length > 0) {
                               setSelectedApiIds([]);
                             } else {
                               setSelectedApiIds(filteredApis.map((p: any) => p.id));
                             }
-                          }}
-                          className="batch-btn"
-                        >
+                          }} action="select" context="batch">
                           {selectedApiIds.length === filteredApis.length && filteredApis.length > 0 ? '取消' : '全选'}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
+                        </ActionButton>
+                        <ActionButton type="button" onClick={() => {
                             const currentSet = new Set(selectedApiIds);
                             const newSelected = filteredApis
                               .map((c: any) => c.id)
                               .filter((id: string) => !currentSet.has(id));
                             setSelectedApiIds(newSelected);
-                          }}
-                          className="batch-btn"
-                        >
+                          }} action="invert" context="batch">
                           反选
-                        </button>
-                        <button
-                          type="button"
-                          disabled={selectedApiIds.length === 0}
-                          onClick={() => setShowApiBatchMoveModal(true)}
-                          className="batch-btn batch-btn-primary"
-                        >
+                        </ActionButton>
+                        <ActionButton type="button" disabled={selectedApiIds.length === 0} onClick={() => setShowApiBatchMoveModal(true)} action="move" context="batch" tone="primary">
                           移动分组
-                        </button>
-                        <button
-                          type="button"
-                          disabled={selectedApiIds.length === 0}
-                          onClick={() => setShowBatchTagModal(true)}
-                          className="batch-btn batch-btn-primary"
-                        >
+                        </ActionButton>
+                        <ActionButton type="button" disabled={selectedApiIds.length === 0} onClick={() => setShowBatchTagModal(true)} action="create" context="batch" tone="primary">
                           添加标签
-                        </button>
-                        <button
-                          type="button"
-                          disabled={selectedApiIds.length === 0}
-                          onClick={handleBatchDeleteApis}
-                          className="batch-btn batch-btn-danger"
-                        >
+                        </ActionButton>
+                        <ActionButton type="button" disabled={selectedApiIds.length === 0} onClick={handleBatchDeleteApis} action="delete" context="batch" tone="danger">
                           删除
-                        </button>
+                        </ActionButton>
                       </div>
-                    </div>
-                  </div>
+                    </ManagementBatchBar>
+                  </ManagementBatchOverlay>
                 )}
 
                 {/* API List */}
@@ -441,5 +395,6 @@ export const ApiStorageSection = (props: any) => {
               </div>
     );
 };
+
 
 

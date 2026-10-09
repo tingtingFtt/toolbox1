@@ -1,3 +1,6 @@
+import { ManagementSearch, ManagementHeader, ManagementToolbarFrame, ManagementBatchBar, ManagementGrid, ManagementBatchOverlay } from '../ui/ManagementChrome';
+import { DetailTabBar, DetailTabButton, DetailPanel, DetailHeader, DetailBody, DetailFooter } from '../ui/DetailChrome';
+import { ActionButton } from '../ui/ActionButton';
 import { NewGroupModal, BottomSheetModal, UnifiedModal, DeleteConfirmationModal } from '../ui/UnifiedModal';
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { GroupCategoryBar, CategoryFilterDropdown } from '../ui/GroupCategoryBar';
@@ -501,54 +504,32 @@ export const STWorldBooksSection = React.memo<STWorldBooksSectionProps>(({
 
       <div className="space-y-3 md:space-y-4 mb-6">
       {/* Top Header & Actions */}
-                  <div className="sub-interface-banner py-1 sm:py-1.5 px-0 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-[var(--line,rgba(140,47,45,0.18))]">
-        <div className="flex items-start sm:items-center gap-2 min-w-0 w-full sm:w-auto">
-          <div className="header-icon-box w-7 h-7 sm:w-7 sm:h-7 border border-[var(--accent,#8C2F2D)] bg-[var(--btn-primary-bg,rgba(140,47,45,0.1))] text-[var(--accent,#8C2F2D)] flex items-center justify-center flex-shrink-0 mt-0.5 sm:mt-0">
+                  <ManagementHeader
+        icon={<>
             <BookOpen className="w-4 h-4" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <h2 className="text-xs sm:text-sm font-bold text-[var(--text,#3E3A39)] leading-tight">ST 世界书管理</h2>
-              <span className="header-tag text-[9px] px-1.5 py-0.5 border border-[var(--accent,#8C2F2D)] bg-[var(--btn-primary-bg,rgba(140,47,45,0.1))] text-[var(--accent,#8C2F2D)] font-medium leading-none">
+          </>}
+        title={<>ST 世界书管理</>}
+        badge={<>
                 格式：.json (ST / Lorebook 格式)
-              </span>
-            </div>
-            <p className="text-[10px] text-[var(--dim,#7C6865)] mt-0.5 leading-tight -ml-[5px] sm:ml-0">
+              </>}
+        description={<>
               管理酒馆 World Info (世界书 / Character Book)，支持多词条检索、Token统计与角色卡内置联动
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-1.5 w-full sm:w-auto justify-end flex-wrap">
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="h-5.5 px-2 text-[10px] rounded-none border-0 border-b-2 border-b-[var(--accent,#8C2F2D)] bg-[var(--btn-primary-bg,rgba(140,47,45,0.1))] text-[var(--accent,#8C2F2D)] font-semibold transition-all flex items-center justify-center gap-1 cursor-pointer hover:bg-[var(--btn-primary-hover)] active:scale-95 whitespace-nowrap"
-            title="导入世界书 (.json)"
-          >
+            </>}
+        actions={<>
+          <ActionButton onClick={() => fileInputRef.current?.click()} title="导入世界书 (.json)" action="import" context="toolbar" tone="primary">
             <Upload className="w-3 h-3" />
             <span>导入世界书 (JSON)</span>
-          </button>
-          <button
-            onClick={() => setShowAddWbModal(true)}
-            className="h-5.5 px-2 text-[10px] rounded-none border-0 border-b border-b-[var(--line-focus,rgba(96,126,149,0.5))] bg-transparent text-[var(--text,#3E3A39)] font-medium transition-all flex items-center justify-center gap-1 cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 whitespace-nowrap"
-          >
+          </ActionButton>
+          <ActionButton onClick={() => setShowAddWbModal(true)} action="create" context="toolbar">
             <Plus className="w-3 h-3" />
             新建世界书
-          </button>
-        </div>
-      </div>
+          </ActionButton>
+        </>}
+      />
 
-      <div className="space-y-2.5 mb-6">
+      <ManagementToolbarFrame>
         {/* Search Input */}
-        <div className="relative w-full">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-          <input
-            type="text"
-            placeholder="搜索世界书名称、词条关键词或描述…"
-            value={searchQuery}
-            onChange={(e: any) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 h-8 text-xs rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-amber-500"
-          />
-        </div>
+        <ManagementSearch type="text" placeholder="搜索世界书名称、词条关键词或描述…" value={searchQuery} onChange={(e: any) => setSearchQuery(e.target.value)} />
 
         <div className="flex flex-wrap items-center gap-2 flex-shrink-0">
           <CategoryFilterDropdown 
@@ -607,82 +588,59 @@ export const STWorldBooksSection = React.memo<STWorldBooksSectionProps>(({
             allGroupName="全部分组"
           />
         </div>
-      </div>
+      </ManagementToolbarFrame>
 
       {/* Batch Actions Bar */}
       {/* 批量操作悬浮卡片：纯悬浮覆盖层，点击选择直接悬浮浮于页面之上，不向下挤压页面内容 */}
       {batchMode && (
-        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-40 w-[calc(100%-1.5rem)] sm:w-[calc(100%-2rem)] max-w-4xl animate-in fade-in zoom-in-95 duration-200 pointer-events-auto">
-          <div className="batch-floating-card py-[5px] px-[8px] flex flex-col gap-[4px]">
+        <ManagementBatchOverlay >
+          <ManagementBatchBar>
             {/* 第一行：左侧文字计数（字体比按键字体小一号，呈灰黑色），右侧叉号退出按钮 */}
             <div className="flex items-center justify-between w-full">
               <span className="text-[9px] font-medium text-zinc-700 dark:text-zinc-300 tracking-wide leading-none">
                 已选 {selectedIds.length} 项
               </span>
-              <span role="button" onClick={() => {
+              <ActionButton onClick={() => {
                   setBatchMode(false);
                   setSelectedIds([]);
-                }} className="p-1 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors cursor-pointer flex items-center justify-center shrink-0"><X className="w-3.5 h-3.5" /></span>
+                }} aria-label="关闭选择" action="close" context="icon"><X className="w-3.5 h-3.5" /></ActionButton>
             </div>
             
                         {/* 第二行：操作按键，按键之间的左右间距与上下间距压缩紧凑 */}
             <div className="flex flex-wrap items-center gap-x-[6px] gap-y-[4px] w-full mt-1">
               {/* 全选 / 取消 */}
-              <button
-                type="button"
-                onClick={() => {
+              <ActionButton type="button" onClick={() => {
                   if (selectedIds.length === sorted.length && sorted.length > 0) {
                     setSelectedIds([]);
                   } else {
                     setSelectedIds(sorted.map((c: any) => c.id));
                   }
-                }}
-                className="batch-btn"
-              >
+                }} action="select" context="batch">
                 {selectedIds.length === sorted.length && sorted.length > 0 ? '取消' : '全选'}
-              </button>
+              </ActionButton>
               {/* 反选 */}
-              <button
-                type="button"
-                onClick={() => {
+              <ActionButton type="button" onClick={() => {
                   const currentSet = new Set(selectedIds);
                   const inversed = sorted.filter((c: any) => !currentSet.has(c.id)).map((c: any) => c.id);
                   setSelectedIds(inversed);
-                }}
-                className="batch-btn"
-              >
+                }} action="invert" context="batch">
                 反选
-              </button>
+              </ActionButton>
               {/* 移动 */}
-              <button
-                type="button"
-                disabled={selectedIds.length === 0}
-                onClick={() => setShowBatchMoveModal(true)}
-                className="batch-btn batch-btn-primary"
-              >
+              <ActionButton type="button" disabled={selectedIds.length === 0} onClick={() => setShowBatchMoveModal(true)} action="move" context="batch" tone="primary">
                 移动
-              </button>
+              </ActionButton>
               {/* 标签 */}
-              <button
-                type="button"
-                disabled={selectedIds.length === 0}
-                onClick={() => setShowBatchTagModal(true)}
-                className="batch-btn batch-btn-primary"
-              >
+              <ActionButton type="button" disabled={selectedIds.length === 0} onClick={() => setShowBatchTagModal(true)} action="tag" context="batch" tone="primary">
                 标签
-              </button>
+              </ActionButton>
               {/* 删除 */}
-              <button
-                type="button"
-                disabled={selectedIds.length === 0}
-                onClick={handleBatchDelete}
-                className="batch-btn batch-btn-danger"
-              >
+              <ActionButton type="button" disabled={selectedIds.length === 0} onClick={handleBatchDelete} action="delete" context="batch" tone="danger">
                 删除
-              </button>
+              </ActionButton>
             </div>
-          </div>
-        </div>
+          </ManagementBatchBar>
+        </ManagementBatchOverlay>
       )}
 
       </div>
@@ -695,7 +653,7 @@ export const STWorldBooksSection = React.memo<STWorldBooksSectionProps>(({
           </p>
         </div>
       ) : (
-        <div className="resource-card-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <ManagementGrid className=" grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {visibleSorted.map((wb) => {
             const isSelected = selectedIds.includes(wb.id);
             const totalTokens = (Array.isArray(wb.entries) ? wb.entries : (Object.values(wb.entries || {}) as any[])).reduce(
@@ -850,7 +808,7 @@ export const STWorldBooksSection = React.memo<STWorldBooksSectionProps>(({
                 </div>
             );
           })}
-        </div>
+        </ManagementGrid>
       )}
 
       {/* WorldBook Detail Modal */}
@@ -861,40 +819,16 @@ export const STWorldBooksSection = React.memo<STWorldBooksSectionProps>(({
             onClick={() => setActiveWb(null)}
             aria-label="关闭遮罩"
           />
-          <div className="file-detail-modal modal-panel modal-card relative z-10 w-full h-full bg-[#fafafa] dark:bg-[#09090b] flex flex-col overflow-hidden rounded-none border-0 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+          <DetailPanel onClick={(e) => e.stopPropagation()}>
             {/* Modal Top Bar (Clean 2-Row Compact Layout, No Overlap) */}
-            <div className="px-3 sm:px-6 py-2 border-b border-zinc-200 dark:border-zinc-800 flex flex-col gap-1.5 flex-shrink-0 bg-zinc-100/80 dark:bg-zinc-900/80">
-              {/* Row 1: Title, Version, Category, and Action Buttons + Close X */}
-              <div className="flex items-center justify-between gap-2 min-w-0">
-                <div className="flex items-center gap-2 min-w-0 flex-1">
-                  <BookOpen className="w-4 h-4 text-amber-500 shrink-0" />
-                  <h3 className="text-xs sm:text-sm font-bold text-zinc-900 dark:text-zinc-100 truncate">
-                    {activeWb.name}
-                  </h3>
-                  {activeWb.versions && activeWb.versions.length > 0 && (
-                    <span className="px-1.5 py-0.5 text-[9px] font-bold rounded-full bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200 border border-amber-300 dark:border-amber-700 whitespace-nowrap shrink-0">
+            <DetailHeader designPrefix="stworldbooks-detail" title={activeWb.name} version={activeWb.versions && activeWb.versions.length > 0 && (
+                    <>
                       v{activeWb.versions.length + 1}
-                    </span>
-                  )}
-                  <span className="px-1.5 py-0.5 text-[9px] font-medium rounded-full bg-zinc-200/70 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 whitespace-nowrap shrink-0">
+                    </>
+                  )} badge={<>
                     {activeWb.category || '默认'}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-                  <button
-                    onClick={() => handleExportWb(activeWb)}
-                    className="flex items-center gap-1 px-2 py-1 text-[10px] font-medium rounded-lg border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-200/60 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 whitespace-nowrap shrink-0 transition-colors"
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                    <span className="hidden xs:inline">导出 JSON</span>
-                  </button>
-                  <span role="button" onClick={() => setActiveWb(null)} className="p-1 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors cursor-pointer flex items-center justify-center shrink-0"><X className="w-4 h-4" /></span>
-                </div>
-              </div>
-
-              {/* Row 2: Metadata stats + Tag Editor */}
-              <div className="flex items-center justify-between gap-2 min-w-0 text-[10px] text-zinc-500">
+                  </>}
+              tags={<><div className="flex items-center justify-between gap-2 min-w-0 text-[10px] text-zinc-500">
                 <div className="flex items-center gap-2 min-w-0 flex-1 overflow-hidden py-0.5">
                   <span className="whitespace-nowrap shrink-0 text-zinc-500 dark:text-zinc-400">
                     {(Array.isArray(activeWb.entries) ? activeWb.entries : (Object.values(activeWb.entries || {}) as any[])).length} 个词条
@@ -918,81 +852,33 @@ export const STWorldBooksSection = React.memo<STWorldBooksSectionProps>(({
                     }}
                   />
                 </div>
-              </div>
-            </div>
+              </div></>} actions={<>
+                  <ActionButton onClick={() => handleExportWb(activeWb)} aria-label="导出 JSON" action="export" context="icon">
+                    <Download className="w-3.5 h-3.5" />
+                    <span className="hidden xs:inline">导出 JSON</span>
+                  </ActionButton>
+
+                </>} onClose={() => setActiveWb(null)} />
 
             {/* Detail Tabs */}
-            <div className="tab-nav-bar flex flex-wrap items-center justify-between border-b border-zinc-200 dark:border-zinc-800 px-4 flex-shrink-0 gap-2 overflow-x-auto scrollbar-none">
-              <div className="flex items-center gap-1 overflow-x-auto scrollbar-none">
-                <button
-                  onClick={() => setDetailTab('settings')}
-                  className={`py-2.5 px-3 text-[10px] font-semibold border-b transition-colors whitespace-nowrap shrink-0 ${
-                    detailTab === 'settings'
-                      ? 'border-amber-500 text-amber-600 dark:text-amber-400'
-                      : 'border-transparent text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
-                  }`}
-                >
+            <DetailTabBar label="详情导航">
+                <DetailTabButton onClick={() => setDetailTab('settings')} active={detailTab === 'settings'}>
                   基本属性
-                </button>
-                <button
-                  onClick={() => setDetailTab('entries')}
-                  className={`py-2.5 px-3 text-[10px] font-semibold border-b transition-colors whitespace-nowrap shrink-0 ${
-                    detailTab === 'entries'
-                      ? 'border-amber-500 text-amber-600 dark:text-amber-400'
-                      : 'border-transparent text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
-                  }`}
-                >
+                </DetailTabButton>
+                <DetailTabButton onClick={() => setDetailTab('entries')} active={detailTab === 'entries'}>
                   词条列表 ({(Array.isArray(activeWb.entries) ? activeWb.entries : (Object.values(activeWb.entries || {}) as any[])).length})
-                </button>
-                <button
-                  onClick={() => setDetailTab('json')}
-                  className={`py-2.5 px-3 text-[10px] font-semibold border-b transition-colors whitespace-nowrap shrink-0 ${
-                    detailTab === 'json'
-                      ? 'border-amber-500 text-amber-600 dark:text-amber-400'
-                      : 'border-transparent text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
-                  }`}
-                >
+                </DetailTabButton>
+                <DetailTabButton onClick={() => setDetailTab('json')} active={detailTab === 'json'}>
                   JSON 原始数据
-                </button>
-                <button
-                  onClick={() => setDetailTab('versions')}
-                  className={`py-2.5 px-3 text-[10px] font-semibold border-b transition-colors flex items-center gap-1 whitespace-nowrap shrink-0 ${
-                    detailTab === 'versions'
-                      ? 'border-amber-500 text-amber-600 dark:text-amber-400'
-                      : 'border-transparent text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
-                  }`}
-                >
+                </DetailTabButton>
+                <DetailTabButton onClick={() => setDetailTab('versions')} active={detailTab === 'versions'}>
                   <History className="w-3 h-3" />
                   版本历史 {(activeWb.versions?.length || 0) > 0 ? `(${(activeWb.versions?.length || 0) + 1})` : ''}
-                </button>
-              </div>
-
-              {detailTab === 'entries' && (
-                <button
-                  onClick={() => {
-                    setEditingEntryIndex(null);
-                    setEntryForm({
-                      keys: [],
-                      secondary_keys: [],
-                      comment: '',
-                      content: '',
-                      constant: false,
-                      selective: true,
-                      insertion_order: 100,
-                      enabled: true,
-                      position: 'before_char',
-                    });
-                    setShowAddEntryModal(true);
-                  }}
-                  className="flex items-center gap-1 px-3 py-1 text-[10px] font-semibold rounded-lg bg-amber-600 text-white hover:bg-amber-700 whitespace-nowrap shrink-0 my-1"
-                >
-                  <Plus className="w-3.5 h-3.5" /> 添加词条
-                </button>
-              )}
-            </div>
+                </DetailTabButton>
+              </DetailTabBar>
 
             {/* Modal Body */}
-            <div className="p-4 flex-1 overflow-y-auto">
+            <DetailBody className="p-4 flex-1 overflow-y-auto">
               {detailTab === 'entries' && (
                 <div className="space-y-3">
                   {/* Search within entries */}
@@ -1331,23 +1217,17 @@ export const STWorldBooksSection = React.memo<STWorldBooksSectionProps>(({
                   </div>
                 </div>
               )}
-            </div>
+            </DetailBody>
             {/* Modal Footer */}
-            <div className="p-4 border-t border-zinc-200 dark:border-zinc-800 flex items-center justify-end gap-2 flex-shrink-0">
-              <button
-                onClick={() => setActiveWb(null)}
-                className="px-4 py-2 text-[10px] font-medium rounded-lg border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300"
-              >
+            <DetailFooter  className="justify-end">
+              <ActionButton onClick={() => setActiveWb(null)} action="close" context="detail">
                 关闭
-              </button>
-              <button
-                onClick={() => handleSaveActiveWb(activeWb)}
-                className="px-4 py-2 text-[10px] font-semibold rounded-lg bg-amber-600 hover:bg-amber-700 text-white shadow-sm"
-              >
+              </ActionButton>
+              <ActionButton onClick={() => handleSaveActiveWb(activeWb)} action="save" context="detail">
                 保存全部修改
-              </button>
-            </div>
-          </div>
+              </ActionButton>
+            </DetailFooter>
+          </DetailPanel>
         </div>
       )}
 

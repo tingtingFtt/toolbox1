@@ -1,3 +1,6 @@
+import { ManagementSearch, ManagementHeader, ManagementToolbarFrame, ManagementBatchBar, ManagementGrid, ManagementBatchOverlay } from '../ui/ManagementChrome';
+import { ActionButton } from '../ui/ActionButton';
+import { DetailPanel, DetailHeader, DetailTabs, detailFooterClass, detailIconButtonClass } from '../ui/DetailChrome';
 import { NewGroupModal, BottomSheetModal, UnifiedModal, DeleteConfirmationModal } from '../ui/UnifiedModal';
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { GroupCategoryBar, CategoryFilterDropdown } from '../ui/GroupCategoryBar';
@@ -18,7 +21,6 @@ import { compareRegexScripts } from '../../utils/diffEngine';
 import { sessionStore } from '../../utils/sessionStore';
 import { cleanPresetResource, bindPresetResourceItems, presetResourceId, resourceSource } from '../../utils/presetResources';
 import { ResourceSourceControls, ResourceSourceBadge, ResourceSourceFilter } from './ResourceSourceControls';
-import { DetailHeader, DetailTabs, detailPanelClass, detailFooterClass, detailIconButtonClass } from '../ui/DetailChrome';
 
 interface STRegexSectionProps {
   appData: AppData;
@@ -649,55 +651,33 @@ export const STRegexSection = React.memo<STRegexSectionProps>(({
 
       <div className="space-y-3 md:space-y-4 mb-6">
       {/* Top Header & Actions */}
-                  <div className="sub-interface-banner py-1 sm:py-1.5 px-0 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-[var(--line,rgba(140,47,45,0.18))]">
-        <div className="flex items-start sm:items-center gap-2 min-w-0 w-full sm:w-auto">
-          <div className="header-icon-box w-7 h-7 sm:w-7 sm:h-7 border border-[var(--accent,#8C2F2D)] bg-[var(--btn-primary-bg,rgba(140,47,45,0.1))] text-[var(--accent,#8C2F2D)] flex items-center justify-center flex-shrink-0 mt-0.5 sm:mt-0">
+                  <ManagementHeader
+        icon={<>
             <Sparkles className="w-4 h-4" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <h2 className="text-xs sm:text-sm font-bold text-[var(--text,#3E3A39)] leading-tight">ST 正则脚本管理</h2>
-              <span className="header-tag text-[9px] px-1.5 py-0.5 border border-[var(--accent,#8C2F2D)] bg-[var(--btn-primary-bg,rgba(140,47,45,0.1))] text-[var(--accent,#8C2F2D)] font-medium leading-none">
+          </>}
+        title={<>ST 正则脚本管理</>}
+        badge={<>
                 格式：.json (ST 正则配置)
-              </span>
-            </div>
-            <p className="text-[10px] text-[var(--dim,#7C6865)] mt-0.5 leading-tight -ml-[5px] sm:ml-0">
+              </>}
+        description={<>
               管理酒馆正则替换脚本 (Regex Scripts)，支持多规则合并管理、单条详细页面编辑、沙盒测试与版本历史追溯
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-1.5 w-full sm:w-auto justify-end flex-wrap">
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="h-5.5 px-2 text-[10px] rounded-none border-0 border-b-2 border-b-[var(--accent,#8C2F2D)] bg-[var(--btn-primary-bg,rgba(140,47,45,0.1))] text-[var(--accent,#8C2F2D)] font-semibold transition-all flex items-center justify-center gap-1 cursor-pointer hover:bg-[var(--btn-primary-hover)] active:scale-95 whitespace-nowrap"
-            title="导入正则 (.json)"
-          >
+            </>}
+        actions={<>
+          <ActionButton onClick={() => fileInputRef.current?.click()} title="导入正则 (.json)" action="import" context="toolbar" tone="primary">
             <Upload className="w-3 h-3" />
             <span>导入正则 (JSON)</span>
-          </button>
-          <button
-            onClick={() => setShowAddRegexModal(true)}
-            className="h-5.5 px-2 text-[10px] rounded-none border-0 border-b border-b-[var(--line-focus,rgba(96,126,149,0.5))] bg-transparent text-[var(--text,#3E3A39)] font-medium transition-all flex items-center justify-center gap-1 cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 whitespace-nowrap"
-          >
+          </ActionButton>
+          <ActionButton onClick={() => setShowAddRegexModal(true)} action="create" context="toolbar">
             <Plus className="w-3 h-3" />
             新建正则
-          </button>
-        </div>
-      </div>
+          </ActionButton>
+        </>}
+      />
 
-      <div className="space-y-2.5 mb-6">
+      <ManagementToolbarFrame>
         <ResourceSourceControls items={rawRegexList} value={sourceFilter} onChange={value => { setSourceFilter(value); setCategoryFilter('全部分组'); setTagFilter([]); }} />
         {/* Search Input */}
-        <div className="relative w-full">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-          <input
-            type="text"
-            placeholder="搜索正则名称、匹配模式、替换词或所属角色…"
-            value={searchQuery}
-            onChange={(e: any) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-1.5 text-[10px] rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-rose-500"
-          />
-        </div>
+        <ManagementSearch type="text" placeholder="搜索正则名称、匹配模式、替换词或所属角色…" value={searchQuery} onChange={(e: any) => setSearchQuery(e.target.value)} />
 
         <div className="flex flex-wrap items-center gap-2 flex-shrink-0">
           <CategoryFilterDropdown 
@@ -757,82 +737,59 @@ export const STRegexSection = React.memo<STRegexSectionProps>(({
             allGroupName="全部分组"
           />
         </div>
-      </div>
+      </ManagementToolbarFrame>
 
       {/* Batch Actions Bar */}
       {/* 批量操作悬浮卡片：纯悬浮覆盖层，点击选择直接悬浮浮于页面之上，不向下挤压页面内容 */}
       {batchMode && (
-        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-40 w-[calc(100%-1.5rem)] sm:w-[calc(100%-2rem)] max-w-4xl animate-in fade-in zoom-in-95 duration-200 pointer-events-auto">
-          <div className="batch-floating-card py-[5px] px-[8px] flex flex-col gap-[4px]">
+        <ManagementBatchOverlay >
+          <ManagementBatchBar>
             {/* 第一行：左侧文字计数（字体比按键字体小一号，呈灰黑色），右侧叉号退出按钮 */}
             <div className="flex items-center justify-between w-full">
               <span className="text-[9px] font-medium text-zinc-700 dark:text-zinc-300 tracking-wide leading-none">
                 已选 {selectedIds.length} 项
               </span>
-              <span role="button" onClick={() => {
+              <ActionButton onClick={() => {
                   setBatchMode(false);
                   setSelectedIds([]);
-                }} className="p-1 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors cursor-pointer flex items-center justify-center shrink-0"><X className="w-3.5 h-3.5" /></span>
+                }} aria-label="关闭选择" action="close" context="icon"><X className="w-3.5 h-3.5" /></ActionButton>
             </div>
             
                         {/* 第二行：操作按键，按键之间的左右间距与上下间距压缩紧凑 */}
             <div className="flex flex-wrap items-center gap-x-[6px] gap-y-[4px] w-full mt-1">
               {/* 全选 / 取消 */}
-              <button
-                type="button"
-                onClick={() => {
+              <ActionButton type="button" onClick={() => {
                   if (selectedIds.length === sorted.length && sorted.length > 0) {
                     setSelectedIds([]);
                   } else {
                     setSelectedIds(sorted.map((c: any) => c.id));
                   }
-                }}
-                className="batch-btn"
-              >
+                }} action="select" context="batch">
                 {selectedIds.length === sorted.length && sorted.length > 0 ? '取消' : '全选'}
-              </button>
+              </ActionButton>
               {/* 反选 */}
-              <button
-                type="button"
-                onClick={() => {
+              <ActionButton type="button" onClick={() => {
                   const currentSet = new Set(selectedIds);
                   const inversed = sorted.filter((c: any) => !currentSet.has(c.id)).map((c: any) => c.id);
                   setSelectedIds(inversed);
-                }}
-                className="batch-btn"
-              >
+                }} action="invert" context="batch">
                 反选
-              </button>
+              </ActionButton>
               {/* 移动 */}
-              <button
-                type="button"
-                disabled={selectedIds.length === 0}
-                onClick={() => setShowBatchMoveModal(true)}
-                className="batch-btn batch-btn-primary"
-              >
+              <ActionButton type="button" disabled={selectedIds.length === 0} onClick={() => setShowBatchMoveModal(true)} action="move" context="batch" tone="primary">
                 移动
-              </button>
+              </ActionButton>
               {/* 标签 */}
-              <button
-                type="button"
-                disabled={selectedIds.length === 0}
-                onClick={() => setShowBatchTagModal(true)}
-                className="batch-btn batch-btn-primary"
-              >
+              <ActionButton type="button" disabled={selectedIds.length === 0} onClick={() => setShowBatchTagModal(true)} action="tag" context="batch" tone="primary">
                 标签
-              </button>
+              </ActionButton>
               {/* 删除 */}
-              <button
-                type="button"
-                disabled={selectedIds.length === 0}
-                onClick={handleBatchDelete}
-                className="batch-btn batch-btn-danger"
-              >
+              <ActionButton type="button" disabled={selectedIds.length === 0} onClick={handleBatchDelete} action="delete" context="batch" tone="danger">
                 删除
-              </button>
+              </ActionButton>
             </div>
-          </div>
-        </div>
+          </ManagementBatchBar>
+        </ManagementBatchOverlay>
       )}
 
       {/* Regex Grid */}
@@ -846,7 +803,7 @@ export const STRegexSection = React.memo<STRegexSectionProps>(({
           </p>
         </div>
       ) : (
-        <div className="resource-card-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <ManagementGrid className=" grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {visibleSorted.map((rx) => {
             const isSelected = selectedIds.includes(rx.id);
             const rulesCount = rx.rules?.length || 1;
@@ -983,7 +940,7 @@ export const STRegexSection = React.memo<STRegexSectionProps>(({
               </div>
             );
           })}
-        </div>
+        </ManagementGrid>
       )}
 
       {/* Detail / Inspector Modal */}
@@ -993,7 +950,7 @@ export const STRegexSection = React.memo<STRegexSectionProps>(({
             className="absolute inset-0 bg-transparent transition-opacity"
             aria-label="关闭遮罩"
           />
-          <div className={`${detailPanelClass} st-regex-detail`} onClick={(e) => e.stopPropagation()}>
+          <DetailPanel onClick={(e) => e.stopPropagation()} className="st-regex-detail">
             
             <DetailHeader
               designPrefix="regex-detail" title={activeRegex.scriptName}
@@ -1643,7 +1600,7 @@ export const STRegexSection = React.memo<STRegexSectionProps>(({
                 </div>
               </>
             )}
-          </div>
+          </DetailPanel>
         </div>
       )}
 

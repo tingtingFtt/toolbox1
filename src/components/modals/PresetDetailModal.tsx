@@ -1,3 +1,5 @@
+import { DetailPanel, DetailBody, DetailFooter, DetailHeader, DetailTabs, detailIconButtonClass } from '../ui/DetailChrome';
+import { ActionButton } from '../ui/ActionButton';
 import React, { useEffect, useState } from 'react';
 import {
   Download,
@@ -21,7 +23,6 @@ import {
 import { triggerFileDownload } from '../../utils';
 import { TagEditor } from '../ui/TagEditor';
 import { CustomSelect } from '../ui/CustomSelect';
-import { DetailHeader, DetailTabs, detailPanelClass, detailFooterClass, detailIconButtonClass } from '../ui/DetailChrome';
 
 type Tab = 'details' | 'prompts' | 'regex' | 'scripts' | 'json' | 'versions';
 interface Props {
@@ -215,7 +216,7 @@ export function PresetDetailModal({
       aria-modal="true"
       aria-labelledby="preset-detail-title"
     >
-      <div className={`${detailPanelClass} st-preset-detail`}>
+      <DetailPanel  className="st-preset-detail">
         {preview && (
           <div className="px-4 py-2 text-xs bg-[var(--btn-primary-bg)] border-b border-[var(--line)] flex flex-wrap items-center gap-2">
             <Eye className="w-3.5 h-3.5" /> 正在预览 {preview.versionLabel}
@@ -243,7 +244,7 @@ export function PresetDetailModal({
             { id: 'json', name: 'JSON 原始数据' }, { id: 'versions', name: `版本历史 (${(draft.versions?.length || 0) + 1})` },
           ]}
         />
-        <div className="file-detail-body flex-1 min-h-0 overflow-y-auto p-3 sm:p-6">
+        <DetailBody className="file-detail-body flex-1 min-h-0 overflow-y-auto p-3 sm:p-6">
           <p className="mb-3 text-[10px] text-[var(--dim)]">{prompts.length} 个提示词 · {regexes.length} 条正则 · {scripts.length} 个脚本 · {(draft.versions?.length || 0) + 1} 个版本</p>
           {tab === 'details' && (
             <fieldset disabled={!!preview} className="max-w-4xl space-y-4 min-w-0">
@@ -621,21 +622,18 @@ export function PresetDetailModal({
               </div>
             </div>
           )}
-        </div>
-        <footer data-design-id="preset-detail-footer" className={`${detailFooterClass} justify-end`}>
-          <button className={buttonClass} onClick={onClose}>
+        </DetailBody>
+        <DetailFooter data-design-id="preset-detail-footer" className="justify-end">
+          <ActionButton onClick={onClose} className={buttonClass} action="close" context="detail">
             关闭
-          </button>
+          </ActionButton>
           {!preview && (
-            <button
-              className={`${buttonClass} bg-[var(--btn-primary-bg)] text-[var(--accent)] font-semibold`}
-              onClick={save}
-            >
+            <ActionButton onClick={save} className={`${buttonClass} bg-[var(--btn-primary-bg)] text-[var(--accent)] font-semibold`} action="save" context="detail">
               保存全部修改
-            </button>
+            </ActionButton>
           )}
-        </footer>
-      </div>
+        </DetailFooter>
+      </DetailPanel>
     </div>
   );
 }

@@ -1,3 +1,6 @@
+import { ManagementSearch, ManagementHeader, ManagementToolbarFrame, ManagementBatchBar, ManagementGrid, ManagementBatchOverlay } from '../ui/ManagementChrome';
+import { DetailTabBar, DetailTabButton, DetailPanel, DetailHeader, DetailBody, DetailFooter } from '../ui/DetailChrome';
+import { ActionButton } from '../ui/ActionButton';
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { GroupCategoryBar, CategoryFilterDropdown } from '../ui/GroupCategoryBar';
 import { BatchTagModal } from '../ui/BatchTagModal';
@@ -523,43 +526,25 @@ export const MobileHtmlSection: React.FC<MobileHtmlSectionProps> = ({
       {/* ══════════════════════════════════════════════════════════════════════
           1. 顶部 Header Banner (严格参照 ST 分界面规范)
          ══════════════════════════════════════════════════════════════════════ */}
-      <div
-        data-design-id="mobile-html-header-banner"
-        className="sub-interface-banner py-1 sm:py-1.5 px-0 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-[var(--line,rgba(140,47,45,0.18))]"
-      >
-        <div className="flex items-start sm:items-center gap-2 min-w-0 w-full sm:w-auto">
-          <div className="header-icon-box w-7 h-7 sm:w-7 sm:h-7 border border-[var(--accent,#8C2F2D)] bg-[var(--btn-primary-bg,rgba(140,47,45,0.1))] text-[var(--accent,#8C2F2D)] flex items-center justify-center flex-shrink-0 mt-0.5 sm:mt-0">
+      <ManagementHeader data-design-id="mobile-html-header-banner"
+        icon={<>
             <Code2 className="w-4 h-4" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <h2 className="text-xs sm:text-sm font-bold text-[var(--text,#3E3A39)] leading-tight">
+          </>}
+        title={<>
                 小手机 HTML 管理
-              </h2>
-              <span className="header-tag text-[9px] px-1.5 py-0.5 border border-[var(--accent,#8C2F2D)] bg-[var(--btn-primary-bg,rgba(140,47,45,0.1))] text-[var(--accent,#8C2F2D)] font-medium leading-none">
+              </>}
+        badge={<>
                 格式：.html / .htm / .json
-              </span>
-            </div>
-            <p className="text-[10px] text-[var(--dim,#7C6865)] mt-0.5 leading-tight -ml-[5px] sm:ml-0">
+              </>}
+        description={<>
               管理小手机交互式 HTML 视窗、状态栏小部件、聊天气泡模板与动态互动微应用
-            </p>
-          </div>
-        </div>
-
-        {/* 右侧操作按钮：导入与新建 */}
-        <div className="flex items-center gap-1.5 w-full sm:w-auto justify-end flex-wrap">
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="h-5.5 px-2 text-[10px] rounded-none border-0 border-b-2 border-b-[var(--accent,#8C2F2D)] bg-[var(--btn-primary-bg,rgba(140,47,45,0.1))] text-[var(--accent,#8C2F2D)] font-semibold transition-all flex items-center justify-center gap-1 cursor-pointer hover:bg-[var(--btn-primary-hover)] active:scale-95 whitespace-nowrap"
-            title="导入 HTML 文件 (.html, .htm, .json)"
-          >
+            </>}
+        actions={<>
+          <ActionButton type="button" onClick={() => fileInputRef.current?.click()} title="导入 HTML 文件 (.html, .htm, .json)" action="import" context="toolbar" tone="primary">
             <Upload className="w-3 h-3" />
             <span>导入 HTML 文件</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => {
+          </ActionButton>
+          <ActionButton type="button" onClick={() => {
               setNewHtmlForm({
                 title: '',
                 type: 'widget',
@@ -572,30 +557,19 @@ export const MobileHtmlSection: React.FC<MobileHtmlSectionProps> = ({
                 customTags: [],
               });
               setShowAddModal(true);
-            }}
-            className="h-5.5 px-2 text-[10px] rounded-none border-0 border-b border-b-[var(--line-focus,rgba(96,126,149,0.5))] bg-transparent text-[var(--text,#3E3A39)] font-medium transition-all flex items-center justify-center gap-1 cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 whitespace-nowrap"
-          >
+            }} action="create" context="toolbar">
             <Plus className="w-3 h-3" />
             <span>新建 HTML</span>
-          </button>
-        </div>
-      </div>
+          </ActionButton>
+        </>}
+      />
 
       {/* ══════════════════════════════════════════════════════════════════════
           2. 搜索与控制工具栏 (参考 ST Plugins / Presets 标准规范)
          ══════════════════════════════════════════════════════════════════════ */}
-      <div className="space-y-2.5 mb-6">
+      <ManagementToolbarFrame>
         {/* Search Input */}
-        <div className="relative w-full">
-          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-          <input
-            type="text"
-            placeholder="搜索 HTML 标题、代码内容、作者、分类或标签…"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-1.5 text-[10px] rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          />
-        </div>
+        <ManagementSearch type="text" placeholder="搜索 HTML 标题、代码内容、作者、分类或标签…" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
 
         {/* 筛选与操作按键行 */}
         <div className="flex flex-wrap items-center gap-2 flex-shrink-0">
@@ -677,103 +651,75 @@ export const MobileHtmlSection: React.FC<MobileHtmlSectionProps> = ({
             onAddGroup={() => setShowNewGroupModal(true)}
           />
         </div>
-      </div>
+      </ManagementToolbarFrame>
 
       {/* ══════════════════════════════════════════════════════════════════════
           3. 批量操作悬浮卡片 (ST 统一规范: batch-floating-card)
          ══════════════════════════════════════════════════════════════════════ */}
       {batchMode && (
-        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-40 w-[calc(100%-1.5rem)] sm:w-[calc(100%-2rem)] max-w-4xl animate-in fade-in zoom-in-95 duration-200 pointer-events-auto">
-          <div className="batch-floating-card py-[5px] px-[8px] flex flex-col gap-[4px]">
+        <ManagementBatchOverlay >
+          <ManagementBatchBar>
             <div className="flex items-center justify-between w-full">
               <span className="text-[9px] font-medium text-zinc-700 dark:text-zinc-300 tracking-wide leading-none">
                 已选 {selectedIds.length} 项
               </span>
-              <span
-                role="button"
-                onClick={() => {
+              <ActionButton onClick={() => {
                   setBatchMode(false);
                   setSelectedIds([]);
-                }}
-                className="p-1 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors cursor-pointer flex items-center justify-center shrink-0"
-              >
+                }} aria-label="关闭选择" action="close" context="icon">
                 <X className="w-3.5 h-3.5" />
-              </span>
+              </ActionButton>
             </div>
 
             <div className="flex flex-wrap items-center gap-x-[6px] gap-y-[4px] w-full mt-1">
-              <button
-                type="button"
-                onClick={() => {
+              <ActionButton type="button" onClick={() => {
                   if (selectedIds.length === sortedList.length && sortedList.length > 0) {
                     setSelectedIds([]);
                   } else {
                     setSelectedIds(sortedList.map((p) => p.id));
                   }
-                }}
-                className="batch-btn"
-              >
+                }} action="select" context="batch">
                 {selectedIds.length === sortedList.length && sortedList.length > 0 ? '取消' : '全选'}
-              </button>
+              </ActionButton>
 
-              <button
-                type="button"
-                onClick={() => {
+              <ActionButton type="button" onClick={() => {
                   const currentSet = new Set(selectedIds);
                   const inversed = sortedList.filter((p) => !currentSet.has(p.id)).map((p) => p.id);
                   setSelectedIds(inversed);
-                }}
-                className="batch-btn"
-              >
+                }} action="invert" context="batch">
                 反选
-              </button>
+              </ActionButton>
 
-              <button
-                type="button"
-                onClick={() => {
+              <ActionButton type="button" onClick={() => {
                   if (selectedIds.length === 0) {
                     showToast('请先选择要移动的 HTML 资源', 'info');
                     return;
                   }
                   setShowBatchMoveModal(true);
-                }}
-                className="batch-btn batch-btn-primary"
-              >
+                }} action="move" context="batch" tone="primary">
                 移动
-              </button>
+              </ActionButton>
 
-              <button
-                type="button"
-                onClick={() => {
+              <ActionButton type="button" onClick={() => {
                   if (selectedIds.length === 0) {
                     showToast('请先选择要设置标签的 HTML 资源', 'info');
                     return;
                   }
                   setShowBatchTagModal(true);
-                }}
-                className="batch-btn batch-btn-primary"
-              >
+                }} action="tag" context="batch" tone="primary">
                 标签
-              </button>
+              </ActionButton>
 
-              <button
-                type="button"
-                onClick={handleBatchExport}
-                className="batch-btn batch-btn-primary"
-              >
+              <ActionButton type="button" onClick={handleBatchExport} action="export" context="batch" tone="primary">
                 导出
-              </button>
+              </ActionButton>
 
-              <button
-                type="button"
-                onClick={handleBatchDelete}
-                className="batch-btn batch-btn-danger"
-              >
+              <ActionButton type="button" onClick={handleBatchDelete} action="delete" context="batch" tone="danger">
                 删除
-              </button>
+              </ActionButton>
             </div>
-          </div>
-        </div>
+          </ManagementBatchBar>
+        </ManagementBatchOverlay>
       )}
 
       {/* ══════════════════════════════════════════════════════════════════════
@@ -792,7 +738,7 @@ export const MobileHtmlSection: React.FC<MobileHtmlSectionProps> = ({
           </p>
         </div>
       ) : (
-        <div className="resource-card-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <ManagementGrid className=" grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {sortedList.map((item) => {
             const isSelected = selectedIds.includes(item.id);
             const totalLines = (item.htmlContent || '').split('\n').length;
@@ -948,7 +894,7 @@ export const MobileHtmlSection: React.FC<MobileHtmlSectionProps> = ({
               </div>
             );
           })}
-        </div>
+        </ManagementGrid>
       )}
 
       {/* ══════════════════════════════════════════════════════════════════════
@@ -961,19 +907,9 @@ export const MobileHtmlSection: React.FC<MobileHtmlSectionProps> = ({
           role="dialog"
           aria-modal="true"
         >
-          <div
-            className="file-detail-modal modal-panel modal-card relative z-10 w-full max-w-5xl h-[92vh] bg-[#fafafa] dark:bg-[#09090b] flex flex-col overflow-hidden rounded-2xl border border-[var(--line,#e6e3dd)] dark:border-zinc-800 shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
+          <DetailPanel onClick={(e) => e.stopPropagation()}>
             {/* Modal Top Bar */}
-            <div className="px-4 sm:px-6 py-2.5 border-b border-[var(--line,#e6e3dd)] dark:border-zinc-800 flex flex-col gap-1.5 flex-shrink-0 bg-black/5 dark:bg-white/5">
-              <div className="flex items-center justify-between gap-2 min-w-0">
-                <div className="flex items-center gap-2 min-w-0 flex-1">
-                  <Code2 className="w-4 h-4 text-violet-500 shrink-0" />
-                  <h3 className="text-xs sm:text-sm font-bold text-zinc-900 dark:text-zinc-100 truncate">
-                    {activeHtml.title}
-                  </h3>
-                  <span className="px-1.5 py-0.5 text-[9px] font-bold rounded-full bg-violet-100 dark:bg-violet-950 text-violet-800 dark:text-violet-300 border border-violet-300/40 whitespace-nowrap shrink-0">
+            <DetailHeader designPrefix="mobilehtml-detail" title={activeHtml.title} version={<>
                     {activeHtml.type === 'hud'
                       ? '状态栏 HUD'
                       : activeHtml.type === 'bubble'
@@ -981,33 +917,10 @@ export const MobileHtmlSection: React.FC<MobileHtmlSectionProps> = ({
                       : activeHtml.type === 'page'
                       ? '视窗页面'
                       : '挂件 Widget'}
-                  </span>
-                  <span className="px-1.5 py-0.5 text-[9px] font-medium rounded-full bg-zinc-200/70 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 whitespace-nowrap shrink-0">
+                  </>} badge={<>
                     {activeHtml.category || '默认'}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => handleExportSingleHtml(activeHtml)}
-                    className="flex items-center gap-1 px-2 py-1 text-[10px] font-medium rounded-lg border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-200/60 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 cursor-pointer whitespace-nowrap transition-colors"
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                    <span className="hidden xs:inline">导出 HTML</span>
-                  </button>
-                  <span
-                    role="button"
-                    onClick={() => setActiveHtml(null)}
-                    className="p-1 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors cursor-pointer flex items-center justify-center shrink-0"
-                  >
-                    <X className="w-4 h-4" />
-                  </span>
-                </div>
-              </div>
-
-              {/* Row 2: 元数据统计 + 实时标签编辑 */}
-              <div className="flex items-center justify-between gap-2 min-w-0 text-[10px] text-zinc-500">
+                  </>}
+              tags={<><div className="flex items-center justify-between gap-2 min-w-0 text-[10px] text-zinc-500">
                 <div className="flex items-center gap-2 min-w-0 flex-1 overflow-hidden py-0.5">
                   <span className="whitespace-nowrap shrink-0 text-zinc-500 dark:text-zinc-400">
                     HTML {activeHtml.htmlContent?.length || 0} 字 · CSS {activeHtml.cssContent?.length || 0} 字 · JS {activeHtml.jsContent?.length || 0} 字
@@ -1022,71 +935,36 @@ export const MobileHtmlSection: React.FC<MobileHtmlSectionProps> = ({
                     }}
                   />
                 </div>
-              </div>
-            </div>
+              </div></>} actions={<>
+                  <ActionButton type="button" onClick={() => handleExportSingleHtml(activeHtml)} aria-label="导出 HTML" action="export" context="icon">
+                    <Download className="w-3.5 h-3.5" />
+                    <span className="hidden xs:inline">导出 HTML</span>
+                  </ActionButton>
+
+                </>} onClose={() => setActiveHtml(null)} />
 
             {/* 详情标签栏 (Tabs Bar) */}
-            <div className="tab-nav-bar flex items-center border-b border-zinc-200 dark:border-zinc-800 px-4 bg-white dark:bg-zinc-900 gap-1 overflow-x-auto flex-shrink-0">
-              <button
-                type="button"
-                onClick={() => setDetailTab('preview')}
-                className={`py-2.5 px-3 text-[10px] font-semibold border-b transition-colors cursor-pointer whitespace-nowrap shrink-0 flex items-center gap-1.5 ${
-                  detailTab === 'preview'
-                    ? 'border-violet-600 text-violet-600 dark:text-violet-400'
-                    : 'border-transparent text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
-                }`}
-              >
+            <DetailTabBar label="详情导航">
+              <DetailTabButton onClick={() => setDetailTab('preview')} active={detailTab === 'preview'}>
                 <Eye className="w-3.5 h-3.5" />
                 <span>实时沙箱预览</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setDetailTab('html')}
-                className={`py-2.5 px-3 text-[10px] font-semibold border-b transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
-                  detailTab === 'html'
-                    ? 'border-violet-600 text-violet-600 dark:text-violet-400'
-                    : 'border-transparent text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
-                }`}
-              >
+              </DetailTabButton>
+              <DetailTabButton onClick={() => setDetailTab('html')} active={detailTab === 'html'}>
                 HTML 结构
-              </button>
-              <button
-                type="button"
-                onClick={() => setDetailTab('css')}
-                className={`py-2.5 px-3 text-[10px] font-semibold border-b transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
-                  detailTab === 'css'
-                    ? 'border-violet-600 text-violet-600 dark:text-violet-400'
-                    : 'border-transparent text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
-                }`}
-              >
+              </DetailTabButton>
+              <DetailTabButton onClick={() => setDetailTab('css')} active={detailTab === 'css'}>
                 CSS 样式
-              </button>
-              <button
-                type="button"
-                onClick={() => setDetailTab('js')}
-                className={`py-2.5 px-3 text-[10px] font-semibold border-b transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
-                  detailTab === 'js'
-                    ? 'border-violet-600 text-violet-600 dark:text-violet-400'
-                    : 'border-transparent text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
-                }`}
-              >
+              </DetailTabButton>
+              <DetailTabButton onClick={() => setDetailTab('js')} active={detailTab === 'js'}>
                 JS 脚本
-              </button>
-              <button
-                type="button"
-                onClick={() => setDetailTab('info')}
-                className={`py-2.5 px-3 text-[10px] font-semibold border-b transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
-                  detailTab === 'info'
-                    ? 'border-violet-600 text-violet-600 dark:text-violet-400'
-                    : 'border-transparent text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
-                }`}
-              >
+              </DetailTabButton>
+              <DetailTabButton onClick={() => setDetailTab('info')} active={detailTab === 'info'}>
                 属性与信息
-              </button>
-            </div>
+              </DetailTabButton>
+            </DetailTabBar>
 
             {/* 详情内容区 */}
-            <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
+            <DetailBody className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
               {/* Tab 1: 实时沙箱预览 */}
               {detailTab === 'preview' && (
                 <div className="flex flex-col h-full space-y-3">
@@ -1341,36 +1219,24 @@ export const MobileHtmlSection: React.FC<MobileHtmlSectionProps> = ({
                   </div>
                 </div>
               )}
-            </div>
+            </DetailBody>
 
             {/* 详情页底部操作栏 (Footer) */}
-            <div className="p-4 border-t border-[var(--line,#e6e3dd)] dark:border-zinc-800 bg-black/5 dark:bg-white/5 flex items-center justify-between flex-shrink-0">
-              <button
-                type="button"
-                onClick={() => setActiveHtml(null)}
-                className="px-4 py-1.5 text-xs font-medium rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 cursor-pointer"
-              >
+            <DetailFooter >
+              <ActionButton type="button" onClick={() => setActiveHtml(null)} action="close" context="detail">
                 关闭
-              </button>
+              </ActionButton>
               <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleDeleteHtml(activeHtml)}
-                  className="px-3 py-1.5 text-xs font-medium rounded-lg border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 cursor-pointer"
-                >
+                <ActionButton type="button" onClick={() => handleDeleteHtml(activeHtml)} action="delete" context="detail">
                   删除组件
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleSaveActiveHtml(activeHtml)}
-                  className="px-5 py-1.5 text-xs font-semibold rounded-lg bg-[var(--accent,#8C2F2D)] hover:opacity-90 text-white shadow-xs cursor-pointer flex items-center gap-1.5"
-                >
+                </ActionButton>
+                <ActionButton type="button" onClick={() => handleSaveActiveHtml(activeHtml)} action="save" context="detail">
                   <Save className="w-3.5 h-3.5" />
                   <span>保存修改并更新</span>
-                </button>
+                </ActionButton>
               </div>
-            </div>
-          </div>
+            </DetailFooter>
+          </DetailPanel>
         </div>
       )}
 

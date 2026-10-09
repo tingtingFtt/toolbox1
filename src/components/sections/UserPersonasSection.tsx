@@ -1,3 +1,5 @@
+import { ActionButton } from '../ui/ActionButton';
+import { ManagementHeader, ManagementGrid } from '../ui/ManagementChrome';
 import React, { useState, useMemo, useRef } from 'react';
 import { BaseCard } from '../ui/BaseCard';
 import { BaseButton } from '../ui/BaseButton';
@@ -237,34 +239,28 @@ export const UserPersonasSection = ({ appData, updateAppData, showToast }: any) 
     <div className="max-w-7xl mx-auto space-y-4">
       <input type="file" ref={fileInputRef} multiple accept=".txt,.json,.docx" onChange={handleFileUpload} className="hidden" />
       
-                  <div data-design-id="user-personas-header-banner" className="sub-interface-banner py-1 sm:py-1.5 px-0 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-[var(--line,rgba(140,47,45,0.18))]">
-        <div className="flex items-start sm:items-center gap-2 min-w-0 w-full sm:w-auto">
-          <div className="header-icon-box w-7 h-7 sm:w-7 sm:h-7 border border-[var(--accent,#8C2F2D)] bg-[var(--btn-primary-bg,rgba(140,47,45,0.1))] text-[var(--accent,#8C2F2D)] flex items-center justify-center flex-shrink-0 mt-0.5 sm:mt-0">
+                  <ManagementHeader data-design-id="user-personas-header-banner"
+        icon={<>
             <FileText className="w-4 h-4" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <h2 className="text-xs sm:text-sm font-bold text-[var(--text,#3E3A39)] leading-tight">用户人设</h2>
-              <span className="header-tag text-[9px] px-1.5 py-0.5 border border-[var(--accent,#8C2F2D)] bg-[var(--btn-primary-bg,rgba(140,47,45,0.1))] text-[var(--accent,#8C2F2D)] font-medium leading-none">
+          </>}
+        title={<>用户人设</>}
+        badge={<>
                 格式: .json / .txt / .docx
-              </span>
-            </div>
-            <p className="text-[10px] text-[var(--dim,#7C6865)] mt-0.5 leading-tight -ml-[5px] sm:ml-0">
+              </>}
+        description={<>
               管理您的自定义用户人设与设定文档
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-1.5 w-full sm:w-auto justify-end flex-wrap">
-          <button onClick={() => setShowCreateModal(true)} className="h-5.5 px-2 text-[10px] rounded-none border-0 border-b-2 border-b-[var(--accent,#8C2F2D)] bg-[var(--btn-primary-bg,rgba(140,47,45,0.1))] text-[var(--accent,#8C2F2D)] font-semibold transition-all flex items-center justify-center gap-1 cursor-pointer hover:bg-[var(--btn-primary-hover)] active:scale-95 whitespace-nowrap">
+            </>}
+        actions={<>
+          <ActionButton onClick={() => setShowCreateModal(true)} action="create" context="toolbar" tone="primary">
             <Plus className="w-3 h-3" />
             <span>新建人设</span>
-          </button>
-          <button onClick={() => fileInputRef.current?.click()} className="h-5.5 px-2 text-[10px] rounded-none border-0 border-b border-b-[var(--line-focus,rgba(96,126,149,0.5))] bg-transparent text-[var(--text,#3E3A39)] font-medium transition-all flex items-center justify-center gap-1 cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 whitespace-nowrap">
+          </ActionButton>
+          <ActionButton onClick={() => fileInputRef.current?.click()} action="import" context="toolbar">
             <Upload className="w-3 h-3" />
             <span>导入文件</span>
-          </button>
-        </div>
-      </div>
+          </ActionButton>
+        </>}
+      />
 
       <div className="flex items-center gap-3">
         <div className="relative flex-1">
@@ -284,7 +280,7 @@ export const UserPersonasSection = ({ appData, updateAppData, showToast }: any) 
           </div>
         </div>
       ) : (
-        <div className="resource-card-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+        <ManagementGrid className=" grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
           {filteredPersonas.map((p: UserPersonaEntry) => (
             <div key={p.id} className="sub-block-card p-3 bg-[var(--card-solid-bg,#EADAC7)] border-none rounded-none flex items-center justify-between gap-3">
               <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -320,7 +316,7 @@ export const UserPersonasSection = ({ appData, updateAppData, showToast }: any) 
               </div>
             </div>
           ))}
-        </div>
+        </ManagementGrid>
       )}
 
       <PersonaEditorModal 

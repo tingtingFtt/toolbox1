@@ -1,3 +1,5 @@
+import { ManagementSearch, ManagementHeader, ManagementToolbarFrame, ManagementBatchBar, ManagementBatchOverlay } from '../ui/ManagementChrome';
+import { ActionButton } from '../ui/ActionButton';
 import React from 'react';
 import { GroupCategoryBar, CategoryFilterDropdown } from '../ui/GroupCategoryBar';
 import { BatchTagModal } from '../ui/BatchTagModal';
@@ -68,50 +70,32 @@ export const WorldBookSection = (props: any) => {
                 />
 
                 {/* Sub-interface Header Banner with Formats & Action Buttons */}
-                            <div data-design-id="worldbook-header-banner" className="sub-interface-banner py-1 sm:py-1.5 px-0 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-[var(--line,rgba(140,47,45,0.18))]">
-        <div className="flex items-start sm:items-center gap-2 min-w-0 w-full sm:w-auto">
-          <div className="header-icon-box w-7 h-7 sm:w-7 sm:h-7 border border-[var(--accent,#8C2F2D)] bg-[var(--btn-primary-bg,rgba(140,47,45,0.1))] text-[var(--accent,#8C2F2D)] flex items-center justify-center flex-shrink-0 mt-0.5 sm:mt-0">
+                            <ManagementHeader data-design-id="worldbook-header-banner"
+        icon={<>
             <Book className="w-4 h-4" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <h2 className="text-xs sm:text-sm font-bold text-[var(--text,#3E3A39)] leading-tight">小手机世界书与世界观设定</h2>
-              <span className="header-tag text-[9px] px-1.5 py-0.5 border border-[var(--accent,#8C2F2D)] bg-[var(--btn-primary-bg,rgba(140,47,45,0.1))] text-[var(--accent,#8C2F2D)] font-medium leading-none">
+          </>}
+        title={<>小手机世界书与世界观设定</>}
+        badge={<>
                 格式：.json (ST / Lorebook 格式) / .txt / .docx
-              </span>
-            </div>
-            <p className="text-[10px] text-[var(--dim,#7C6865)] mt-0.5 leading-tight -ml-[5px] sm:ml-0">
+              </>}
+        description={<>
               管理小手机全局及角色专属的世界观词条、关键词递归扫描触发与资料条目
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-1.5 w-full sm:w-auto justify-end flex-wrap">
-          <button 
-                      title="导入世界书文档 (.docx, .txt, .json)"
-                     className="h-5.5 px-2 text-[10px] rounded-none border-0 border-b-2 border-b-[var(--accent,#8C2F2D)] bg-[var(--btn-primary-bg,rgba(140,47,45,0.1))] text-[var(--accent,#8C2F2D)] font-semibold transition-all flex items-center justify-center gap-1 cursor-pointer hover:bg-[var(--btn-primary-hover)] active:scale-95 whitespace-nowrap">
+            </>}
+        actions={<>
+          <ActionButton title="导入世界书文档 (.docx, .txt, .json)" action="import" context="toolbar" tone="primary">
                       <Upload className="w-3 h-3" />
                       <span>导入小手机世界书</span>
-                    </button>
-          <button 
-                     className="h-5.5 px-2 text-[10px] rounded-none border-0 border-b border-b-[var(--line-focus,rgba(96,126,149,0.5))] bg-transparent text-[var(--text,#3E3A39)] font-medium transition-all flex items-center justify-center gap-1 cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 whitespace-nowrap">
+                    </ActionButton>
+          <ActionButton  action="create" context="toolbar">
                       <Plus className="w-3 h-3" />
                       <span>新建小手机世界书</span>
-                    </button>
-        </div>
-      </div>
+                    </ActionButton>
+        </>}
+      />
 
                 {/* Toolbar (Search, Categories, Group Actions, Batch Mode) */}
-                <div data-design-id="worldbook-toolbar" className="space-y-2.5 mb-6">
-                  <div className="relative w-full ">
-                    <Search className="w-3 h-3 absolute left-3 top-1/2 -translate-y-1/2 z-10" />
-                    <BaseInput
-                      type="text"
-                      value={worldBookSearchQuery}
-                      onChange={(e: any) => setWorldBookSearchQuery(e.target.value)}
-                      placeholder="搜索世界书..."
-                      className="w-full pl-9 pr-4 py-1.5 text-[10px] rounded-lg"
-                    />
-                  </div>
+                <ManagementToolbarFrame data-design-id="worldbook-toolbar">
+                  <ManagementSearch type="text" value={worldBookSearchQuery} onChange={(e: any) => setWorldBookSearchQuery(e.target.value)} placeholder="搜索世界书..." />
 
                   <div className="flex flex-wrap items-center gap-2 flex-shrink-0">
                     <CategoryFilterDropdown 
@@ -167,91 +151,64 @@ export const WorldBookSection = (props: any) => {
                         totalCount={appData.worldBooks?.length || 0} 
                         allGroupName="全部分组" onDeleteGroup={(g) => { setManagingWorldBookCategory(g); /* trigger delete modal later via App.tsx logic */ }} />
                   </BaseCard>
-                </div>
+                </ManagementToolbarFrame>
 
                 {/* 批量操作悬浮卡片：纯悬浮覆盖层，点击选择直接悬浮浮于页面之上，不向下挤压页面内容 */}
                 {worldBookBatchMode && (
-                  <div className="fixed top-16 left-1/2 -translate-x-1/2 z-40 w-[calc(100%-1.5rem)] sm:w-[calc(100%-2rem)] max-w-4xl animate-in fade-in zoom-in-95 duration-200 pointer-events-auto">
-                    <div data-design-id="worldbook-batch-bar" className="batch-floating-card py-[5px] px-[8px] flex flex-col gap-[4px]">
+                  <ManagementBatchOverlay >
+                    <ManagementBatchBar data-design-id="worldbook-batch-bar">
                       {/* 第一行：左侧文字计数（字体比按键字体小一号，呈灰黑色），右侧叉号退出按钮 */}
                       <div className="flex items-center justify-between w-full">
                         <span className="text-[9px] font-medium text-zinc-700 dark:text-zinc-300 tracking-wide leading-none">
                           已选 {selectedWorldBookIds.length} 项
                         </span>
-                        <span
-                          role="button"
-                          onClick={() => {
+                        <ActionButton onClick={() => {
                             setWorldBookBatchMode(false);
                             setSelectedWorldBookIds([]);
-                          }}
-                          className="p-1 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors cursor-pointer flex items-center justify-center shrink-0"
-                        >
+                          }} aria-label="关闭选择" action="close" context="icon">
                           <X className="w-3.5 h-3.5" />
-                        </span>
+                        </ActionButton>
                       </div>
 
                       {/* 第二行：操作按键，按键之间的左右间距与上下间距压缩紧凑 */}
                       <div className="flex flex-wrap items-center gap-x-[6px] gap-y-[4px] w-full mt-1">
-                        <button
-                          type="button"
-                          onClick={() => {
+                        <ActionButton type="button" onClick={() => {
                             if (selectedWorldBookIds.length === filteredWorldBooks.length && filteredWorldBooks.length > 0) {
                               setSelectedWorldBookIds([]);
                             } else {
                               setSelectedWorldBookIds(filteredWorldBooks.map((p: any) => p.id));
                             }
-                          }}
-                          className="batch-btn"
-                        >
+                          }} action="select" context="batch">
                           {selectedWorldBookIds.length === filteredWorldBooks.length && filteredWorldBooks.length > 0
                             ? '取消'
                             : '全选'}
-                        </button>
+                        </ActionButton>
 
-                        <button
-                          type="button"
-                          onClick={() => {
+                        <ActionButton type="button" onClick={() => {
                             const currentSet = new Set(selectedWorldBookIds);
                             const inversed = filteredWorldBooks
                               .filter((p: any) => !currentSet.has(p.id))
                               .map((p: any) => p.id);
                             setSelectedWorldBookIds(inversed);
-                          }}
-                          className="batch-btn"
-                        >
+                          }} action="invert" context="batch">
                           反选
-                        </button>
+                        </ActionButton>
 
-                        <button
-                          type="button"
-                          disabled={selectedWorldBookIds.length === 0}
-                          onClick={() => setShowWorldBookBatchMoveModal(true)}
-                          className="batch-btn batch-btn-primary"
-                        >
+                        <ActionButton type="button" disabled={selectedWorldBookIds.length === 0} onClick={() => setShowWorldBookBatchMoveModal(true)} action="move" context="batch" tone="primary">
                           移动
-                        </button>
+                        </ActionButton>
 
-                        <button
-                          type="button"
-                          disabled={selectedWorldBookIds.length === 0}
-                          onClick={() => setShowBatchTagModal(true)}
-                          className="batch-btn batch-btn-primary"
-                        >
+                        <ActionButton type="button" disabled={selectedWorldBookIds.length === 0} onClick={() => setShowBatchTagModal(true)} action="tag" context="batch" tone="primary">
                           标签
-                        </button>
+                        </ActionButton>
 
-                        <button
-                          type="button"
-                          disabled={selectedWorldBookIds.length === 0}
-                          onClick={handleBatchDeleteWorldBooks}
-                          className="batch-btn batch-btn-danger"
-                        >
+                        <ActionButton type="button" disabled={selectedWorldBookIds.length === 0} onClick={handleBatchDeleteWorldBooks} action="delete" context="batch" tone="danger">
                           <Trash2 className="w-3 h-3 inline mr-1" />
                           删除
-                        </button>
+                        </ActionButton>
                       </div>
-                    </div>
-                  </div>
+                    </ManagementBatchBar>
+                  </ManagementBatchOverlay>
                 )}
 
                 {/* World Books List (Aligned with Phone Links panel margins and style) */}
@@ -372,5 +329,6 @@ export const WorldBookSection = (props: any) => {
               </div>
     );
 };
+
 
 

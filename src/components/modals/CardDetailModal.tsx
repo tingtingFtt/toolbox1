@@ -1,4 +1,6 @@
 // @ts-nocheck
+import { DetailPanel, DetailBody, DetailFooter, DetailHeader, DetailTabs } from '../ui/DetailChrome';
+import { ActionButton } from '../ui/ActionButton';
 import React, { useState, useRef, useMemo } from 'react';
 import { BaseButton } from '../ui/BaseButton';
 import { BaseInput } from '../ui/BaseInput';
@@ -7,7 +9,6 @@ import { CustomSelect } from '../ui/CustomSelect';
 import { AppData, CardEntry } from '../../types';
 import { getCardDisplayName, getCardCreator, getCardDescription, getCardPersonality, getCardGreeting, getCardAlternateGreetings, getCardWorldBook, getCardRegex, getCardTags, getPureVersionLabel, estimateTokens, normalizeAssociationName } from '../../utils';
 import { TagEditor } from '../ui/TagEditor';
-import { DetailHeader, DetailTabs, detailPanelClass } from '../ui/DetailChrome';
 import { Search, Plus, Trash2, FolderPlus, Edit3, Download, Upload, Home, Maximize2, ChevronDown, ChevronUp, Check, ImageIcon, Tag, Folder, CheckSquare, Square, MoreHorizontal, RefreshCw, FileText, CheckCircle2, Circle, ArrowRightLeft, Move, Copy, Sliders, ZoomIn, FileCode, Save, Dices, QrCode, ArrowUpDown, Sparkles, Link2, HardDrive, Layers, ExternalLink, Palette, AlertCircle, AlertTriangle, Info, Settings, History, RotateCcw, ArrowLeft, Book, BookOpen, Eye, X, Code2, Cpu } from 'lucide-react';
 import { BatchAIRefineModal } from './BatchAIRefineModal';
 
@@ -186,7 +187,7 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
             aria-label="关闭遮罩"
           />
           {/* Requirement 1: Fixed Modal Dimensions so no matter which tab is clicked, modal NEVER changes size */}
-          <div data-design-id="card-detail-modal-panel" className={detailPanelClass} onClick={(e) => e.stopPropagation()}>
+          <DetailPanel data-design-id="card-detail-modal-panel" onClick={(e) => e.stopPropagation()}>
             {/* Modal Header */}
             
   {previewVersionId && (
@@ -226,7 +227,7 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
   />
 
             {/* Modal Body: Scrollable Vertical Area within Fixed Height */}
-            <div key={detailTab} className="flex-1 overflow-y-auto p-6 space-y-6">
+            <DetailBody key={detailTab} className="flex-1 overflow-y-auto p-6 space-y-6">
 
               {/* TAB: 版本历史 (Versions) */}
               {detailTab === 'versions' && (
@@ -2418,13 +2419,11 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
                   </div>
                 );
               })()}
-            </div>
+            </DetailBody>
 
             {/* Modal Bottom Sticky Footer Bar: 顶栏和底栏颜色一致，按键缩小 */}
-            <div data-design-id="card-detail-footer" className="px-3 sm:px-4 py-1.5 border-t border-[var(--line,rgba(96,126,149,0.2))] flex flex-wrap items-center justify-between gap-2 flex-shrink-0 bg-[var(--modal-bar-bg,#DFE5EA)] dark:bg-[var(--modal-bar-bg,#172029)] transition-colors">
-              <BaseButton size="xs"
-                type="button"
-                onClick={() => {
+            <DetailFooter data-design-id="card-detail-footer">
+              <ActionButton type="button" onClick={() => {
                   requestDelete(`确定要删除角色卡 “${getCardDisplayName(displayDetailCard)}” 吗？其专属绑定的世界书、脚本、正则等资源也将同步删除。`, 1, () => {
                     const { updatedAppData, deletedCounts } = deleteCardsAndCascadeAssets([displayDetailCard.id], appData);
                     updateAppData(updatedAppData);
@@ -2436,26 +2435,16 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
                     const extraStr = extraParts.length > 0 ? `，并同步清理了其绑定的 ${extraParts.join('、')}` : '';
                     showToast(`已彻底删除该角色卡${extraStr}`, 'info');
                   });
-                }}
-                className="px-2 py-0.5 !text-[10px] font-semibold rounded-none bg-rose-600 text-white hover:bg-rose-700 flex items-center gap-1 whitespace-nowrap shrink-0 border-0 border-b-2 border-b-rose-800 cursor-pointer transition-all active:scale-95 min-h-[32px] max-h-[36px] !py-1 leading-none"
-              >
+                }} action="delete" context="detail" tone="primary">
                 <Trash2 className="w-2.5 h-2.5" /> 删除角色卡
-              </BaseButton>
+              </ActionButton>
 
               <div className="flex flex-wrap items-center gap-2">
-                <BaseButton size="xs"
-                  type="button"
-                  designId="card-detail-ai-refine-footer-btn"
-                  onClick={() => setShowAIRefineModal(true)}
-                  className="px-2.5 py-0.5 !text-[10px] font-bold rounded-none bg-[var(--btn-primary-bg,rgba(96,126,149,0.18))] text-[var(--accent,#607E95)] hover:bg-[var(--accent,#607E95)] hover:text-white flex items-center gap-1 whitespace-nowrap shrink-0 border border-[var(--line-focus,rgba(96,126,149,0.4))] cursor-pointer transition-all active:scale-95 min-h-[32px] max-h-[36px] !py-1 leading-none"
-                  title="使用 AI 精修当前角色卡规范与格式"
-                >
+                <ActionButton type="button" designId="card-detail-ai-refine-footer-btn" onClick={() => setShowAIRefineModal(true)} title="使用 AI 精修当前角色卡规范与格式" action="custom" context="detail">
                   <Sparkles className="w-2.5 h-2.5" /> AI精修
-                </BaseButton>
+                </ActionButton>
 
-                <BaseButton size="xs"
-                  type="button"
-                  onClick={() => {
+                <ActionButton type="button" onClick={() => {
                     const authorInputEl = document.getElementById('authorInputVal') as HTMLInputElement;
                     const newAuthor = authorInputEl?.value.trim() || '';
                     const updatedCards = appData.cards.map((c) =>
@@ -2472,14 +2461,12 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
                     updateAppData({ ...appData, cards: updatedCards });
                     originalDetailCardRef.current = updatedCards.find((c) => c.id === displayDetailCard.id) || null;
                     showToast('角色卡详情与修改已成功保存！', 'success');
-                  }}
-                  className="px-2.5 py-0.5 !text-[10px] font-bold rounded-none bg-[var(--accent,#607E95)] text-white hover:brightness-105 flex items-center gap-1 whitespace-nowrap shrink-0 border-0 border-b-2 border-b-[var(--accent-hover,#486175)] cursor-pointer transition-all active:scale-95 min-h-[32px] max-h-[36px] !py-1 leading-none"
-                >
+                  }} action="save" context="detail" tone="primary">
                   <Save className="w-2.5 h-2.5" /> 保存修改
-                </BaseButton>
+                </ActionButton>
               </div>
-            </div>
-          </div>
+            </DetailFooter>
+          </DetailPanel>
         </div>
       )}
 

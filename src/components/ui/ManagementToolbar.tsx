@@ -6,6 +6,7 @@ import { CustomSelect } from './CustomSelect';
 import { BaseButton } from './BaseButton';
 import { BaseInput } from './BaseInput';
 import { BaseCard } from './BaseCard';
+import { ManagementToolbarFrame, ManagementSearch } from './ManagementChrome';
 import { ArrowUpDown, Search, CheckSquare } from 'lucide-react';
 
 interface ManagementToolbarProps {
@@ -89,18 +90,15 @@ export const ManagementToolbar: React.FC<ManagementToolbarProps> = ({
   const [showViewModeDropdown, setShowViewModeDropdown] = React.useState(false);
 
   return (
-    <div className="space-y-3 mb-6 w-full">
+    <ManagementToolbarFrame>
       {/* Block 2: Search Bar */}
-      <div className="relative w-full">
-        <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-        <BaseInput
+        <ManagementSearch
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder={searchPlaceholder}
           className="w-full pl-9 pr-4 py-1.5 text-[10px] bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700/60 rounded-lg focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-500"
         />
-      </div>
       
       {/* Block 3: Filters & Actions */}
       <div className="flex flex-wrap items-center gap-2">
@@ -168,6 +166,7 @@ export const ManagementToolbar: React.FC<ManagementToolbarProps> = ({
           />
         </div>
       )}
-    </div>
+    </ManagementToolbarFrame>
   );
 };
+

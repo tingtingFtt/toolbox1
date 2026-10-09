@@ -1,3 +1,5 @@
+import { ManagementSearch, ManagementHeader, ManagementToolbarFrame, ManagementBatchBar, ManagementBatchOverlay } from '../ui/ManagementChrome';
+import { ActionButton } from '../ui/ActionButton';
 import React from 'react';
 import { GroupCategoryBar, CategoryFilterDropdown } from '../ui/GroupCategoryBar';
 import { BatchTagModal } from '../ui/BatchTagModal';
@@ -63,59 +65,34 @@ export const StickersSection = (props: any) => {
 
       <div className="space-y-3 md:space-y-4 mb-6">
                 {/* Sub-interface Header Banner with Formats & Action Buttons */}
-                            <div data-design-id="stickers-header-banner" className="sub-interface-banner py-1 sm:py-1.5 px-0 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-[var(--line,rgba(140,47,45,0.18))]">
-        <div className="flex items-start sm:items-center gap-2 min-w-0 w-full sm:w-auto">
-          <div className="header-icon-box w-7 h-7 sm:w-7 sm:h-7 border border-[var(--accent,#8C2F2D)] bg-[var(--btn-primary-bg,rgba(140,47,45,0.1))] text-[var(--accent,#8C2F2D)] flex items-center justify-center flex-shrink-0 mt-0.5 sm:mt-0">
+                            <ManagementHeader data-design-id="stickers-header-banner"
+        icon={<>
             <ImageIcon className="w-4 h-4" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <h2 className="text-xs sm:text-sm font-bold text-[var(--text,#3E3A39)] leading-tight">表情包仓库</h2>
-              <span className="header-tag text-[9px] px-1.5 py-0.5 border border-[var(--accent,#8C2F2D)] bg-[var(--btn-primary-bg,rgba(140,47,45,0.1))] text-[var(--accent,#8C2F2D)] font-medium leading-none">
+          </>}
+        title={<>表情包仓库</>}
+        badge={<>
                 格式：.png / .gif / .webp / .zip / .json / .docx
-              </span>
-            </div>
-            <p className="text-[10px] text-[var(--dim,#7C6865)] mt-0.5 leading-tight -ml-[5px] sm:ml-0">
+              </>}
+        description={<>
               导入和管理聊天表情贴图、角色专属大头贴、动态 GIF 与批量 ZIP 表情包
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-1.5 w-full sm:w-auto justify-end flex-wrap">
-          <button
-                      type="button"
-                      onClick={triggerUpload}
-                      className="h-5.5 px-2 text-[10px] rounded-none border-0 border-b-2 border-b-[var(--accent,#8C2F2D)] bg-[var(--btn-primary-bg,rgba(140,47,45,0.1))] text-[var(--accent,#8C2F2D)] font-semibold transition-all flex items-center justify-center gap-1 cursor-pointer hover:bg-[var(--btn-primary-hover)] active:scale-95 whitespace-nowrap"
-                      title="导入表情包或图片 (.png, .gif, .webp, .zip, .json, .docx)"
-                    >
+            </>}
+        actions={<>
+          <ActionButton type="button" onClick={triggerUpload} title="导入表情包或图片 (.png, .gif, .webp, .zip, .json, .docx)" action="import" context="toolbar" tone="primary">
                       <Upload className="w-3 h-3" />
                       <span>导入表情包</span>
-                    </button>
-          <button
-                      type="button"
-                      onClick={handleCreateNewStickerPack}
-                      className="h-5.5 px-2 text-[10px] rounded-none border-0 border-b border-b-[var(--line-focus,rgba(96,126,149,0.5))] bg-transparent text-[var(--text,#3E3A39)] font-medium transition-all flex items-center justify-center gap-1 cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 whitespace-nowrap"
-                    >
+                    </ActionButton>
+          <ActionButton type="button" onClick={handleCreateNewStickerPack} action="create" context="toolbar">
                       <Plus className="w-3 h-3" />
                       <span>新建表情包</span>
-                    </button>
-        </div>
-      </div>
+                    </ActionButton>
+        </>}
+      />
 
                 
                 {/* Toolbar (Search, Categories, Group Actions, Batch Mode) */}
-                <div data-design-id="stickers-toolbar" className="space-y-2.5 mb-6">
+                <ManagementToolbarFrame data-design-id="stickers-toolbar">
                   {/* Search Input */}
-                  <div className="relative w-full">
-                    <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 z-10" />
-                    <BaseInput
-                      designId="stickers-search-input"
-                      type="text"
-                      value={stickerSearchQuery}
-                      onChange={(e: any) => setStickerSearchQuery(e.target.value)}
-                      placeholder="搜索表情包名称、作者或内容..."
-                      className="w-full pl-9 pr-4 py-1.5 text-[10px] rounded-lg"
-                    />
-                  </div>
+                  <ManagementSearch designId="stickers-search-input" type="text" value={stickerSearchQuery} onChange={(e: any) => setStickerSearchQuery(e.target.value)} placeholder="搜索表情包名称、作者或内容..." />
 
                   <div className="flex flex-wrap items-center gap-2 flex-shrink-0">
                     <CategoryFilterDropdown 
@@ -171,91 +148,64 @@ export const StickersSection = (props: any) => {
                         totalCount={appData.stickerPacks?.length || 0} 
                         allGroupName="全部分组" onDeleteGroup={(g) => { setManagingStickerCategory(g); /* trigger delete modal later via App.tsx logic */ }} />
                   </BaseCard>
-                </div>
+                </ManagementToolbarFrame>
 
                 {/* 批量操作悬浮卡片：纯悬浮覆盖层，点击选择直接悬浮浮于页面之上，不向下挤压页面内容 */}
                 {stickerBatchMode && (
-                  <div className="fixed top-16 left-1/2 -translate-x-1/2 z-40 w-[calc(100%-1.5rem)] sm:w-[calc(100%-2rem)] max-w-4xl animate-in fade-in zoom-in-95 duration-200 pointer-events-auto">
-                    <div data-design-id="stickers-batch-bar" className="batch-floating-card py-[5px] px-[8px] flex flex-col gap-[4px]">
+                  <ManagementBatchOverlay >
+                    <ManagementBatchBar data-design-id="stickers-batch-bar">
                       {/* 第一行：左侧文字计数（字体比按键字体小一号，呈灰黑色），右侧叉号退出按钮 */}
                       <div className="flex items-center justify-between w-full">
                         <span className="text-[9px] font-medium text-zinc-700 dark:text-zinc-300 tracking-wide leading-none">
                           已选 {selectedStickerPackIds.length} 项
                         </span>
-                        <span
-                          role="button"
-                          onClick={() => {
+                        <ActionButton onClick={() => {
                             setStickerBatchMode(false);
                             setSelectedStickerPackIds([]);
-                          }}
-                          className="p-1 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors cursor-pointer flex items-center justify-center shrink-0"
-                        >
+                          }} aria-label="关闭选择" action="close" context="icon">
                           <X className="w-3.5 h-3.5" />
-                        </span>
+                        </ActionButton>
                       </div>
 
                       {/* 第二行：操作按键，按键之间的左右间距与上下间距压缩紧凑 */}
                       <div className="flex flex-wrap items-center gap-x-[6px] gap-y-[4px] w-full mt-1">
-                        <button
-                          type="button"
-                          onClick={() => {
+                        <ActionButton type="button" onClick={() => {
                             if (selectedStickerPackIds.length === filteredStickerPacks.length && filteredStickerPacks.length > 0) {
                               setSelectedStickerPackIds([]);
                             } else {
                               setSelectedStickerPackIds(filteredStickerPacks.map((p: any) => p.id));
                             }
-                          }}
-                          className="batch-btn"
-                        >
+                          }} action="select" context="batch">
                           {selectedStickerPackIds.length === filteredStickerPacks.length && filteredStickerPacks.length > 0
                             ? '取消'
                             : '全选'}
-                        </button>
+                        </ActionButton>
 
-                        <button
-                          type="button"
-                          onClick={() => {
+                        <ActionButton type="button" onClick={() => {
                             const currentSet = new Set(selectedStickerPackIds);
                             const inversed = filteredStickerPacks
                               .filter((p: any) => !currentSet.has(p.id))
                               .map((p: any) => p.id);
                             setSelectedStickerPackIds(inversed);
-                          }}
-                          className="batch-btn"
-                        >
+                          }} action="invert" context="batch">
                           反选
-                        </button>
+                        </ActionButton>
 
-                        <button
-                          type="button"
-                          disabled={selectedStickerPackIds.length === 0}
-                          onClick={() => setShowStickerBatchMoveModal(true)}
-                          className="batch-btn batch-btn-primary"
-                        >
+                        <ActionButton type="button" disabled={selectedStickerPackIds.length === 0} onClick={() => setShowStickerBatchMoveModal(true)} action="move" context="batch" tone="primary">
                           移动
-                        </button>
+                        </ActionButton>
 
-                        <button
-                          type="button"
-                          disabled={selectedStickerPackIds.length === 0}
-                          onClick={() => setShowBatchTagModal(true)}
-                          className="batch-btn batch-btn-primary"
-                        >
+                        <ActionButton type="button" disabled={selectedStickerPackIds.length === 0} onClick={() => setShowBatchTagModal(true)} action="tag" context="batch" tone="primary">
                           标签
-                        </button>
+                        </ActionButton>
 
-                        <button
-                          type="button"
-                          disabled={selectedStickerPackIds.length === 0}
-                          onClick={handleBatchDeleteStickerPacks}
-                          className="batch-btn batch-btn-danger"
-                        >
+                        <ActionButton type="button" disabled={selectedStickerPackIds.length === 0} onClick={handleBatchDeleteStickerPacks} action="delete" context="batch" tone="danger">
                           <Trash2 className="w-3 h-3 inline mr-1" />
                           删除
-                        </button>
+                        </ActionButton>
                       </div>
-                    </div>
-                  </div>
+                    </ManagementBatchBar>
+                  </ManagementBatchOverlay>
                 )}
 
                 {/* Gallery List of Stickers */}
@@ -354,5 +304,6 @@ export const StickersSection = (props: any) => {
             </div>
           );
         };
+
 
 

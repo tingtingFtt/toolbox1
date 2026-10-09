@@ -1,3 +1,5 @@
+import { DetailPanel, DetailHeader, DetailTabs, DetailBody, DetailFooter } from '../ui/DetailChrome';
+import { ActionButton } from '../ui/ActionButton';
 import React, { useRef, useState, useMemo } from 'react';
 import { BaseButton } from '../ui/BaseButton';
 import { BaseInput } from '../ui/BaseInput';
@@ -745,107 +747,19 @@ export const NormalCardDetailModal: React.FC<NormalCardDetailModalProps> = ({
   return (
     <>
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-0 sm:p-4 overflow-y-auto">
-        <div
-          data-design-id="normal-card-detail-modal"
-          className={`relative w-full h-full sm:h-auto bg-white dark:bg-zinc-900 border-0 sm:border border-zinc-200 dark:border-zinc-800 rounded-none sm:rounded-2xl shadow-2xl flex flex-col transition-all duration-200 overflow-hidden ${
-            isExpanded ? 'max-w-7xl h-full sm:h-[95vh]' : 'max-w-5xl h-full sm:max-h-[92vh]'
-          }`}
-        >
+        <DetailPanel data-design-id="normal-card-detail-modal" className={isExpanded ? "max-w-7xl" : "max-w-5xl"}>
           {/* Header */}
-          <div className="p-2 sm:p-3 border-0 flex items-center justify-between gap-2 bg-zinc-50/80 dark:bg-zinc-950/40 flex-shrink-0">
-            <div className="flex items-center gap-2.5 min-w-0">
-              {card.coverImage ? (
-                <img
-                  src={card.coverImage}
-                  alt={card.name}
-                  className="w-8 h-8 rounded-lg object-cover border border-zinc-200 dark:border-zinc-700 flex-shrink-0 shadow-xs"
-                />
-              ) : (
-                <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 flex items-center justify-center text-blue-600 dark:text-blue-400 flex-shrink-0">
-                  <User className="w-4 h-4" />
-                </div>
-              )}
-              <div className="min-w-0">
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <h2 className="!text-[18px] font-bold text-zinc-900 dark:text-zinc-100 truncate">
-                    {card.charName || card.name || card.fileName || '角色卡详情'}
-                  </h2>
-                  <span className={`px-1.5 py-0.5 rounded-md text-[9px] font-bold whitespace-nowrap ${
-                    card.isNpc || card.cardRole === 'npc'
-                      ? 'bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300 border border-purple-200 dark:border-purple-800'
-                      : 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300 border border-blue-200 dark:border-blue-800'
-                  }`}>
-                    {card.isNpc || card.cardRole === 'npc' ? 'NPC 配角' : '主人设'}
-                  </span>
-                  {card.activeVersionLabel && (
-                    <span className="px-1.5 py-0.5 rounded text-[9px] bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 font-mono">
-                      {card.activeVersionLabel}
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-center gap-1.5 text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5">
-                  <span className="truncate">文件: {card.fileName || '未命名'}</span>
-                  <span>•</span>
-                  <span>约 {estimatedTotalTokens} Tokens</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Quick Actions */}
-            <div className="flex items-center gap-1.5 flex-shrink-0">
-              <BaseButton size="xs"
-                designId="ai-refine-trigger-btn"
-                type="button"
-                variant="primary"
-                
-                onClick={() => setShowAIRefineModal(true)}
-                className="h-6 sm:h-7 px-1.5 sm:px-2 text-[8.5px] sm:text-[11px] bg-purple-600 hover:bg-purple-700 text-white border-none shadow-xs flex items-center gap-1 font-bold"
-                title="使用 AI 提取人设属性、性格与人物关系并生成新版本"
-              >
+          <DetailHeader designPrefix="normal-card-detail" title={card.charName || card.name || card.fileName || '角色卡详情'} version={card.activeVersionLabel} badge={card.isNpc || card.cardRole === 'npc' ? 'NPC 配角' : '主人设'} onClose={() => setEditingNormalCard(null)} actions={<><ActionButton designId="ai-refine-trigger-btn" type="button" onClick={() => setShowAIRefineModal(true)} title="使用 AI 提取人设属性、性格与人物关系并生成新版本" action="custom" context="toolbar">
                 <Sparkles className="w-3 h-3 animate-pulse text-purple-200" />
                 <span className="hidden sm:inline">AI 精修</span>
                 <span className="sm:hidden">精修</span>
-              </BaseButton>
-
-              <span role="button" onClick={() => setEditingNormalCard(null)} className="p-1 sm:p-1.5 text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors cursor-pointer shrink-0 flex items-center justify-center" title="关闭"><X className="w-4 h-4" /></span>
-            </div>
-          </div>
+              </ActionButton></>} tags={<div className="flex items-center gap-2"><span className="truncate">文件: {card.fileName || '未命名'}</span><span className="shrink-0">约 {estimatedTotalTokens} Tokens</span></div>} />
 
           {/* 9-Tab Navigation Bar */}
-          <div className="px-2 sm:px-3 pt-1 sm:pt-1.5 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-950/20 overflow-x-auto no-scrollbar [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] flex-shrink-0">
-            <div className="flex items-center gap-1 min-w-max">
-              {TAB_ITEMS.map((tab) => {
-                const isActive = tavernTab === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    type="button"
-                    onClick={() => setTavernTab(tab.id)}
-                    className={`!py-0 h-[28px] px-3 !text-[12px] !leading-none flex items-center gap-1.5 justify-center transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
-                      isActive
-                        ? 'font-bold text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-900/30'
-                        : 'font-medium border-b-transparent text-zinc-500 hover:text-blue-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:text-blue-400 dark:hover:bg-zinc-800'
-                    }`}
-                  >
-                    {tab.icon}
-                    <span>{tab.label}</span>
-                    {tab.badge !== undefined && tab.badge !== 0 && (
-                      <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-mono leading-none ${
-                        isActive
-                          ? 'bg-blue-700 text-white'
-                          : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
-                      }`}>
-                        {tab.badge}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+          <DetailTabs designPrefix="normal-card-detail" label="角色卡详情导航" tabs={TAB_ITEMS.map(tab => ({id: tab.id, name: <>{tab.icon}<span>{tab.label}</span>{!!tab.badge && <span className="text-[9px]">({tab.badge})</span>}</>}))} activeTab={tavernTab} onChange={setTavernTab} />
 
           {/* Modal Main Body */}
-          <div className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-6">
+          <DetailBody className="p-4 sm:p-6 space-y-6">
             
             {/* ══════ 1. 角色卡详情 (放置图片卡片属性) ══════ */}
             {tavernTab === 'details' && (
@@ -2029,37 +1943,28 @@ export const NormalCardDetailModal: React.FC<NormalCardDetailModalProps> = ({
               </div>
             )}
 
-          </div>
+          </DetailBody>
 
           {/* Modal Footer */}
-          <div className="p-2 sm:p-3 border-t border-zinc-200 dark:border-zinc-800 flex items-center justify-between gap-3 bg-zinc-50/80 dark:bg-zinc-950/40 flex-shrink-0">
+          <DetailFooter data-design-id="normal-card-detail-footer">
             <div className="flex items-center gap-2">
-              <button
+              <ActionButton action="delete" context="detail"
                 type="button"
                 onClick={handleDelete}
-                className="px-2 sm:px-3 py-1 sm:py-1.5 !text-[10px] text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-md flex items-center gap-1 sm:gap-1.5 border border-transparent hover:border-rose-200"
               >
                 <Trash2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                 <span>删除角色卡</span>
-              </button>
+              </ActionButton>
             </div>
 
             <div className="flex items-center gap-1.5 sm:gap-2">
               {/* 3-Format Export Dropdown */}
               <div className="relative">
-                <BaseButton size="xs"
-                  designId="export-normal-card-btn"
-                  type="button"
-                  variant="outline"
-                  
-                  onClick={() => setShowExportDropdown((p) => !p)}
-                  className="!text-[10px] h-7 sm:h-8 px-2 sm:px-3 font-medium flex items-center gap-1"
-                  title="导出角色卡（支持 JSON、PNG、DOC/DOCX/TXT 三种格式）"
-                >
+                <ActionButton designId="export-normal-card-btn" type="button" onClick={() => setShowExportDropdown((p) => !p)} title="导出角色卡（支持 JSON、PNG、DOC/DOCX/TXT 三种格式）" action="export" context="detail">
                   <Download className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                   <span>导出</span>
                   <ChevronDown className="w-2.5 h-2.5 opacity-60" />
-                </BaseButton>
+                </ActionButton>
 
                 {showExportDropdown && (
                   <>
@@ -2117,19 +2022,12 @@ export const NormalCardDetailModal: React.FC<NormalCardDetailModalProps> = ({
                 )}
               </div>
 
-              <BaseButton size="xs"
-                designId="save-normal-card-btn"
-                type="button"
-                variant="primary"
-                
-                onClick={handleSave}
-                className="h-7 sm:h-8 px-3 sm:px-4 !text-[10px] bg-blue-600 hover:bg-blue-700 text-white border-none shadow-xs font-bold"
-              >
+              <ActionButton designId="save-normal-card-btn" type="button" onClick={handleSave} action="save" context="detail">
                 保存修改
-              </BaseButton>
+              </ActionButton>
             </div>
-          </div>
-        </div>
+          </DetailFooter>
+        </DetailPanel>
       </div>
 
       {/* AI Refine Modal */}
@@ -2165,3 +2063,4 @@ export const NormalCardDetailModal: React.FC<NormalCardDetailModalProps> = ({
     </>
   );
 };
+

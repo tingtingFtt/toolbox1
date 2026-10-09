@@ -1,4 +1,6 @@
 // @ts-nocheck
+import { DetailTabBar, DetailTabButton, DetailPanel, DetailHeader, DetailBody, DetailFooter } from '../ui/DetailChrome';
+import { ActionButton } from '../ui/ActionButton';
 
 import React from 'react';
 import { NewGroupModal, BottomSheetModal, UnifiedModal, DeleteConfirmationModal, ChoiceModal, ConfirmModal } from "../ui/UnifiedModal";
@@ -968,7 +970,7 @@ export const GlobalModals = (props: GlobalModalsProps) => {
             className="absolute inset-0 bg-transparent transition-opacity"
             aria-label="关闭遮罩"
           />
-          <div className="file-detail-modal modal-panel modal-card relative z-10 w-full h-full bg-[#fafafa] dark:bg-[#09090b] flex flex-col overflow-hidden transition-none rounded-none border-0 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+          <DetailPanel onClick={(e) => e.stopPropagation()}>
             {/* Hidden Input for Cover Image */}
             <input
               type="file"
@@ -991,46 +993,12 @@ export const GlobalModals = (props: GlobalModalsProps) => {
             />
 
             {/* Modal Top Bar (Clean 2-Row Compact Layout, No Overlap) */}
-            <div className="px-3 sm:px-6 py-2 border-b border-[var(--line,#e6e3dd)] dark:border-zinc-800 flex flex-col gap-1.5 flex-shrink-0 bg-zinc-100/80 dark:bg-zinc-900/80">
-              {/* Row 1: Title, Version, Category, and Action Buttons + Close X */}
-              <div className="flex items-center justify-between gap-2 min-w-0">
-                <div className="flex items-center gap-2 min-w-0 flex-1">
-                  <Palette className="w-4 h-4 text-purple-500 shrink-0" />
-                  <h3 className="text-xs sm:text-sm font-bold text-zinc-900 dark:text-zinc-100 truncate">
-                    {editingTheme.name || 'ST主题详情'}
-                  </h3>
-                  <span className="px-1.5 py-0.5 text-[9px] font-bold rounded-full bg-purple-100 dark:bg-purple-900/60 text-purple-800 dark:text-purple-200 border border-purple-300 dark:border-purple-700 whitespace-nowrap shrink-0">
+            <DetailHeader designPrefix="globalmodals-detail" title={editingTheme.name || 'ST主题详情'} version={<>
                     {editingTheme.fileType?.toUpperCase() || 'ST主题'}
-                  </span>
-                  <span className="px-1.5 py-0.5 text-[9px] font-medium rounded-full bg-zinc-200/70 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 whitespace-nowrap shrink-0">
+                  </>} badge={<>
                     {editingTheme.category || '默认'}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-                  <BaseButton
-                    onClick={() => {
-                       const dataStr = JSON.stringify(editingTheme.jsonData || editingTheme, null, 2);
-                       const blob = new Blob([dataStr], { type: 'application/json;charset=utf-8' });
-                       const downloadAnchorNode = document.createElement('a');
-                       downloadAnchorNode.setAttribute("href", URL.createObjectURL(blob));
-                       downloadAnchorNode.setAttribute("download", `${editingTheme.name || 'theme'}.json`);
-                       document.body.appendChild(downloadAnchorNode);
-                       downloadAnchorNode.click();
-                       downloadAnchorNode.remove();
-                       showToast('已导出 JSON', 'success');
-                    }}
-                    className="flex items-center gap-1 px-2 py-1 text-[10px] font-medium rounded-lg border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-200/60 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 whitespace-nowrap shrink-0 transition-colors"
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                    <span className="hidden xs:inline">导出 JSON</span>
-                  </BaseButton>
-                  <span role="button" onClick={() => setEditingTheme(null)} className="p-1 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors cursor-pointer flex items-center justify-center shrink-0"><X className="w-4 h-4" /></span>
-                </div>
-              </div>
-
-              {/* Row 2: Metadata stats + Tag Editor */}
-              <div className="flex items-center justify-between gap-2 min-w-0 text-[10px] text-zinc-500">
+                  </>}
+              tags={<><div className="flex items-center justify-between gap-2 min-w-0 text-[10px] text-zinc-500">
                 <div className="flex items-center gap-2 min-w-0 flex-1 overflow-hidden py-0.5">
                   {editingTheme.author && (
                     <span className="whitespace-nowrap shrink-0 text-zinc-500 dark:text-zinc-400">
@@ -1055,39 +1023,36 @@ export const GlobalModals = (props: GlobalModalsProps) => {
                     }}
                   />
                 </div>
-              </div>
-            </div>
+              </div></>} actions={<>
+                  <ActionButton onClick={() => {
+                       const dataStr = JSON.stringify(editingTheme.jsonData || editingTheme, null, 2);
+                       const blob = new Blob([dataStr], { type: 'application/json;charset=utf-8' });
+                       const downloadAnchorNode = document.createElement('a');
+                       downloadAnchorNode.setAttribute("href", URL.createObjectURL(blob));
+                       downloadAnchorNode.setAttribute("download", `${editingTheme.name || 'theme'}.json`);
+                       document.body.appendChild(downloadAnchorNode);
+                       downloadAnchorNode.click();
+                       downloadAnchorNode.remove();
+                       showToast('已导出 JSON', 'success');
+                    }} aria-label="导出 JSON" action="export" context="icon">
+                    <Download className="w-3.5 h-3.5" />
+                    <span className="hidden xs:inline">导出 JSON</span>
+                  </ActionButton>
+
+                </>} onClose={() => setEditingTheme(null)} />
 
             {/* Modal Navigation Tabs */}
-            <div className="tab-nav-bar flex flex-wrap items-center justify-between border-b border-zinc-200 dark:border-zinc-800 px-4 flex-shrink-0 gap-2 overflow-x-auto scrollbar-none bg-white dark:bg-zinc-900">
-              <div className="flex items-center gap-1 overflow-x-auto scrollbar-none">
-                <BaseButton
-                  type="button"
-                  onClick={() => setThemeDetailTab('info')}
-                  className={`py-2.5 px-3 text-[10px] font-semibold border-b transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
-                    themeDetailTab === 'info'
-                      ? 'border-zinc-900 text-zinc-900 dark:border-zinc-100 dark:text-zinc-100'
-                      : 'border-transparent text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
-                  }`}
-                >
+            <DetailTabBar label="详情导航">
+                <DetailTabButton onClick={() => setThemeDetailTab('info')} active={themeDetailTab === 'info'}>
                   基本属性
-                </BaseButton>
-                <BaseButton
-                  type="button"
-                  onClick={() => setThemeDetailTab('code')}
-                  className={`py-2.5 px-3 text-[10px] font-semibold border-b transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
-                    themeDetailTab === 'code'
-                      ? 'border-zinc-900 text-zinc-900 dark:border-zinc-100 dark:text-zinc-100'
-                      : 'border-transparent text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
-                  }`}
-                >
+                </DetailTabButton>
+                <DetailTabButton onClick={() => setThemeDetailTab('code')} active={themeDetailTab === 'code'}>
                   文档内容
-                </BaseButton>
-              </div>
-            </div>
+                </DetailTabButton>
+              </DetailTabBar>
 
             {/* Modal Body */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+            <DetailBody className="flex-1 overflow-y-auto p-6 space-y-6">
               {/* TAB 1: 美化预览(封面图) 与 基础属性 */}
               {themeDetailTab === 'info' && (
                 <div className="bg-zinc-50/50 dark:bg-zinc-800/20 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-4">
@@ -1235,35 +1200,23 @@ export const GlobalModals = (props: GlobalModalsProps) => {
                   </div>
                 </div>
               )}
-            </div>
+            </DetailBody>
 
-            <div className="px-6 py-4 border-t border-zinc-200 dark:border-zinc-800 flex items-center justify-between flex-shrink-0 bg-zinc-100 dark:bg-zinc-900">
-              <BaseButton
-                type="button"
-                onClick={() => handleDeleteSingleTheme(editingTheme.id)}
-                className="px-4 py-2 text-[10px] font-bold rounded-xl bg-rose-600 text-white hover:bg-rose-700 transition-colors flex items-center gap-1.5"
-              >
+            <DetailFooter >
+              <ActionButton type="button" onClick={() => handleDeleteSingleTheme(editingTheme.id)} action="delete" context="detail">
                 <Trash2 className="w-3.5 h-3.5" /> 删除主题
-              </BaseButton>
+              </ActionButton>
 
               <div className="flex items-center gap-3">
-                <BaseButton
-                  type="button"
-                  onClick={() => setEditingTheme(null)}
-                  className="px-4 py-2 text-[10px] font-medium rounded-xl border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-                >
+                <ActionButton type="button" onClick={() => setEditingTheme(null)} action="cancel" context="detail">
                   取消
-                </BaseButton>
-                <BaseButton
-                  type="button"
-                  onClick={handleSaveEditedTheme}
-                  className="px-4 py-2 text-[10px] font-bold rounded-xl bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors"
-                >
+                </ActionButton>
+                <ActionButton type="button" onClick={handleSaveEditedTheme} action="save" context="detail">
                   保存修改
-                </BaseButton>
+                </ActionButton>
               </div>
-            </div>
-          </div>
+            </DetailFooter>
+          </DetailPanel>
         </div>
       )}
 
@@ -1416,3 +1369,4 @@ export const GlobalModals = (props: GlobalModalsProps) => {
     </>
   );
 };
+
