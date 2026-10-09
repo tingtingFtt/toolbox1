@@ -2831,15 +2831,133 @@ export default function App() {
     }
   };
 
+
+  const getPresetDisplayName = (json: any, fileName: string) => {
+    return String(
+      json?.name ||
+      json?.title ||
+      json?.preset_name ||
+      json?.metadata?.name ||
+      fileName.replace(/\.[^/.]+$/, '') ||
+      '未命名预设'
+    ).trim();
+  };
+
+  const getPresetRegexScriptsForImport = (json: any) => {
+    const arrays = [
+      json?.extensions?.regex_scripts,
+      json?.regex_scripts,
+      json?.regexes,
+      json?.user_regexes,
+      json?.data?.extensions?.regex_scripts,
+    ].filter(Array.isArray);
+    return arrays.flat();
+  };
+
+  const getPresetEmbeddedScriptsForImport = (json: any) => {
+    const candidates = [
+      json?.extensions?.tavern_helper?.scripts,
+      json?.extensions?.scripts,
+      json?.scripts,
+      json?.data?.extensions?.tavern_helper?.scripts,
+    ];
+    const result: any[] = [];
+    candidates.forEach((value) => {
+      if (Array.isArray(value)) {
+        result.push(...value);
+      } else if (value && typeof value === 'object') {
+        Object.entries(value).forEach(([key, val]) => {
+          result.push({ id: key, name: key, ...(typeof val === 'object' && val !== null ? val : { content: String(val ?? '') }) });
+        });
+      }
+    });
+    return result;
+  };
+
+  const buildPresetLinkedRegexResources = (preset: PresetEntry, json: any): STRegexEntry[] => {
+    const rules = getPresetRegexScriptsForImport(json);
+    return rules.map((rx: any, index: number) => {
+      const scriptName = String(rx?.scriptName || rx?.script_name || rx?.name || rx?.title || `${preset.name || '预设'} · 正则 #${index + 1}`).trim();
+      const findRegex = String(rx?.findRegex ?? rx?.find_regex ?? rx?.pattern ?? rx?.regex ?? '');
+      const replaceString = String(rx?.replaceString ?? rx?.replace_string ?? rx?.replacement ?? rx?.replace ?? '');
+      return {
+        id: `preset_rx_${preset.id}_${rx?.id || index}`,
+        scriptName,
+        fileName: preset.fileName,
+        author: preset.author,
+        category: '预设内嵌',
+        customTags: Array.from(new Set(['预设内嵌', '来源:预设', `预设:${preset.name}`])),
+        sourcePresetId: preset.id,
+        sourcePresetName: preset.name,
+        sourceScope: 'preset',
+        description: `来自 ST 预设「${preset.name}」的内嵌正则`,
+        findRegex,
+        replaceString,
+        disabled: Boolean(rx?.disabled),
+        rules: [{ ...rx, scriptName, findRegex, replaceString }],
+        jsonData: rx,
+        createdAt: preset.createdAt || Date.now(),
+        updatedAt: Date.now(),
+      };
+    });
+  };
+
+  const buildPresetLinkedScriptResources = (preset: PresetEntry, json: any): ScriptEntry[] => {
+    const scripts = getPresetEmbeddedScriptsForImport(json);
+    return scripts.map((script: any, index: number) => {
+      const name = String(script?.name || script?.title || script?.id || script?.uid || `${preset.name || '预设'} · 脚本 #${index + 1}`).trim();
+      const rawContent = typeof script?.content === 'string'
+        ? script.content
+        : typeof script?.script === 'string'
+          ? script.script
+          : JSON.stringify(script ?? {}, null, 2);
+      return {
+        id: `preset_script_${preset.id}_${script?.id || script?.uid || index}`,
+        name,
+        fileName: preset.fileName,
+        author: preset.author,
+        category: '预设内嵌',
+        customTags: Array.from(new Set(['预设内嵌', '来源:预设', `预设:${preset.name}`])),
+        sourcePresetId: preset.id,
+        sourcePresetName: preset.name,
+        sourceScope: 'preset',
+        description: `来自 ST 预设「${preset.name}」的内嵌脚本`,
+        jsonData: script,
+        rawContent,
+        entries: Array.isArray(script?.entries) ? script.entries : undefined,
+        createdAt: preset.createdAt || Date.now(),
+        updatedAt: Date.now(),
+      };
+    });
+  };
+
+  const upsertPresetLinkedResources = (
+    regexList: STRegexEntry[],
+    scriptList: ScriptEntry[],
+    preset: PresetEntry,
+    json: any
+  ) => {
+    const withoutPresetRegex = regexList.filter((item: any) => item.sourcePresetId !== preset.id);
+    const withoutPresetScripts = scriptList.filter((item: any) => item.sourcePresetId !== preset.id);
+    return {
+      regexes: [...withoutPresetRegex, ...buildPresetLinkedRegexResources(preset, json)],
+      scripts: [...withoutPresetScripts, ...buildPresetLinkedScriptResources(preset, json)],
+    };
+  };
+
   const handlePresetFileUpload = async (files: FileList) => {
     const fileArray = Array.from(files);
     if (fileArray.length === 0) return;
 
     let curPresets = [...(appData.presets || [])];
+    let curPresetRegexes = [...(appData.stRegexScripts || [])];
+    let curPresetScripts = [...(appData.scripts || [])];
     let addedCount = 0;
     let versionCount = 0;
     let distinctCount = 0;
     let skippedCount = 0;
+    let embeddedRegexCount = 0;
+    let embeddedScriptCount = 0;
 
     for (let i = 0; i < fileArray.length; i++) {
       const file = fileArray[i];
@@ -2852,26 +2970,43 @@ export default function App() {
           const cleanedText = decodeUnicodeAndEscapes(text);
           json = JSON.parse(cleanedText);
         }
-        const nameClean = json.name || json.title || file.name.replace(/\.json$/i, '') || '未命名预设';
+        const nameClean = getPresetDisplayName(json, file.name);
+        const category = presetCategoryFilter !== '全部分组' ? presetCategoryFilter : '默认';
 
-        const entry: PresetEntry = {
+        const baseEntry: PresetEntry = {
           id: 'preset_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7) + '_' + i,
           name: nameClean,
+          title: nameClean,
           fileName: file.name,
           author: json.author || json.creator || json.user || '',
-          category: presetCategoryFilter !== '全部分组' ? presetCategoryFilter : '默认',
+          category,
+          customTags: Array.from(new Set([
+            'ST预设',
+            getPresetRegexScriptsForImport(json).length > 0 ? '内嵌正则' : '',
+            getPresetEmbeddedScriptsForImport(json).length > 0 ? '内嵌脚本' : '',
+          ].filter(Boolean))),
           source: json.source || json.url || json.dc || '',
           description: json.description || json.notes || json.comment || '',
           jsonData: json,
+          settings: json,
           rawJsonString: JSON.stringify(json, null, 2),
-          importedAt: Date.now(), createdAt: Date.now(),
+          regexScripts: getPresetRegexScriptsForImport(json),
+          embeddedScripts: getPresetEmbeddedScriptsForImport(json),
+          importedAt: Date.now(),
+          createdAt: Date.now(),
           updatedAt: Date.now(),
+          activeVersionNumber: 1,
+          activeVersionLabel: 'v1',
+          activeVersionId: 'current',
+          versions: [],
         };
 
         const existingSameName = curPresets.filter(p => (p.name || '').trim().toLowerCase() === nameClean.toLowerCase());
+        let savedPreset = baseEntry;
+        let shouldSyncEmbeddedResources = true;
 
         if (existingSameName.length === 0) {
-          curPresets.push(entry);
+          curPresets.push(baseEntry);
           addedCount++;
         } else {
           let matchedPreset: PresetEntry | null = null;
@@ -2890,56 +3025,73 @@ export default function App() {
             }
           }
 
-          if ((bestDiff.status === 'identical' || bestDiff.status === 'partially_different') && matchedPreset) {
+          if (bestDiff.status === 'identical' && matchedPreset) {
+            skippedCount++;
+            savedPreset = matchedPreset;
+            shouldSyncEmbeddedResources = false;
+          } else if (bestDiff.status === 'partially_different' && matchedPreset) {
             const currentVersions = matchedPreset.versions || [];
             const verNum = currentVersions.length + 1;
-            
-            let changeSummaryText = bestDiff.summary || `升级至新版本 (来源于 ${file.name})`;
-            if (bestDiff.status === 'identical') {
-               let identicalVersionLabel = (matchedPreset as any).activeVersionLabel || `v${(matchedPreset.versions?.length || 0) + 1}`;
-               if (matchedPreset.versions && matchedPreset.versions.length > 0) {
-                 for (const v of matchedPreset.versions) {
-                   if (v.data && v.data.rawJsonString === matchedPreset.rawJsonString) {
-                     identicalVersionLabel = v.versionLabel ? v.versionLabel.split(' ')[0] : `v${v.versionNumber}`;
-                     break;
-                   }
-                 }
-               }
-               changeSummaryText = `导入重复文件 (与 ${identicalVersionLabel} 相同)`;
-            }
             const prevSnapshot = {
               versionId: `prever_${matchedPreset.id}_${verNum}_${Date.now()}`,
               versionNumber: verNum,
-              versionLabel: `v${verNum} (${new Date(matchedPreset.updatedAt || matchedPreset.createdAt || Date.now()).toLocaleDateString()})`,
+              versionLabel: matchedPreset.activeVersionLabel || `v${verNum}`,
               updatedAt: matchedPreset.updatedAt || matchedPreset.createdAt || Date.now(),
               fileName: matchedPreset.fileName,
-              changeSummary: changeSummaryText,
+              changeSummary: bestDiff.summary || `导入 ${file.name} 前的版本快照`,
               data: {
                 name: matchedPreset.name,
                 fileName: matchedPreset.fileName,
                 rawJsonString: matchedPreset.rawJsonString,
-                jsonData: JSON.parse(JSON.stringify(matchedPreset.jsonData || {}))
+                jsonData: JSON.parse(JSON.stringify(matchedPreset.jsonData || {})),
+                regexScripts: matchedPreset.regexScripts || [],
+                embeddedScripts: matchedPreset.embeddedScripts || [],
               }
             };
 
             const updatedPreset: PresetEntry = {
               ...matchedPreset,
+              name: matchedPreset.name || nameClean,
+              title: matchedPreset.title || nameClean,
               rawJsonString: JSON.stringify(json, null, 2),
               jsonData: json,
+              settings: json,
               fileName: file.name,
               updatedAt: Date.now(),
-              customTags: Array.from(new Set([...(matchedPreset.customTags || []), '已更新版本'])),
+              regexScripts: getPresetRegexScriptsForImport(json),
+              embeddedScripts: getPresetEmbeddedScriptsForImport(json),
+              activeVersionNumber: verNum + 1,
+              activeVersionLabel: `v${verNum + 1}`,
+              activeVersionId: 'current',
+              currentVersionSummary: `由 ${file.name} 更新`,
+              customTags: Array.from(new Set([
+                ...(matchedPreset.customTags || []),
+                'ST预设',
+                '已更新版本',
+                getPresetRegexScriptsForImport(json).length > 0 ? '内嵌正则' : '',
+                getPresetEmbeddedScriptsForImport(json).length > 0 ? '内嵌脚本' : '',
+              ].filter(Boolean))),
               versions: [prevSnapshot, ...currentVersions]
             };
 
             const idx = curPresets.findIndex(p => p.id === matchedPreset!.id);
             if (idx > -1) curPresets[idx] = updatedPreset;
+            savedPreset = updatedPreset;
             versionCount++;
           } else {
-            entry.customTags = Array.from(new Set([...(entry.customTags || []), '同名变体']));
-            curPresets.push(entry);
+            baseEntry.customTags = Array.from(new Set([...(baseEntry.customTags || []), '同名变体']));
+            curPresets.push(baseEntry);
+            savedPreset = baseEntry;
             distinctCount++;
           }
+        }
+
+        if (shouldSyncEmbeddedResources) {
+          const linked = upsertPresetLinkedResources(curPresetRegexes, curPresetScripts, savedPreset, json);
+          curPresetRegexes = linked.regexes;
+          curPresetScripts = linked.scripts;
+          embeddedRegexCount += getPresetRegexScriptsForImport(json).length;
+          embeddedScriptCount += getPresetEmbeddedScriptsForImport(json).length;
         }
       } catch (err) {
         console.error('Failed to parse preset JSON file:', file.name, err);
@@ -2948,11 +3100,23 @@ export default function App() {
     }
 
     if (addedCount > 0 || versionCount > 0 || distinctCount > 0) {
-      updateAppData((prev) => ({ ...prev, presets: curPresets }));
+      updateAppData((prev) => ({
+        ...prev,
+        presets: curPresets,
+        stRegexScripts: curPresetRegexes,
+        scripts: curPresetScripts,
+        stRegexCategories: Array.from(new Set([...(prev.stRegexCategories || ['默认']), '预设内嵌'])),
+        scriptCategories: Array.from(new Set([...(prev.scriptCategories || ['默认']), '预设内嵌'])),
+        presetTags: Array.from(new Set([...(prev.presetTags || []), 'ST预设', embeddedRegexCount > 0 ? '内嵌正则' : '', embeddedScriptCount > 0 ? '内嵌脚本' : ''].filter(Boolean))),
+        stRegexTags: Array.from(new Set([...(prev.stRegexTags || []), '预设内嵌', '来源:预设'])),
+        scriptTags: Array.from(new Set([...(prev.scriptTags || []), '预设内嵌', '来源:预设'])),
+      }));
       const parts: string[] = [];
       if (addedCount > 0) parts.push(`新增 ${addedCount} 个`);
       if (versionCount > 0) parts.push(`版本更新 ${versionCount} 个`);
       if (distinctCount > 0) parts.push(`同名独立变体 ${distinctCount} 个`);
+      if (embeddedRegexCount > 0) parts.push(`同步内嵌正则 ${embeddedRegexCount} 条`);
+      if (embeddedScriptCount > 0) parts.push(`同步内嵌脚本 ${embeddedScriptCount} 条`);
       if (skippedCount > 0) parts.push(`跳过完全重复 ${skippedCount} 个`);
       showToast(`预设导入完成：${parts.join('，')}`, 'success');
     } else if (skippedCount > 0) {
