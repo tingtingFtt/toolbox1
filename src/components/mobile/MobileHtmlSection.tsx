@@ -53,31 +53,8 @@ interface MobileHtmlSectionProps {
 }
 
 // 预置精选实用 HTML 模板 (首次加载或快捷初始化推荐)
-const BUILTIN_HTML_TEMPLATES: Partial<HtmlStorageEntry>[] = [
-  {
-    title: '小手机顶部状态栏 HUD (电量与信号)',
-    type: 'hud',
-    author: '官方设计',
-    category: '小部件',
-    customTags: ['状态栏', 'HUD', '小手机', '拟真'],
-    description: '模拟现代智能手机顶部状态栏，包含动态当前时间、Wi-Fi 满格信号、5G 标识以及动态剩余电量胶囊。',
-    htmlContent: `<div class="phone-hud-container">
-  <div class="hud-left">
-    <span id="current-time">09:41</span>
-  </div>
-  <div class="hud-center">
-    <span class="hud-capsule">● 虚拟会话中</span>
-  </div>
-  <div class="hud-right">
-    <span class="hud-signal">▲ 5G</span>
-    <span class="hud-wifi">📶</span>
-    <div class="hud-battery">
-      <div class="battery-level"></div>
-    </div>
-  </div>
-</div>`,
-    cssContent: `body {
-  margin: 0;
+// 小手机 HTML 管理不再内置固定模板，列表只展示用户新增或导入的内容。
+const BUILTIN_HTML_TEMPLATES: Partial<HtmlStorageEntry>[] = []
   padding: 12px;
   background: #18181b;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -425,18 +402,9 @@ export const MobileHtmlSection: React.FC<MobileHtmlSectionProps> = ({
   // 文件导入 Ref
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // 数据列表 (自动补充初始优质种子)
+  // 数据列表：只展示用户新增或导入的 HTML 资源。
   const htmlList = useMemo(() => {
-    const raw = appData.htmlStorages || [];
-    if (raw.length === 0) {
-      return BUILTIN_HTML_TEMPLATES.map((tmpl, index) => ({
-        ...tmpl,
-        id: `mob_html_seed_${index + 1}`,
-        createdAt: Date.now() - index * 60000,
-        updatedAt: Date.now(),
-      })) as HtmlStorageEntry[];
-    }
-    return raw;
+    return appData.htmlStorages || [];
   }, [appData.htmlStorages]);
 
   // 分组与标签
@@ -576,7 +544,10 @@ export const MobileHtmlSection: React.FC<MobileHtmlSectionProps> = ({
 
   // 批量删除
   const handleBatchDelete = () => {
-    if (selectedIds.length === 0) return;
+    if (selectedIds.length === 0) {
+      showToast('请先选择要删除的 HTML 资源', 'info');
+      return;
+    }
     requestDelete(`确定要批量删除选中的 ${selectedIds.length} 个 HTML 资源吗？`, selectedIds.length, () => {
       updateAppData((prev) => ({
         ...prev,
@@ -1007,8 +978,13 @@ export const MobileHtmlSection: React.FC<MobileHtmlSectionProps> = ({
 
               <button
                 type="button"
-                disabled={selectedIds.length === 0}
-                onClick={() => setShowBatchMoveModal(true)}
+                onClick={() => {
+                  if (selectedIds.length === 0) {
+                    showToast('请先选择要移动的 HTML 资源', 'info');
+                    return;
+                  }
+                  setShowBatchMoveModal(true);
+                }}
                 className="batch-btn batch-btn-primary"
               >
                 移动
@@ -1016,8 +992,13 @@ export const MobileHtmlSection: React.FC<MobileHtmlSectionProps> = ({
 
               <button
                 type="button"
-                disabled={selectedIds.length === 0}
-                onClick={() => setShowBatchTagModal(true)}
+                onClick={() => {
+                  if (selectedIds.length === 0) {
+                    showToast('请先选择要设置标签的 HTML 资源', 'info');
+                    return;
+                  }
+                  setShowBatchTagModal(true);
+                }}
                 className="batch-btn batch-btn-primary"
               >
                 标签
@@ -1025,7 +1006,6 @@ export const MobileHtmlSection: React.FC<MobileHtmlSectionProps> = ({
 
               <button
                 type="button"
-                disabled={selectedIds.length === 0}
                 onClick={handleBatchExport}
                 className="batch-btn batch-btn-primary"
               >
@@ -1034,7 +1014,6 @@ export const MobileHtmlSection: React.FC<MobileHtmlSectionProps> = ({
 
               <button
                 type="button"
-                disabled={selectedIds.length === 0}
                 onClick={handleBatchDelete}
                 className="batch-btn batch-btn-danger"
               >
