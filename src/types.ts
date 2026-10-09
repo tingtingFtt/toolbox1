@@ -466,6 +466,9 @@ export interface STRegexEntry {
   jsonData?: any;
   sourceCardId?: string;
   sourceCardName?: string;
+  sourcePresetId?: string;
+  sourcePresetName?: string;
+  sourceScope?: 'card' | 'preset' | 'standalone' | string;
   isBuiltIn?: boolean;
   versions?: ItemVersion<any>[];
   createdAt: number;
