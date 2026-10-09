@@ -380,6 +380,9 @@ export interface ScriptEntry {
   sourceCardName?: string;
   sourcePresetId?: string;
   sourcePresetName?: string;
+  sourceResourceKey?: string;
+  sourceResourcePath?: (string | number)[];
+  sourceFolder?: string;
   sourceScope?: 'card' | 'preset' | 'standalone' | string;
   isBuiltIn?: boolean;
   versions?: ItemVersion<any>[];
@@ -468,6 +471,9 @@ export interface STRegexEntry {
   sourceCardName?: string;
   sourcePresetId?: string;
   sourcePresetName?: string;
+  sourceResourceKey?: string;
+  sourceResourcePath?: (string | number)[];
+  sourceFolder?: string;
   sourceScope?: 'card' | 'preset' | 'standalone' | string;
   isBuiltIn?: boolean;
   versions?: ItemVersion<any>[];
@@ -753,3 +759,4 @@ export interface CardCoverEntry {
   createdAt: number;
   updatedAt: number;
 }
+

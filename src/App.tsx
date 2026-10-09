@@ -8,6 +8,7 @@ import { FontsSection } from './components/sections/FontsSection';
 import { ApiStorageSection } from './components/sections/ApiStorageSection';
 import { NormalCardsSection } from './components/mobile/NormalCardsSection';
 import { STPresetsSection } from './components/st/STPresetsSection';
+import { reconcilePresetResources, syncPresetResources } from './utils/presetResources';
 import { MobileLinksSection } from './components/mobile/MobileLinksSection';
 import { BeautificationThemesSection } from './components/mobile/BeautificationThemesSection';
 import { ChatMemesSection } from './components/mobile/ChatMemesSection';
@@ -280,7 +281,8 @@ export default function App() {
 
   const updateAppData = useCallback((newData: AppData | ((prev: AppData) => AppData)) => {
     setAppData((prev) => {
-      const next = typeof newData === 'function' ? (newData as (prev: AppData) => AppData)(prev) : newData;
+      const candidate = typeof newData === 'function' ? (newData as (prev: AppData) => AppData)(prev) : newData;
+      const next = reconcilePresetResources(prev, candidate);
       appDataDirtyRef.current = true;
       return next;
     });
@@ -301,7 +303,8 @@ export default function App() {
       if (cancelled) return;
       appDataHydratedRef.current = true;
       if (!appDataDirtyRef.current && asyncData) {
-        const synced = syncAllCardsToStData(asyncData);
+        const synced = syncPresetResources(syncAllCardsToStData(asyncData));
+        appDataDirtyRef.current = true;
         setAppData(synced);
       }
       setAppDataHydrated(true);
@@ -313,7 +316,7 @@ export default function App() {
       if (event.data === 'appData_updated') {
         loadAppDataAsync().then((asyncData) => {
           if (asyncData && !cancelled && !appDataDirtyRef.current) {
-            const synced = syncAllCardsToStData(asyncData);
+            const synced = syncPresetResources(syncAllCardsToStData(asyncData));
             setAppData(synced);
           }
         });
@@ -642,15 +645,6 @@ export default function App() {
     showToast(`已将【${assetName}】绑定版本切换为 ${targetVerLabel}`, 'success');
   };
 
-  useEffect(() => {
-    if (jumpTargetId && currentPage === 'st-presets' && appData.presets) {
-      const target = appData.presets.find((p) => p.id === jumpTargetId);
-      if (target) {
-        setEditingPreset(target);
-        setJumpTargetId(null);
-      }
-    }
-  }, [jumpTargetId, currentPage, appData.presets]);
 
 
   // Sorting States across sections
@@ -2832,298 +2826,6 @@ export default function App() {
   };
 
 
-  const getPresetDisplayName = (json: any, fileName: string) => {
-    return String(
-      json?.name ||
-      json?.title ||
-      json?.preset_name ||
-      json?.metadata?.name ||
-      fileName.replace(/\.[^/.]+$/, '') ||
-      '未命名预设'
-    ).trim();
-  };
-
-  const getPresetRegexScriptsForImport = (json: any) => {
-    const arrays = [
-      json?.extensions?.regex_scripts,
-      json?.regex_scripts,
-      json?.regexes,
-      json?.user_regexes,
-      json?.data?.extensions?.regex_scripts,
-    ].filter(Array.isArray);
-    return arrays.flat();
-  };
-
-  const getPresetEmbeddedScriptsForImport = (json: any) => {
-    const candidates = [
-      json?.extensions?.tavern_helper?.scripts,
-      json?.extensions?.scripts,
-      json?.scripts,
-      json?.data?.extensions?.tavern_helper?.scripts,
-    ];
-    const result: any[] = [];
-    candidates.forEach((value) => {
-      if (Array.isArray(value)) {
-        result.push(...value);
-      } else if (value && typeof value === 'object') {
-        Object.entries(value).forEach(([key, val]) => {
-          result.push({ id: key, name: key, ...(typeof val === 'object' && val !== null ? val : { content: String(val ?? '') }) });
-        });
-      }
-    });
-    return result;
-  };
-
-  const buildPresetLinkedRegexResources = (preset: PresetEntry, json: any): STRegexEntry[] => {
-    const rules = getPresetRegexScriptsForImport(json);
-    return rules.map((rx: any, index: number) => {
-      const scriptName = String(rx?.scriptName || rx?.script_name || rx?.name || rx?.title || `${preset.name || '预设'} · 正则 #${index + 1}`).trim();
-      const findRegex = String(rx?.findRegex ?? rx?.find_regex ?? rx?.pattern ?? rx?.regex ?? '');
-      const replaceString = String(rx?.replaceString ?? rx?.replace_string ?? rx?.replacement ?? rx?.replace ?? '');
-      return {
-        id: `preset_rx_${preset.id}_${rx?.id || index}`,
-        scriptName,
-        fileName: preset.fileName,
-        author: preset.author,
-        category: '预设内嵌',
-        customTags: Array.from(new Set(['预设内嵌', '来源:预设', `预设:${preset.name}`])),
-        sourcePresetId: preset.id,
-        sourcePresetName: preset.name,
-        sourceScope: 'preset',
-        description: `来自 ST 预设「${preset.name}」的内嵌正则`,
-        findRegex,
-        replaceString,
-        disabled: Boolean(rx?.disabled),
-        rules: [{ ...rx, scriptName, findRegex, replaceString }],
-        jsonData: rx,
-        createdAt: preset.createdAt || Date.now(),
-        updatedAt: Date.now(),
-      };
-    });
-  };
-
-  const buildPresetLinkedScriptResources = (preset: PresetEntry, json: any): ScriptEntry[] => {
-    const scripts = getPresetEmbeddedScriptsForImport(json);
-    return scripts.map((script: any, index: number) => {
-      const name = String(script?.name || script?.title || script?.id || script?.uid || `${preset.name || '预设'} · 脚本 #${index + 1}`).trim();
-      const rawContent = typeof script?.content === 'string'
-        ? script.content
-        : typeof script?.script === 'string'
-          ? script.script
-          : JSON.stringify(script ?? {}, null, 2);
-      return {
-        id: `preset_script_${preset.id}_${script?.id || script?.uid || index}`,
-        name,
-        fileName: preset.fileName,
-        author: preset.author,
-        category: '预设内嵌',
-        customTags: Array.from(new Set(['预设内嵌', '来源:预设', `预设:${preset.name}`])),
-        sourcePresetId: preset.id,
-        sourcePresetName: preset.name,
-        sourceScope: 'preset',
-        description: `来自 ST 预设「${preset.name}」的内嵌脚本`,
-        jsonData: script,
-        rawContent,
-        entries: Array.isArray(script?.entries) ? script.entries : undefined,
-        createdAt: preset.createdAt || Date.now(),
-        updatedAt: Date.now(),
-      };
-    });
-  };
-
-  const upsertPresetLinkedResources = (
-    regexList: STRegexEntry[],
-    scriptList: ScriptEntry[],
-    preset: PresetEntry,
-    json: any
-  ) => {
-    const withoutPresetRegex = regexList.filter((item: any) => item.sourcePresetId !== preset.id);
-    const withoutPresetScripts = scriptList.filter((item: any) => item.sourcePresetId !== preset.id);
-    return {
-      regexes: [...withoutPresetRegex, ...buildPresetLinkedRegexResources(preset, json)],
-      scripts: [...withoutPresetScripts, ...buildPresetLinkedScriptResources(preset, json)],
-    };
-  };
-
-  const handlePresetFileUpload = async (files: FileList) => {
-    const fileArray = Array.from(files);
-    if (fileArray.length === 0) return;
-
-    let curPresets = [...(appData.presets || [])];
-    let curPresetRegexes = [...(appData.stRegexScripts || [])];
-    let curPresetScripts = [...(appData.scripts || [])];
-    let addedCount = 0;
-    let versionCount = 0;
-    let distinctCount = 0;
-    let skippedCount = 0;
-    let embeddedRegexCount = 0;
-    let embeddedScriptCount = 0;
-
-    for (let i = 0; i < fileArray.length; i++) {
-      const file = fileArray[i];
-      try {
-        const text = await file.text();
-        let json: any;
-        try {
-          json = JSON.parse(text);
-        } catch {
-          const cleanedText = decodeUnicodeAndEscapes(text);
-          json = JSON.parse(cleanedText);
-        }
-        const nameClean = getPresetDisplayName(json, file.name);
-        const category = presetCategoryFilter !== '全部分组' ? presetCategoryFilter : '默认';
-
-        const baseEntry: PresetEntry = {
-          id: 'preset_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7) + '_' + i,
-          name: nameClean,
-          title: nameClean,
-          fileName: file.name,
-          author: json.author || json.creator || json.user || '',
-          category,
-          customTags: Array.from(new Set([
-            'ST预设',
-            getPresetRegexScriptsForImport(json).length > 0 ? '内嵌正则' : '',
-            getPresetEmbeddedScriptsForImport(json).length > 0 ? '内嵌脚本' : '',
-          ].filter(Boolean))),
-          source: json.source || json.url || json.dc || '',
-          description: json.description || json.notes || json.comment || '',
-          jsonData: json,
-          settings: json,
-          rawJsonString: JSON.stringify(json, null, 2),
-          regexScripts: getPresetRegexScriptsForImport(json),
-          embeddedScripts: getPresetEmbeddedScriptsForImport(json),
-          importedAt: Date.now(),
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-          activeVersionNumber: 1,
-          activeVersionLabel: 'v1',
-          activeVersionId: 'current',
-          versions: [],
-        };
-
-        const existingSameName = curPresets.filter(p => (p.name || '').trim().toLowerCase() === nameClean.toLowerCase());
-        let savedPreset = baseEntry;
-        let shouldSyncEmbeddedResources = true;
-
-        if (existingSameName.length === 0) {
-          curPresets.push(baseEntry);
-          addedCount++;
-        } else {
-          let matchedPreset: PresetEntry | null = null;
-          let bestDiff: any = { status: 'completely_different', similarity: 0, summary: '' };
-
-          for (const extPreset of existingSameName) {
-            const diff = comparePresets(json, text, extPreset);
-            if (diff.status === 'identical') {
-              matchedPreset = extPreset;
-              bestDiff = diff;
-              break;
-            }
-            if (diff.status === 'partially_different' && diff.similarity > bestDiff.similarity) {
-              matchedPreset = extPreset;
-              bestDiff = diff;
-            }
-          }
-
-          if (bestDiff.status === 'identical' && matchedPreset) {
-            skippedCount++;
-            savedPreset = matchedPreset;
-            shouldSyncEmbeddedResources = false;
-          } else if (bestDiff.status === 'partially_different' && matchedPreset) {
-            const currentVersions = matchedPreset.versions || [];
-            const verNum = currentVersions.length + 1;
-            const prevSnapshot = {
-              versionId: `prever_${matchedPreset.id}_${verNum}_${Date.now()}`,
-              versionNumber: verNum,
-              versionLabel: matchedPreset.activeVersionLabel || `v${verNum}`,
-              updatedAt: matchedPreset.updatedAt || matchedPreset.createdAt || Date.now(),
-              fileName: matchedPreset.fileName,
-              changeSummary: bestDiff.summary || `导入 ${file.name} 前的版本快照`,
-              data: {
-                name: matchedPreset.name,
-                fileName: matchedPreset.fileName,
-                rawJsonString: matchedPreset.rawJsonString,
-                jsonData: JSON.parse(JSON.stringify(matchedPreset.jsonData || {})),
-                regexScripts: matchedPreset.regexScripts || [],
-                embeddedScripts: matchedPreset.embeddedScripts || [],
-              }
-            };
-
-            const updatedPreset: PresetEntry = {
-              ...matchedPreset,
-              name: matchedPreset.name || nameClean,
-              title: matchedPreset.title || nameClean,
-              rawJsonString: JSON.stringify(json, null, 2),
-              jsonData: json,
-              settings: json,
-              fileName: file.name,
-              updatedAt: Date.now(),
-              regexScripts: getPresetRegexScriptsForImport(json),
-              embeddedScripts: getPresetEmbeddedScriptsForImport(json),
-              activeVersionNumber: verNum + 1,
-              activeVersionLabel: `v${verNum + 1}`,
-              activeVersionId: 'current',
-              currentVersionSummary: `由 ${file.name} 更新`,
-              customTags: Array.from(new Set([
-                ...(matchedPreset.customTags || []),
-                'ST预设',
-                '已更新版本',
-                getPresetRegexScriptsForImport(json).length > 0 ? '内嵌正则' : '',
-                getPresetEmbeddedScriptsForImport(json).length > 0 ? '内嵌脚本' : '',
-              ].filter(Boolean))),
-              versions: [prevSnapshot, ...currentVersions]
-            };
-
-            const idx = curPresets.findIndex(p => p.id === matchedPreset!.id);
-            if (idx > -1) curPresets[idx] = updatedPreset;
-            savedPreset = updatedPreset;
-            versionCount++;
-          } else {
-            baseEntry.customTags = Array.from(new Set([...(baseEntry.customTags || []), '同名变体']));
-            curPresets.push(baseEntry);
-            savedPreset = baseEntry;
-            distinctCount++;
-          }
-        }
-
-        if (shouldSyncEmbeddedResources) {
-          const linked = upsertPresetLinkedResources(curPresetRegexes, curPresetScripts, savedPreset, json);
-          curPresetRegexes = linked.regexes;
-          curPresetScripts = linked.scripts;
-          embeddedRegexCount += getPresetRegexScriptsForImport(json).length;
-          embeddedScriptCount += getPresetEmbeddedScriptsForImport(json).length;
-        }
-      } catch (err) {
-        console.error('Failed to parse preset JSON file:', file.name, err);
-        showToast(`无法解析文件: ${file.name}，请确保是合法的 JSON 格式`, 'error');
-      }
-    }
-
-    if (addedCount > 0 || versionCount > 0 || distinctCount > 0) {
-      updateAppData((prev) => ({
-        ...prev,
-        presets: curPresets,
-        stRegexScripts: curPresetRegexes,
-        scripts: curPresetScripts,
-        stRegexCategories: Array.from(new Set([...(prev.stRegexCategories || ['默认']), '预设内嵌'])),
-        scriptCategories: Array.from(new Set([...(prev.scriptCategories || ['默认']), '预设内嵌'])),
-        presetTags: Array.from(new Set([...(prev.presetTags || []), 'ST预设', embeddedRegexCount > 0 ? '内嵌正则' : '', embeddedScriptCount > 0 ? '内嵌脚本' : ''].filter(Boolean))),
-        stRegexTags: Array.from(new Set([...(prev.stRegexTags || []), '预设内嵌', '来源:预设'])),
-        scriptTags: Array.from(new Set([...(prev.scriptTags || []), '预设内嵌', '来源:预设'])),
-      }));
-      const parts: string[] = [];
-      if (addedCount > 0) parts.push(`新增 ${addedCount} 个`);
-      if (versionCount > 0) parts.push(`版本更新 ${versionCount} 个`);
-      if (distinctCount > 0) parts.push(`同名独立变体 ${distinctCount} 个`);
-      if (embeddedRegexCount > 0) parts.push(`同步内嵌正则 ${embeddedRegexCount} 条`);
-      if (embeddedScriptCount > 0) parts.push(`同步内嵌脚本 ${embeddedScriptCount} 条`);
-      if (skippedCount > 0) parts.push(`跳过完全重复 ${skippedCount} 个`);
-      showToast(`预设导入完成：${parts.join('，')}`, 'success');
-    } else if (skippedCount > 0) {
-      showToast(`已跳过 ${skippedCount} 个内容完全一致的重复预设`, 'info');
-    }
-  };
-
   const handleCreateNewPresetGroup = () => {
     const name = newPresetGroupName.trim();
     if (!name) {
@@ -5159,7 +4861,7 @@ export default function App() {
             ) : currentPage === 'themes' ? (
               <BeautificationThemesSection beautificationBatchMode={beautificationBatchMode} showToast={showToast} beautificationSortOrder={beautificationSortOrder} MoreHorizontal={MoreHorizontal} beautificationSearchQuery={beautificationSearchQuery} updateAppData={updateAppData} beautificationCategoryFilter={beautificationCategoryFilter} setBeautificationBatchMode={setBeautificationBatchMode} setSelectedBeautificationIds={setSelectedBeautificationIds} setBeautificationDetailTab={setBeautificationDetailTab} Circle={Circle} FolderPlus={FolderPlus} handleBatchDeleteBeautifications={handleBatchDeleteBeautifications} setRenameBeautificationGroupInput={setRenameBeautificationGroupInput} setManagingBeautificationGroup={setManagingBeautificationGroup} setBeautificationSortOrder={setBeautificationSortOrder} filteredBeautifications={filteredBeautifications} CheckSquare={CheckSquare} appData={appData} setShowNewBeautificationGroupModal={setShowNewBeautificationGroupModal} setBeautificationSearchQuery={setBeautificationSearchQuery} sortItemList={sortItemList} setEditingBeautification={setEditingBeautification} setCodeSearchQuery={setCodeSearchQuery} setBeautificationCategoryFilter={setBeautificationCategoryFilter} setShowBeautificationBatchMoveModal={setShowBeautificationBatchMoveModal} Move={Move} selectedBeautificationIds={selectedBeautificationIds} beautificationsList={beautificationsList} ArrowUpDown={ArrowUpDown}  beautificationTagsFilter={beautificationTagsFilter} setbeautificationTagsFilter={setBeautificationTagsFilter} />
             ) : currentPage === 'st-presets' ? (
-              <STPresetsSection showToast={showToast} setShowNewPresetGroupModal={setShowNewPresetGroupModal} setPresetBatchMode={setPresetBatchMode} setPresetCategoryFilter={setPresetCategoryFilter} MoreHorizontal={MoreHorizontal} setPresetEntrySearchQuery={setPresetEntrySearchQuery} updateAppData={updateAppData} setManagingPresetGroup={setManagingPresetGroup} setPresetSearchQuery={setPresetSearchQuery} handleBatchDeletePresets={handleBatchDeletePresets} presetCategoryFilter={presetCategoryFilter} Circle={Circle} FolderPlus={FolderPlus} Sliders={Sliders} setPresetSortOrder={setPresetSortOrder} presetsList={presetsList} appData={appData} CheckSquare={CheckSquare} sortItemList={sortItemList} selectedPresetIds={selectedPresetIds} setShowPresetBatchMoveModal={setShowPresetBatchMoveModal} presetBatchMode={presetBatchMode} presetSearchQuery={presetSearchQuery} presetSortOrder={presetSortOrder} Move={Move} setEditingPresetTab={setEditingPresetTab} setSelectedPresetIds={setSelectedPresetIds} setEditingPreset={setEditingPreset} filteredPresets={filteredPresets} setRenamePresetGroupInput={setRenamePresetGroupInput} ArrowUpDown={ArrowUpDown}  presetTagsFilter={presetTagsFilter} setpresetTagsFilter={setPresetTagsFilter} />
+              <STPresetsSection jumpTargetId={jumpTargetId} onClearJumpTarget={() => setJumpTargetId(null)} onOpenResource={(kind: 'regex' | 'script', id: string) => { setJumpTargetId(id); setCurrentPage(kind === 'regex' ? 'st-regex' : 'st-scripts'); }} showToast={showToast} setShowNewPresetGroupModal={setShowNewPresetGroupModal} setPresetBatchMode={setPresetBatchMode} setPresetCategoryFilter={setPresetCategoryFilter} MoreHorizontal={MoreHorizontal} setPresetEntrySearchQuery={setPresetEntrySearchQuery} updateAppData={updateAppData} setManagingPresetGroup={setManagingPresetGroup} setPresetSearchQuery={setPresetSearchQuery} handleBatchDeletePresets={handleBatchDeletePresets} presetCategoryFilter={presetCategoryFilter} Circle={Circle} FolderPlus={FolderPlus} Sliders={Sliders} setPresetSortOrder={setPresetSortOrder} presetsList={presetsList} appData={appData} CheckSquare={CheckSquare} sortItemList={sortItemList} selectedPresetIds={selectedPresetIds} setShowPresetBatchMoveModal={setShowPresetBatchMoveModal} presetBatchMode={presetBatchMode} presetSearchQuery={presetSearchQuery} presetSortOrder={presetSortOrder} Move={Move} setEditingPresetTab={setEditingPresetTab} setSelectedPresetIds={setSelectedPresetIds} setEditingPreset={setEditingPreset} filteredPresets={filteredPresets} setRenamePresetGroupInput={setRenamePresetGroupInput} ArrowUpDown={ArrowUpDown}  presetTagsFilter={presetTagsFilter} setpresetTagsFilter={setPresetTagsFilter} />
             ) : currentPage === 'st-plugins' ? (
               <STPluginsSection
                 appData={appData}
@@ -5169,6 +4871,7 @@ export default function App() {
               />
             ) : currentPage === 'st-scripts' ? (
               <STScriptsSection
+                onOpenPresetDetail={(id) => { setJumpTargetId(id); setCurrentPage('st-presets'); }}
                 jumpTargetId={jumpTargetId}
                 onClearJumpTarget={() => setJumpTargetId(null)}
                 appData={appData}
@@ -5195,6 +4898,7 @@ export default function App() {
               />
             ) : currentPage === 'st-regex' ? (
               <STRegexSection
+                onOpenPresetDetail={(id) => { setJumpTargetId(id); setCurrentPage('st-presets'); }}
                 jumpTargetId={jumpTargetId}
                 onClearJumpTarget={() => setJumpTargetId(null)}
                 appData={appData}

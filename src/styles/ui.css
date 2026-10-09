@@ -1303,6 +1303,24 @@ html.dark:not(.theme-flat) .file-detail-modal .tab-nav-bar {
 }
 
 /* 详情页顶栏与底栏颜色一致 */
+.st-preset-detail.modal-panel,
+:root.theme-flat .st-preset-detail.modal-panel,
+[data-theme] .st-preset-detail.modal-panel {
+  background: var(--card-solid-bg, var(--modal-solid-bg)) !important;
+}
+
+.st-preset-detail .preset-detail-bar,
+:root.theme-flat .st-preset-detail .preset-detail-bar,
+[data-theme] .st-preset-detail .preset-detail-bar {
+  background: var(--modal-bar-bg) !important;
+  background-image: none !important;
+  color: var(--text);
+}
+
+.st-preset-detail fieldset:disabled {
+  opacity: 0.85;
+}
+
 .file-detail-modal [data-design-id="card-detail-header"],
 .file-detail-modal [data-design-id="card-detail-footer"],
 :root.theme-flat .file-detail-modal [data-design-id="card-detail-header"],
@@ -1915,3 +1933,4 @@ body.dark[data-theme="jinsha"] .tab-nav-bar {
   background-color: var(--btn-primary-bg, rgba(140, 47, 45, 0.1)) !important;
   color: var(--accent, #8C2F2D) !important;
 }
+

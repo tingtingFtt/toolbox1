@@ -16,6 +16,8 @@ import { AppData, STRegexEntry, STRegexRule } from '../../types';
 import { normalizeStRegexRules, syncStRegexBackToCards, normalizeResourceName, triggerFileDownload } from '../../utils';
 import { compareRegexScripts } from '../../utils/diffEngine';
 import { sessionStore } from '../../utils/sessionStore';
+import { resourceSource } from '../../utils/presetResources';
+import { ResourceSourceControls, ResourceSourceBadge, ResourceSourceFilter } from './ResourceSourceControls';
 
 interface STRegexSectionProps {
   appData: AppData;
@@ -23,6 +25,7 @@ interface STRegexSectionProps {
   showToast: (message: string, type?: 'success' | 'error' | 'info') => void;
   sortItemList: <T>(items: T[], sortOrder: any, getName: (item: T) => string, getCreatedAt?: (item: T) => number) => T[];
   onOpenCardDetail?: (cardId: string) => void;
+  onOpenPresetDetail?: (presetId: string) => void;
   jumpTargetId?: string | null;
   onClearJumpTarget?: () => void;
 }
@@ -33,10 +36,12 @@ export const STRegexSection = React.memo<STRegexSectionProps>(({
   showToast,
   sortItemList,
   onOpenCardDetail,
+  onOpenPresetDetail,
   jumpTargetId,
   onClearJumpTarget,
 }) => {
   const [searchQuery, setSearchQuery] = useState(() => sessionStore.stRegex.searchQuery);
+  const [sourceFilter, setSourceFilter] = useState<ResourceSourceFilter>('all');
   const [tagFilter, setTagFilter] = useState<string[]>(() => sessionStore.stRegex.tagFilter);
   const [categoryFilter, setCategoryFilter] = useState(() => sessionStore.stRegex.categoryFilter);
   const [sortOrder, setSortOrder] = useState<'default' | 'az' | 'za' | 'newest' | 'oldest'>(() => sessionStore.stRegex.sortOrder);
@@ -88,6 +93,13 @@ export const STRegexSection = React.memo<STRegexSectionProps>(({
       const target = appData.stRegexScripts.find(r => r.id === jumpTargetId);
       if (target) {
         setActiveRegex(target);
+        setRawJsonDraft(JSON.stringify(target.jsonData || target.rules || [], null, 2));
+        setSelectedSubRuleIndex(null);
+        setDetailTab('rules');
+        setSourceFilter(resourceSource(target));
+        setCategoryFilter('全部分组');
+        setTagFilter([]);
+        setSearchQuery('');
         setSelectedSubRuleIndex(null);
         if (onClearJumpTarget) onClearJumpTarget();
       }
@@ -136,6 +148,7 @@ export const STRegexSection = React.memo<STRegexSectionProps>(({
   const builtInTags: string[] = [];
   const filtered = useMemo(() => {
     return rawRegexList.filter((item: any) => {
+      if (sourceFilter !== 'all' && resourceSource(item) !== sourceFilter) return false;
       if (categoryFilter !== '全部分组' && (item.category || '默认') !== categoryFilter) {
         return false;
       }
@@ -157,7 +170,7 @@ export const STRegexSection = React.memo<STRegexSectionProps>(({
         (item.rules && item.rules.some((r: any) => r.findRegex.toLowerCase().includes(q) || r.scriptName?.toLowerCase().includes(q)))
       );
     });
-  }, [rawRegexList, categoryFilter, tagFilter, searchQuery]);
+  }, [rawRegexList, categoryFilter, tagFilter, searchQuery, sourceFilter]);
 
   const sorted = useMemo(() => {
     return sortItemList(
@@ -217,6 +230,7 @@ export const STRegexSection = React.memo<STRegexSectionProps>(({
 
         const normName = normalizeResourceName(scriptName);
         const existingSameName = curRegexes.filter(r => {
+          if (r.sourcePresetId || r.sourceCardId) return false;
           if ((r.scriptName || '').trim().toLowerCase() === scriptName.toLowerCase()) return true;
           const normExt = normalizeResourceName(r.scriptName);
           if (normExt && normName && (normExt === normName || normExt.includes(normName) || normName.includes(normExt))) return true;
@@ -335,50 +349,29 @@ export const STRegexSection = React.memo<STRegexSectionProps>(({
   };
 
   const handleSaveActiveRegex = (updatedRx: STRegexEntry) => {
+    if (updatedRx.sourcePresetId && updatedRx.rules?.length) {
+      const previous = appData.stRegexScripts?.find(item => item.id === updatedRx.id);
+      const rule = { ...(updatedRx.jsonData || {}), ...updatedRx.rules[0] };
+      (['scriptName', 'findRegex', 'replaceString', 'disabled'] as const).forEach(key => {
+        if (previous && updatedRx[key] !== previous[key]) rule[key] = updatedRx[key];
+      });
+      updatedRx = { ...updatedRx, scriptName: rule.scriptName, findRegex: rule.findRegex, replaceString: rule.replaceString, disabled: rule.disabled, rules: [rule, ...updatedRx.rules.slice(1)], jsonData: rule };
+    }
     updateAppData((prev) => {
       let updatedCards = prev.cards || [];
       if (updatedRx.sourceCardId) {
         updatedCards = syncStRegexBackToCards(updatedRx, updatedCards);
       }
 
-      let updatedPresets = prev.presets || [];
-      if ((updatedRx as any).sourcePresetId) {
-        updatedPresets = updatedPresets.map((preset: any) => {
-          if (preset.id !== (updatedRx as any).sourcePresetId) return preset;
-          const jsonData = JSON.parse(JSON.stringify(preset.jsonData || preset.settings || {}));
-          const rxPayload = updatedRx.jsonData || (updatedRx.rules?.[0]) || {
-            scriptName: updatedRx.scriptName,
-            findRegex: updatedRx.findRegex,
-            replaceString: updatedRx.replaceString,
-            disabled: updatedRx.disabled,
-          };
-          const nextRegexes = (jsonData.extensions?.regex_scripts || []).map((item: any) => {
-            const itemId = item?.id || item?.scriptName || item?.script_name || item?.name;
-            const updatedId = rxPayload?.id || updatedRx.scriptName;
-            return itemId === updatedId || item?.scriptName === updatedRx.scriptName ? { ...rxPayload } : item;
-          });
-          const hadMatch = nextRegexes.some((item: any) => (item?.id || item?.scriptName || item?.name) === (rxPayload?.id || updatedRx.scriptName));
-          const finalRegexes = hadMatch ? nextRegexes : [...nextRegexes, rxPayload];
-          jsonData.extensions = { ...(jsonData.extensions || {}), regex_scripts: finalRegexes };
-          return {
-            ...preset,
-            jsonData,
-            settings: jsonData,
-            rawJsonString: JSON.stringify(jsonData, null, 2),
-            regexScripts: finalRegexes,
-            updatedAt: Date.now(),
-          };
-        });
-      }
 
       return {
         ...prev,
         cards: updatedCards,
-        presets: updatedPresets,
         stRegexScripts: (prev.stRegexScripts || []).map((r: any) => (r.id === updatedRx.id ? updatedRx : r)),
       };
     });
-    setActiveRegex(updatedRx);
+    setActiveRegex(updatedRx.sourcePresetId && updatedRx.rules?.length === 0 ? null : updatedRx);
+    setRawJsonDraft(JSON.stringify(updatedRx.jsonData || {}, null, 2));
     showToast(
       updatedRx.sourceCardId
         ? '正则已保存并同步回对应角色卡！'
@@ -684,6 +677,7 @@ export const STRegexSection = React.memo<STRegexSectionProps>(({
       </div>
 
       <div className="space-y-2.5 mb-6">
+        <ResourceSourceControls items={rawRegexList} value={sourceFilter} onChange={value => { setSourceFilter(value); setCategoryFilter('全部分组'); setTagFilter([]); }} />
         {/* Search Input */}
         <div className="relative w-full">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
@@ -889,12 +883,7 @@ export const STRegexSection = React.memo<STRegexSectionProps>(({
                 </div>
 
                 {/* Character Linkage Badge */}
-                {rx.isBuiltIn && rx.sourceCardName && (
-                  <div className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-md bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 text-[9px] font-medium border border-rose-200 dark:border-rose-800/60">
-                    <Sparkles className="w-2.5 h-2.5 text-rose-500" />
-                    <span>内置联动角色：{rx.sourceCardName}</span>
-                  </div>
-                )}
+                <ResourceSourceBadge item={rx} onOpenPreset={onOpenPresetDetail} onOpenCard={onOpenCardDetail} />
 
                 {/* Line 2: Tags & Metadata */}
                 <div className="flex items-center gap-2 min-w-0 mt-1">
@@ -1389,6 +1378,7 @@ export const STRegexSection = React.memo<STRegexSectionProps>(({
 
                 {/* Modal Body */}
                 <div className="p-6 flex-1 overflow-y-auto">
+                  <div className="mb-3"><ResourceSourceBadge item={activeRegex} onOpenPreset={onOpenPresetDetail} onOpenCard={onOpenCardDetail} /></div>
                   {/* TAB 1: RULES LIST */}
                   {detailTab === 'rules' && (
                     <div className="space-y-4">
@@ -2035,5 +2025,6 @@ export const STRegexSection = React.memo<STRegexSectionProps>(({
   return prev.appData === next.appData &&
          prev.jumpTargetId === next.jumpTargetId;
 });
+
 
 

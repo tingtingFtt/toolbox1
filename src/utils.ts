@@ -2819,7 +2819,7 @@ export function extractBundledAssets(
       if (targetBoundScrs.has(scr.id)) return true;
       if (scr.id === `script_ext_${targetCardId}` || scr.id === `script_ext_${card.id}`) return true;
       if (scr.sourceCardId && (scr.sourceCardId === targetCardId || scr.sourceCardId === card.id)) return true;
-      if (!scr.sourceCardId && scr.name && scr.name.trim().toLowerCase() === sName.toLowerCase()) return true;
+      if (!scr.sourceCardId && !scr.sourcePresetId && scr.name && scr.name.trim().toLowerCase() === sName.toLowerCase()) return true;
       return false;
     });
 
@@ -2958,7 +2958,7 @@ export function extractBundledAssets(
       if (targetBoundRxs.has(rx.id)) return true;
       if (rx.id === `rx_card_${targetCardId}` || rx.id === `rx_card_${card.id}`) return true;
       if (rx.sourceCardId && (rx.sourceCardId === targetCardId || rx.sourceCardId === card.id)) return true;
-      if (!rx.sourceCardId && rx.scriptName && rx.scriptName.trim().toLowerCase() === rName.toLowerCase()) return true;
+      if (!rx.sourceCardId && !rx.sourcePresetId && rx.scriptName && rx.scriptName.trim().toLowerCase() === rName.toLowerCase()) return true;
       return false;
     });
 
@@ -3480,6 +3480,7 @@ export function getPureVersionLabel(rawLabel?: string, fallbackVerNum: number = 
   }
   return `v${fallbackVerNum}`;
 }
+
 
 
 

@@ -104,7 +104,7 @@ export function autoAssociateAllAssets(appData: AppData): AppData {
     }
     if (!boundRegexId && cardName) {
       const exactName = `[${cardName}] 正则脚本`;
-      const byExactName = modifiedRegexes.find(r => !r.sourceCardId && (r.scriptName?.trim().toLowerCase() === exactName.toLowerCase() || r.scriptName?.trim().toLowerCase() === `${cardName}_正则`.toLowerCase()));
+      const byExactName = modifiedRegexes.find(r => !r.sourceCardId && !r.sourcePresetId && (r.scriptName?.trim().toLowerCase() === exactName.toLowerCase() || r.scriptName?.trim().toLowerCase() === `${cardName}_正则`.toLowerCase()));
       if (byExactName) {
         boundRegexId = byExactName.id;
         byExactName.sourceCardId = cardId;
@@ -124,7 +124,7 @@ export function autoAssociateAllAssets(appData: AppData): AppData {
     }
     if (!boundScriptId && cardName) {
       const exactName = `[${cardName}] 酒馆脚本`;
-      const byExactName = modifiedScripts.find(s => !s.sourceCardId && (s.name.trim().toLowerCase() === exactName.toLowerCase() || s.name.trim().toLowerCase() === `${cardName}_脚本`.toLowerCase()));
+      const byExactName = modifiedScripts.find(s => !s.sourceCardId && !s.sourcePresetId && (s.name.trim().toLowerCase() === exactName.toLowerCase() || s.name.trim().toLowerCase() === `${cardName}_脚本`.toLowerCase()));
       if (byExactName) {
         boundScriptId = byExactName.id;
         byExactName.sourceCardId = cardId;
@@ -169,3 +169,4 @@ export function getAlternateCardFaces(card: CardEntry, allCards: CardEntry[]): C
     return charName && otherName === charName;
   });
 }
+

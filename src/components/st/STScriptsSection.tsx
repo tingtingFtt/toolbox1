@@ -15,6 +15,8 @@ import { AppData, ScriptEntry, ScriptItemRule } from '../../types';
 import { normalizeResourceName, triggerFileDownload } from '../../utils';
 import { compareScripts } from '../../utils/diffEngine';
 import { sessionStore } from '../../utils/sessionStore';
+import { resourceSource } from '../../utils/presetResources';
+import { ResourceSourceControls, ResourceSourceBadge, ResourceSourceFilter } from './ResourceSourceControls';
 
 interface STScriptsSectionProps {
   appData: AppData;
@@ -22,6 +24,7 @@ interface STScriptsSectionProps {
   showToast: (message: string, type?: 'success' | 'error' | 'info') => void;
   sortItemList: <T>(items: T[], sortOrder: any, getName: (item: T) => string, getCreatedAt?: (item: T) => number) => T[];
   onOpenCardDetail?: (cardId: string) => void;
+  onOpenPresetDetail?: (presetId: string) => void;
   jumpTargetId?: string | null;
   onClearJumpTarget?: () => void;
 }
@@ -32,10 +35,12 @@ export const STScriptsSection = React.memo<STScriptsSectionProps>(({
   showToast,
   sortItemList,
   onOpenCardDetail,
+  onOpenPresetDetail,
   jumpTargetId,
   onClearJumpTarget,
 }) => {
   const [searchQuery, setSearchQuery] = useState(() => sessionStore.stScripts.searchQuery);
+  const [sourceFilter, setSourceFilter] = useState<ResourceSourceFilter>('all');
   const [tagFilter, setTagFilter] = useState<string[]>(() => sessionStore.stScripts.tagFilter);
   const [categoryFilter, setCategoryFilter] = useState(() => sessionStore.stScripts.categoryFilter);
   const [sortOrder, setSortOrder] = useState<'default' | 'az' | 'za' | 'newest' | 'oldest'>(() => sessionStore.stScripts.sortOrder);
@@ -89,6 +94,13 @@ export const STScriptsSection = React.memo<STScriptsSectionProps>(({
       const target = appData.scripts.find(r => r.id === jumpTargetId);
       if (target) {
         setActiveScript(target);
+        setEditingContent(target.rawContent || JSON.stringify(target.jsonData || {}, null, 2));
+        setSelectedSubEntryIndex(null);
+        setDetailTab('info');
+        setSourceFilter(resourceSource(target));
+        setCategoryFilter('全部分组');
+        setTagFilter([]);
+        setSearchQuery('');
         if (onClearJumpTarget) onClearJumpTarget();
       }
     }
@@ -130,6 +142,7 @@ export const STScriptsSection = React.memo<STScriptsSectionProps>(({
 
   const filtered = useMemo(() => {
     return rawScripts.filter((item: any) => {
+      if (sourceFilter !== 'all' && resourceSource(item) !== sourceFilter) return false;
       if (categoryFilter !== '全部分组' && (item.category || '默认') !== categoryFilter) {
         return false;
       }
@@ -149,7 +162,7 @@ export const STScriptsSection = React.memo<STScriptsSectionProps>(({
         (item.fileName && item.fileName.toLowerCase().includes(q))
       );
     });
-  }, [rawScripts, categoryFilter, tagFilter, searchQuery]);
+  }, [rawScripts, categoryFilter, tagFilter, searchQuery, sourceFilter]);
 
   const sorted = useMemo(() => {
     return sortItemList(
@@ -221,6 +234,7 @@ export const STScriptsSection = React.memo<STScriptsSectionProps>(({
 
         const normName = normalizeResourceName(name);
         const existingSameName = curScripts.filter((s: any) => {
+          if (s.sourcePresetId || s.sourceCardId) return false;
           if ((s.name || '').trim().toLowerCase() === name.toLowerCase()) return true;
           const normExt = normalizeResourceName(s.name);
           if (normExt && normName && (normExt === normName || normExt.includes(normName) || normName.includes(normExt))) return true;
@@ -346,61 +360,35 @@ export const STScriptsSection = React.memo<STScriptsSectionProps>(({
     const target = scriptOverride || activeScript;
     if (!target) return;
     let nextJson: any = target.jsonData;
+    const content = !scriptOverride && detailTab === 'code' ? editingContent : target.rawContent || editingContent;
     try {
-      nextJson = JSON.parse(editingContent);
+      nextJson = JSON.parse(content);
     } catch {
-      // Keep string if not valid JSON
+      if (target.sourcePresetId) nextJson = { ...(target.jsonData || {}), content };
+    }
+    if (target.sourcePresetId && nextJson && typeof nextJson === 'object' && !Array.isArray(nextJson)) {
+      const previous = appData.scripts?.find(item => item.id === target.id);
+      if (previous && target.name !== previous.name) nextJson.name = target.name;
+      if (previous && target.description !== previous.description) nextJson[Object.prototype.hasOwnProperty.call(nextJson, 'info') ? 'info' : 'description'] = target.description;
     }
 
     const updated: ScriptEntry = {
       ...target,
-      rawContent: editingContent,
+      name: target.sourcePresetId ? nextJson?.name || target.name : target.name,
+      rawContent: target.sourcePresetId ? JSON.stringify(nextJson, null, 2) : content,
       jsonData: nextJson,
+      entries: target.sourcePresetId && nextJson && typeof nextJson === 'object' && !Array.isArray(nextJson) ? [nextJson] : target.entries,
       updatedAt: Date.now(),
     };
 
     updateAppData((prev) => {
-      let updatedPresets = prev.presets || [];
-      if ((updated as any).sourcePresetId) {
-        updatedPresets = updatedPresets.map((preset: any) => {
-          if (preset.id !== (updated as any).sourcePresetId) return preset;
-          const jsonData = JSON.parse(JSON.stringify(preset.jsonData || preset.settings || {}));
-          const scriptPayload = nextJson && typeof nextJson === 'object' ? nextJson : { name: updated.name, content: editingContent };
-          const existing = jsonData.extensions?.tavern_helper?.scripts;
-          let nextScripts: any[] = [];
-          if (Array.isArray(existing)) {
-            nextScripts = existing.map((item: any) => {
-              const itemId = item?.id || item?.uid || item?.name || item?.title;
-              const updatedId = scriptPayload?.id || scriptPayload?.uid || updated.name;
-              return itemId === updatedId || item?.name === updated.name ? { ...scriptPayload } : item;
-            });
-          }
-          const hadMatch = nextScripts.some((item: any) => (item?.id || item?.uid || item?.name) === (scriptPayload?.id || scriptPayload?.uid || updated.name));
-          const finalScripts = hadMatch ? nextScripts : [...nextScripts, scriptPayload];
-          jsonData.extensions = {
-            ...(jsonData.extensions || {}),
-            tavern_helper: {
-              ...(jsonData.extensions?.tavern_helper || {}),
-              scripts: finalScripts,
-            },
-          };
-          return {
-            ...preset,
-            jsonData,
-            settings: jsonData,
-            rawJsonString: JSON.stringify(jsonData, null, 2),
-            embeddedScripts: finalScripts,
-            updatedAt: Date.now(),
-          };
-        });
-      }
       return {
         ...prev,
-        presets: updatedPresets,
         scripts: (prev.scripts || []).map((s) => (s.id === target.id ? updated : s)),
       };
     });
     setActiveScript(updated);
+    setEditingContent(updated.rawContent || content);
     showToast((updated as any).sourcePresetId ? '脚本已保存并同步回对应预设！' : '脚本已保存！', 'success');
   };
 
@@ -414,6 +402,7 @@ export const STScriptsSection = React.memo<STScriptsSectionProps>(({
     const updated: ScriptEntry = {
       ...activeScript,
       entries: newEntries,
+      ...(activeScript.sourcePresetId && newEntries.length === 1 ? { jsonData: newEntries[0], rawContent: JSON.stringify(newEntries[0], null, 2) } : {}),
       updatedAt: Date.now()
     };
     setActiveScript(updated);
@@ -466,6 +455,7 @@ export const STScriptsSection = React.memo<STScriptsSectionProps>(({
     const updated: ScriptEntry = {
       ...activeScript,
       entries: currentEntries,
+      ...(activeScript.sourcePresetId && currentEntries.length === 1 ? { jsonData: currentEntries[0], rawContent: JSON.stringify(currentEntries[0], null, 2) } : {}),
       updatedAt: Date.now()
     };
     setActiveScript(updated);
@@ -690,6 +680,7 @@ export const STScriptsSection = React.memo<STScriptsSectionProps>(({
       )}
 
       <div className="space-y-2.5 mb-6">
+        <ResourceSourceControls items={rawScripts} value={sourceFilter} onChange={value => { setSourceFilter(value); setCategoryFilter('全部分组'); setTagFilter([]); }} />
         {/* Search Input */}
         <div className="relative w-full">
           <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
@@ -833,12 +824,7 @@ export const STScriptsSection = React.memo<STScriptsSectionProps>(({
                 </div>
 
                 {/* Built-in Character Card Linkage Tag (Optional) */}
-                {script.sourceCardName && (
-                  <div className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 text-[9px] font-medium border border-emerald-200 dark:border-emerald-800/60">
-                    <Sparkles className="w-2.5 h-2.5 text-emerald-500" />
-                    <span className="truncate">内置联动角色：{script.sourceCardName}</span>
-                  </div>
-                )}
+                <ResourceSourceBadge item={script} onOpenPreset={onOpenPresetDetail} onOpenCard={onOpenCardDetail} />
 
                 {/* Line 2: Tags & Metadata */}
                 <div className="flex items-center gap-2 min-w-0 mt-1">
@@ -1053,6 +1039,7 @@ export const STScriptsSection = React.memo<STScriptsSectionProps>(({
             </div>
             
             <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+              <div className="mb-3"><ResourceSourceBadge item={activeScript} onOpenPreset={onOpenPresetDetail} onOpenCard={onOpenCardDetail} /></div>
               {/* TAB 1: Info */}
               {detailTab === 'info' && (
                 <div className="space-y-4">
@@ -1488,3 +1475,4 @@ export const STScriptsSection = React.memo<STScriptsSectionProps>(({
   return prev.appData === next.appData &&
          prev.jumpTargetId === next.jumpTargetId;
 });
+
