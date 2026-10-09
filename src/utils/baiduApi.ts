@@ -26,13 +26,13 @@ export function buildBaiduApiUrl(endpoint: string, apiBaseUrl = '', location = t
   return base.endsWith('/api') ? base + endpoint.slice('/api'.length) : base + endpoint;
 }
 
-export async function fetchBaiduBackend(endpoint: string, options: RequestInit = {}, apiBaseUrl = ''): Promise<Response> {
+export async function fetchBaiduBackend(endpoint: string, options: RequestInit = {}, apiBaseUrl = '', timeoutMs = 20000): Promise<Response> {
   const url = buildBaiduApiUrl(endpoint, apiBaseUrl);
   const controller = new AbortController();
   const abort = () => controller.abort();
   if (options.signal?.aborted) abort();
   options.signal?.addEventListener('abort', abort, { once: true });
-  const timer = setTimeout(abort, 20000);
+  const timer = setTimeout(abort, timeoutMs);
   try {
     return await fetch(url, { ...options, signal: controller.signal });
   } catch (error) {

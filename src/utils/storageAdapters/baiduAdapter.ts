@@ -43,7 +43,7 @@ export async function executeBaiduApiFetch(
   const method = options.method || 'GET';
   
   try {
-    const res = await fetchBaiduBackend(`/api/baidu-proxy?url=${encodeURIComponent(targetUrl)}`, options, apiBaseUrl);
+    const res = await fetchBaiduBackend(`/api/baidu-proxy?url=${encodeURIComponent(targetUrl)}`, options, apiBaseUrl, 120000);
     const latencyMs = Math.round(performance.now() - startTime);
     const contentType = res.headers.get('content-type') || '';
     if (contentType.toLowerCase().includes('text/html')) {

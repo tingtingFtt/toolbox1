@@ -4,6 +4,15 @@ GitHub Pages 部署仅发布 `dist/index.html`，不运行 `server.ts`。因此 
 
 ## 运行连接服务
 
+现在已有独立的 [`baidu-backend`](../baidu-backend/README.md) 目录，可直接复制/单独部署；无需安装前端依赖或构建网页。详细环境变量、Docker 和部署步骤见该目录说明。启动独立服务：
+
+```bash
+cd baidu-backend
+npm start
+```
+
+`npm start` 使用系统环境变量；若在本机创建了 `.env`，请使用 `npm run start:env`。下面是原有完整项目的 API-only 启动方式，两者的百度接口已共用同一实现。
+
 使用 Node.js 22 或更新版本。在项目根目录执行：
 
 ```bash

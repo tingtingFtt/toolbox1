@@ -1,0 +1,31 @@
+name: Check standalone Baidu backend
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'baidu-backend/**'
+      - 'server.ts'
+      - '.github/workflows/baidu-backend-check.yml'
+  pull_request:
+    paths:
+      - 'baidu-backend/**'
+      - 'server.ts'
+      - '.github/workflows/baidu-backend-check.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax check
+        run: npm --prefix baidu-backend run check
+      - name: Interface tests (mock Baidu)
+        run: npm --prefix baidu-backend test
