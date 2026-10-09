@@ -151,6 +151,7 @@ export const STRegexSection = React.memo<STRegexSectionProps>(({
         (item.author && item.author.toLowerCase().includes(q)) ||
         (item.description && item.description.toLowerCase().includes(q)) ||
         (item.sourceCardName && item.sourceCardName.toLowerCase().includes(q)) ||
+        ((item as any).sourcePresetName && (item as any).sourcePresetName.toLowerCase().includes(q)) ||
         (item.findRegex && item.findRegex.toLowerCase().includes(q)) ||
         (item.replaceString && item.replaceString.toLowerCase().includes(q)) ||
         (item.rules && item.rules.some((r: any) => r.findRegex.toLowerCase().includes(q) || r.scriptName?.toLowerCase().includes(q)))
@@ -339,14 +340,53 @@ export const STRegexSection = React.memo<STRegexSectionProps>(({
       if (updatedRx.sourceCardId) {
         updatedCards = syncStRegexBackToCards(updatedRx, updatedCards);
       }
+
+      let updatedPresets = prev.presets || [];
+      if ((updatedRx as any).sourcePresetId) {
+        updatedPresets = updatedPresets.map((preset: any) => {
+          if (preset.id !== (updatedRx as any).sourcePresetId) return preset;
+          const jsonData = JSON.parse(JSON.stringify(preset.jsonData || preset.settings || {}));
+          const rxPayload = updatedRx.jsonData || (updatedRx.rules?.[0]) || {
+            scriptName: updatedRx.scriptName,
+            findRegex: updatedRx.findRegex,
+            replaceString: updatedRx.replaceString,
+            disabled: updatedRx.disabled,
+          };
+          const nextRegexes = (jsonData.extensions?.regex_scripts || []).map((item: any) => {
+            const itemId = item?.id || item?.scriptName || item?.script_name || item?.name;
+            const updatedId = rxPayload?.id || updatedRx.scriptName;
+            return itemId === updatedId || item?.scriptName === updatedRx.scriptName ? { ...rxPayload } : item;
+          });
+          const hadMatch = nextRegexes.some((item: any) => (item?.id || item?.scriptName || item?.name) === (rxPayload?.id || updatedRx.scriptName));
+          const finalRegexes = hadMatch ? nextRegexes : [...nextRegexes, rxPayload];
+          jsonData.extensions = { ...(jsonData.extensions || {}), regex_scripts: finalRegexes };
+          return {
+            ...preset,
+            jsonData,
+            settings: jsonData,
+            rawJsonString: JSON.stringify(jsonData, null, 2),
+            regexScripts: finalRegexes,
+            updatedAt: Date.now(),
+          };
+        });
+      }
+
       return {
         ...prev,
         cards: updatedCards,
+        presets: updatedPresets,
         stRegexScripts: (prev.stRegexScripts || []).map((r: any) => (r.id === updatedRx.id ? updatedRx : r)),
       };
     });
     setActiveRegex(updatedRx);
-    showToast(updatedRx.sourceCardId ? '正则已保存并同步回对应角色卡！' : '正则已保存！', 'success');
+    showToast(
+      updatedRx.sourceCardId
+        ? '正则已保存并同步回对应角色卡！'
+        : (updatedRx as any).sourcePresetId
+          ? '正则已保存并同步回对应预设！'
+          : '正则已保存！',
+      'success'
+    );
   };
 
   const handleRestoreVersion = (ver: any) => {
