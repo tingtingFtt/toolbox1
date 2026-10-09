@@ -172,6 +172,11 @@ export interface PresetEntry {
   settings?: any;
   rawJsonString?: string;
   regexScripts?: any[];
+  embeddedScripts?: any[];
+  activeVersionNumber?: number;
+  activeVersionLabel?: string;
+  activeVersionId?: string;
+  currentVersionSummary?: string;
   versions?: ItemVersion<any>[];
   createdAt: number;
   updatedAt?: number;
@@ -373,6 +378,9 @@ export interface ScriptEntry {
   entries?: ScriptItemRule[];
   sourceCardId?: string;
   sourceCardName?: string;
+  sourcePresetId?: string;
+  sourcePresetName?: string;
+  sourceScope?: 'card' | 'preset' | 'standalone' | string;
   isBuiltIn?: boolean;
   versions?: ItemVersion<any>[];
   createdAt: number;
@@ -413,6 +421,9 @@ export interface STWorldBookEntry {
   jsonData?: any;
   sourceCardId?: string;
   sourceCardName?: string;
+  sourcePresetId?: string;
+  sourcePresetName?: string;
+  sourceScope?: 'card' | 'preset' | 'standalone' | string;
   isBuiltIn?: boolean;
   versions?: ItemVersion<any>[];
   createdAt: number;
