@@ -776,7 +776,7 @@ export const STScriptsSection = React.memo<STScriptsSectionProps>(({
                     handleOpenDetail(script);
                   }
                 }}
-                className={`min-w-0 bg-white dark:bg-zinc-900 border rounded-xl p-3 flex flex-col h-full justify-between transition-all cursor-pointer shadow-xs hover:border-emerald-400 dark:hover:border-emerald-600/60 ${
+                className={`resource-grid-panel min-w-0 bg-white dark:bg-zinc-900 border rounded-xl p-3 flex flex-col h-full justify-between transition-all cursor-pointer shadow-xs hover:border-emerald-400 dark:hover:border-emerald-600/60 ${
                   isSelected
                     ? 'border-emerald-500 ring-2 ring-emerald-500/20'
                     : 'border-zinc-200 dark:border-zinc-800'

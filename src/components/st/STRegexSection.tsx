@@ -826,7 +826,7 @@ export const STRegexSection = React.memo<STRegexSectionProps>(({
                     handleOpenDetail(rx);
                   }
                 }}
-                className={`min-w-0 bg-white dark:bg-zinc-900 border rounded-xl p-4 shadow-sm transition-all flex flex-col justify-between cursor-pointer ${
+                className={`resource-grid-panel min-w-0 bg-white dark:bg-zinc-900 border rounded-xl p-4 shadow-sm transition-all flex flex-col justify-between cursor-pointer ${
                   isSelected
                     ? 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-50/20 dark:bg-rose-950/20'
                     : 'border-zinc-200 dark:border-zinc-800 hover:border-rose-500/50 dark:hover:border-rose-500/50'

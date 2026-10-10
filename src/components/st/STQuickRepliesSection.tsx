@@ -26,7 +26,7 @@ export function STQuickRepliesSection({ appData, updateAppData, showToast }: { a
     <ViewModeDropdown viewMode={viewMode} setViewMode={setViewMode} />
     <ManagementGrid viewMode={viewMode} className={managementViewClass(viewMode)}>{sets.slice(pagination.start, pagination.end).map(set => viewMode === 'list' ?
       <ManagementListItem key={set.id} title={set.name} summary={`${set.entryCount ?? set.jsonData?.qrList?.length ?? 0} 个回复 · ${set.sourceCardName || set.sourcePresetName || '单独导入'}`} selected={false} batchMode={false} onSelect={() => {}} onOpen={() => open(set)} onExport={() => exportSet(set)} onDelete={() => setDeleting(set)} /> :
-      <div className="p-4 border space-y-2 min-w-0" key={set.id}>
+      <div className="resource-grid-panel p-4 border space-y-2 min-w-0" key={set.id}>
         <button className="text-sm font-semibold text-left w-full truncate" onClick={() => open(set)}>{set.name}</button>
         <p className="text-xs text-zinc-500">{set.entryCount ?? set.jsonData?.qrList?.length ?? 0} 个回复 · {set.sourceCardName || set.sourcePresetName || '单独导入'}</p>
         <div className="flex gap-2 flex-wrap"><ActionButton action="custom" onClick={() => open(set)}>详情</ActionButton><ActionButton action="export" onClick={() => exportSet(set)}>导出</ActionButton><ActionButton action="delete" onClick={() => setDeleting(set)}>删除</ActionButton></div>

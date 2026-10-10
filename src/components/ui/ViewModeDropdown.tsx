@@ -92,7 +92,7 @@ export const ViewModeDropdown: React.FC<ViewModeDropdownProps> = ({
             ? 'active is-selected bg-[var(--btn-primary-hover)] border-b-2 border-b-[var(--accent)] text-[var(--accent)] shadow-xs font-bold'
             : 'bg-transparent border-b-zinc-200 dark:border-b-zinc-800 hover:border-b-[var(--line-focus)] hover:text-[var(--accent)] text-zinc-700 dark:text-zinc-300 hover:bg-[var(--btn-primary-bg)] font-medium'
         }`}
-        title="切换布局，网格按可用宽度调整列数"
+        title="切换布局，所选列数在手机、平板和电脑上保持一致"
       >
         {viewMode === 'list' ? <List className="w-3.5 h-3.5" /> : <LayoutGrid className="w-3.5 h-3.5" />}
         <span className="text-[10px] font-medium leading-none max-w-[80px] sm:max-w-[100px] truncate">
@@ -123,7 +123,7 @@ export const ViewModeDropdown: React.FC<ViewModeDropdownProps> = ({
                     <div className="flex-1 bg-current rounded-sm"></div>
                     <div className="flex-1 bg-current rounded-sm"></div>
                   </div>
-                  <span className="text-[10px] font-bold">最多 3 列</span>
+                  <span className="text-[10px] font-bold">3 列</span>
                 </BaseButton>
                 <BaseButton
                   type="button"
@@ -140,7 +140,7 @@ export const ViewModeDropdown: React.FC<ViewModeDropdownProps> = ({
                     <div className="flex-1 bg-current rounded-sm"></div>
                     <div className="flex-1 bg-current rounded-sm"></div>
                   </div>
-                  <span className="text-[10px] font-bold">最多 4 列</span>
+                  <span className="text-[10px] font-bold">4 列</span>
                 </BaseButton>
                 <BaseButton
                   type="button"
@@ -158,7 +158,7 @@ export const ViewModeDropdown: React.FC<ViewModeDropdownProps> = ({
                     <div className="flex-1 bg-current rounded-[1px]"></div>
                     <div className="flex-1 bg-current rounded-[1px]"></div>
                   </div>
-                  <span className="text-[10px] font-bold">最多 5 列</span>
+                  <span className="text-[10px] font-bold">5 列</span>
                 </BaseButton>
                 <BaseButton
                   type="button"

@@ -31,42 +31,58 @@
 }
 
 .resource-card-grid {
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr));
   align-items: stretch;
+  min-width: 0;
 }
 
-/* Explicit display choices take precedence over the default auto-fill grid.
-   Keep selector specificity equal with :where so wider breakpoints can win.
-   Use panel width, so a sidebar or split-screen never forces tiny cards. */
-.resource-card-grid:where([data-view-mode]) {
-  grid-template-columns: minmax(0, 1fr);
+/* Only grids without a user-selected view may choose their column count automatically.
+   Selected grids get an explicit count from ManagementGrid; breakpoints never change it. */
+.resource-card-grid:not([data-view-mode]) {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr));
 }
 
-[data-design-id="staging-vault-modal-panel"] {
-  container-type: inline-size;
+.resource-fixed-grid {
+  column-gap: clamp(0.25rem, 1vw, 0.75rem);
 }
 
-@container (min-width: 36rem) {
-  .resource-card-grid:where([data-view-mode="grid-3"], [data-view-mode="grid-4"], [data-view-mode="grid-5"]) {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+.resource-fixed-grid > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.resource-fixed-grid:not([data-view-mode="list"]) > * {
+  container: resource-tile / inline-size;
+}
+
+/* Compact the contents of a narrow tile, without reducing the selected column count. */
+@container resource-tile (max-width: 12rem) {
+  .resource-fixed-grid .flex:not(.flex-col) {
+    flex-wrap: wrap;
+    gap: 0.25rem;
+  }
+  .resource-fixed-grid :where(.flex > *, button, span) {
+    max-width: 100%;
+    min-width: 0;
+  }
+  .resource-fixed-grid :where(h3, h4) {
+    flex-basis: 100%;
+  }
+  .resource-fixed-grid .flex:not(.flex-col) > .flex-1 {
+    flex-basis: 100%;
+  }
+  .resource-fixed-grid button:not([aria-haspopup="listbox"]) {
+    white-space: normal;
+    height: auto;
+    overflow-wrap: anywhere;
+  }
+  .resource-fixed-grid .resource-grid-panel :where(pre, code) {
+    overflow-wrap: anywhere;
   }
 }
 
-@container (min-width: 54rem) {
-  .resource-card-grid:where([data-view-mode="grid-3"], [data-view-mode="grid-4"], [data-view-mode="grid-5"]) {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-
-@container (min-width: 60rem) {
-  .resource-card-grid:where([data-view-mode="grid-4"], [data-view-mode="grid-5"]) {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-}
-
-@container (min-width: 72rem) {
-  .resource-card-grid:where([data-view-mode="grid-5"]) {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+@media (max-width: 640px) {
+  .resource-fixed-grid:not([data-view-mode="list"]) > .resource-grid-panel {
+    padding: 0.25rem;
   }
 }
 

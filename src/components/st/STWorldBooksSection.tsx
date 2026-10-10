@@ -683,7 +683,7 @@ export const STWorldBooksSection = React.memo<STWorldBooksSectionProps>(({
                       handleOpenDetail(wb);
                     }
                   }}
-                  className={`min-w-0 bg-white dark:bg-zinc-900 border rounded-xl p-3 shadow-sm transition-all flex flex-col h-full justify-between cursor-pointer ${
+                  className={`resource-grid-panel min-w-0 bg-white dark:bg-zinc-900 border rounded-xl p-3 shadow-sm transition-all flex flex-col h-full justify-between cursor-pointer ${
                     isSelected
                       ? 'border-amber-500 ring-2 ring-amber-500/20 bg-amber-50/20 dark:bg-amber-950/20'
                       : 'border-zinc-200 dark:border-zinc-800 hover:border-amber-500/50 dark:hover:border-amber-500/50'

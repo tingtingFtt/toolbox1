@@ -1,4 +1,5 @@
-import { ManagementSearch, ManagementBatchBar, ManagementHeader, ManagementToolbarFrame, ManagementBatchOverlay } from '../ui/ManagementChrome';
+import { managementViewClass } from '../ui/ManagementListItem';
+import { ManagementSearch, ManagementBatchBar, ManagementHeader, ManagementToolbarFrame, ManagementBatchOverlay, ManagementGrid } from '../ui/ManagementChrome';
 import { ActionButton } from '../ui/ActionButton';
 import React, { useRef, useState, useMemo } from 'react';
 import { GroupCategoryBar, CategoryFilterDropdown } from '../ui/GroupCategoryBar';
@@ -614,13 +615,7 @@ export const NormalCardsSection = (props: any) => {
             })}
           </div>
         ) : (
-          <div className={`grid gap-3 ${
-            normalCardViewMode === 'grid-3'
-              ? 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3'
-              : normalCardViewMode === 'grid-4'
-              ? 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4'
-              : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5'
-          }`}>
+          <ManagementGrid viewMode={normalCardViewMode} className={managementViewClass(normalCardViewMode)}>
             {sortItemList(
               filteredNormalCards,
               normalCardSortOrder,
@@ -646,7 +641,7 @@ export const NormalCardsSection = (props: any) => {
                       setEditingNormalCard(item);
                     }
                   }}
-                  className={`cursor-pointer flex items-center justify-between gap-3 shadow-sm hover:shadow-md ${
+                  className={`resource-grid-panel min-w-0 cursor-pointer flex flex-col items-stretch gap-2 shadow-sm hover:shadow-md ${
                     isSelected
                       ? 'border-[var(--accent)] ring-2 ring-[var(--line-focus)]'
                       : 'hover:border-zinc-400 dark:hover:border-zinc-600'
@@ -657,10 +652,10 @@ export const NormalCardsSection = (props: any) => {
                     <img
                       src={item.coverImage}
                       alt={item.fileName || item.name}
-                      className="w-12 h-14 rounded-xl object-cover border border-zinc-200 dark:border-zinc-700 flex-shrink-0"
+                      className="w-full aspect-[2/3] rounded-xl object-contain border border-zinc-200 dark:border-zinc-700"
                     />
                   ) : (
-                    <div className="w-12 h-14 rounded-xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 flex flex-col items-center justify-center text-zinc-400 flex-shrink-0">
+                    <div className="w-full aspect-[2/3] rounded-xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 flex flex-col items-center justify-center text-zinc-400">
                       {item.isNpc || item.cardRole === 'npc' ? <Users className="w-6 h-6 text-purple-400" /> : <FileText className="w-6 h-6 text-zinc-400" />}
                     </div>
                   )}
@@ -704,7 +699,7 @@ export const NormalCardsSection = (props: any) => {
                 </BaseCard>
               );
             })}
-          </div>
+          </ManagementGrid>
         )}
       </div>
     </div>

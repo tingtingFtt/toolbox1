@@ -190,7 +190,8 @@ const MemoizedCardGridItem = React.memo<CardGridItemProps>(({
   const allTags = getCardTags(card);
   const tags = allTags.slice(0, 3);
   const activeVerLabel = getPureVersionLabel((card as any).activeVersionLabel, (card.versions?.length || 0) + 1);
-  const hasVersions = (card.versionCount ?? card.versions?.length ?? 0) > 0;
+  const versionCount = card.versionCount ?? card.versions?.length ?? 0;
+  const hasVersions = versionCount > 0;
 
   return (
     <div
@@ -231,7 +232,7 @@ const MemoizedCardGridItem = React.memo<CardGridItemProps>(({
                   onOpenDetail(card.id, 'versions');
                 }
               }}
-              title={hasVersions ? `当前生效版本: ${activeVerLabel} (共有 ${card.versions!.length + 1} 个版本，点击查看历史)` : `当前生效版本: ${activeVerLabel}`}
+              title={hasVersions ? `当前生效版本: ${activeVerLabel} (共有 ${versionCount + 1} 个版本，点击查看历史)` : `当前生效版本: ${activeVerLabel}`}
               className={`px-1.5 py-0.5 rounded text-[9px] font-bold tracking-wider ${
                 hasVersions
                   ? 'bg-amber-500 hover:bg-amber-600 text-white cursor-pointer shadow-xs transition-colors flex items-center gap-0.5'

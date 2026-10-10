@@ -381,7 +381,7 @@ export const STPresetsSection = (props: any) => {
                               openPresetDetail(item, 'details');
                             }
                           }}
-                          className={`p-3.5 bg-white dark:bg-zinc-900 border rounded-xl cursor-pointer transition-all hover:shadow-md flex flex-col h-full justify-between gap-3 ${
+                          className={`resource-grid-panel p-3.5 bg-white dark:bg-zinc-900 border rounded-xl cursor-pointer transition-all hover:shadow-md flex flex-col h-full justify-between gap-3 ${
                             isSelected
                               ? 'border-rose-500 ring-2 ring-rose-500/30 dark:ring-rose-500/30'
                               : 'border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700'

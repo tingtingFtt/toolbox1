@@ -29,11 +29,14 @@ export function ManagementHeader({ icon, title, badge, description, actions, cla
 }
 
 type RegionProps = React.HTMLAttributes<HTMLDivElement>;
+const viewColumns: Record<ViewMode, number> = { 'grid-3': 3, 'grid-4': 4, 'grid-5': 5, list: 1 };
 export const ManagementToolbarFrame = React.forwardRef<HTMLDivElement, RegionProps>(function ManagementToolbarFrame({ className, ...props }, ref) {
   return <div {...props} ref={ref} className={cn('management-toolbar space-y-2.5 mb-6 w-full min-w-0', className)} />;
 });
-export const ManagementGrid = React.forwardRef<HTMLDivElement, RegionProps & { viewMode?: ViewMode }>(function ManagementGrid({ className, viewMode, ...props }, ref) {
-  return <div {...props} ref={ref} data-view-mode={viewMode} className={cn('resource-card-grid grid gap-4', className)} />;
+export const ManagementGrid = React.forwardRef<HTMLDivElement, RegionProps & { viewMode?: ViewMode }>(function ManagementGrid({ className, viewMode, style, ...props }, ref) {
+  // The chosen count is authoritative at every viewport width, including browsers without container queries.
+  const gridStyle: React.CSSProperties = viewMode ? { ...style, display: 'grid', gridTemplateColumns: `repeat(${viewColumns[viewMode]}, minmax(0, 1fr))` } : { ...style };
+  return <div {...props} ref={ref} data-view-mode={viewMode} style={gridStyle} className={cn('resource-card-grid grid min-w-0 w-full gap-4', viewMode && 'resource-fixed-grid', className)} />;
 });
 export function ManagementBatchBar({ className, ...props }: RegionProps) {
   return <div {...props} className={cn('batch-floating-card py-[5px] px-[8px] flex flex-col gap-[4px]', className)} />;

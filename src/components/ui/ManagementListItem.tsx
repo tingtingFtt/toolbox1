@@ -5,9 +5,9 @@ import { ViewMode } from './ViewModeDropdown';
 
 export function managementViewClass(mode: ViewMode) {
   if (mode === 'list') return 'grid-cols-1 gap-2';
-  if (mode === 'grid-4') return 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3';
-  if (mode === 'grid-5') return 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3';
-  return 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4';
+  if (mode === 'grid-4') return 'grid-cols-4 gap-3';
+  if (mode === 'grid-5') return 'grid-cols-5 gap-3';
+  return 'grid-cols-3 gap-4';
 }
 
 export function ManagementListItem({ title, summary, source, selected, batchMode, onOpen, onSelect, onExport, onDelete }: {

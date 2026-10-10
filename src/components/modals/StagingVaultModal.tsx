@@ -295,7 +295,7 @@ export const StagingVaultModal: React.FC<StagingVaultModalProps> = ({
                   key={staged.id}
                   designId={`staging-vault-card-${staged.id}`}
                   nested
-                  className={`p-2 sm:p-2.5 transition-all ${
+                  className={`resource-grid-panel p-2 sm:p-2.5 transition-all ${
                     isSelected
                       ? 'border-[var(--accent,#D97706)] bg-[var(--btn-primary-bg,rgba(217,119,6,0.09))] ring-1 ring-[var(--accent,#D97706)]/30'
                       : 'border-[var(--line,#e2d0bc)] bg-[var(--btn-bg,rgba(226,208,188,0.15))] hover:border-zinc-400'
@@ -327,13 +327,13 @@ export const StagingVaultModal: React.FC<StagingVaultModalProps> = ({
                       </div>
 
                       {/* Compact Action Selector: Single-line label + arrow */}
-                      <div className="shrink-0 w-32 sm:w-40">
+                      <div className="shrink-0 w-32 sm:w-40 max-w-full">
                         <CustomSelect
                           value={currentAction}
                           onChange={val => {
                             setIndividualActions(prev => ({ ...prev, [staged.id]: val }));
                           }}
-                          className={`h-5.5 px-2 rounded border text-[10px] sm:text-[11px] font-bold flex flex-row items-center justify-between flex-nowrap whitespace-nowrap gap-1 cursor-pointer focus:outline-none leading-none ${
+                          className={`w-full h-5.5 px-2 rounded border text-[10px] sm:text-[11px] font-bold flex flex-row items-center justify-between flex-nowrap whitespace-nowrap gap-1 cursor-pointer focus:outline-none leading-none ${
                             currentAction === 'skip'
                               ? 'bg-zinc-100 dark:bg-zinc-800 border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300'
                               : currentAction === 'new_version'
