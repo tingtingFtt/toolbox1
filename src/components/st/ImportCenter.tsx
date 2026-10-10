@@ -48,9 +48,10 @@ export function ImportCenter({ open, onClose, onImportBackup, appData, updateApp
       <DetailHeader designPrefix="import-center" title="导入中心" badge="本地解析" tags={<span>按内容识别 → 查重 → 分批保存 → 单文件调整</span>} onClose={onClose} />
       <DetailTabs designPrefix="import-center" label="导入结果" tabs={[{ id: 'all', name: `全部 (${appData.importRecords?.length || 0})` }, { id: 'imported', name: '已导入' }, { id: 'pending', name: '待处理' }, { id: 'failed', name: '失败' }, { id: 'skipped', name: '重复' }]} activeTab={tab} onChange={value => { setTab(value); setPage(0); }} />
       <DetailBody className="space-y-4">
-        <div className="flex flex-wrap gap-2"><ActionButton action="import" onClick={() => upload.current?.click()}>导入文件 / ZIP</ActionButton><ActionButton action="import" onClick={() => folder.current?.click()}>导入文件夹</ActionButton>{onImportBackup && <ActionButton action="import" onClick={onImportBackup}>恢复项目备份</ActionButton>}</div>
-        <input ref={upload} type="file" multiple accept=".png,.json,.css,.js,.zip" className="hidden" onChange={e => { const files = Array.from(e.target.files || []); e.target.value = ''; void context?.importFiles(files); }} />
-        <input ref={folder} type="file" multiple {...({ webkitdirectory: '', directory: '' } as any)} className="hidden" onChange={e => { const files = Array.from(e.target.files || []).filter(f => /\.(png|json|css|js|zip)$/i.test(f.name)); e.target.value = ''; void context?.importFiles(files); }} />
+        <div className="flex flex-wrap gap-2"><ActionButton action="import" onClick={() => upload.current?.click()}>多选文件 / ZIP</ActionButton><ActionButton action="import" onClick={() => folder.current?.click()}>导入文件夹</ActionButton>{onImportBackup && <ActionButton action="import" onClick={onImportBackup}>恢复项目备份</ActionButton>}</div>
+        <p className="text-xs text-zinc-500">可同时选择多个文件，或选择整个文件夹批量导入；支持 PNG、JSON、CSS、JS 和 ZIP。</p>
+        <input ref={upload} type="file" aria-label="多选导入文件" multiple accept=".png,.json,.css,.js,.zip" className="hidden" onChange={e => { const files = Array.from(e.target.files || []); e.target.value = ''; if (files.length) void context?.importFiles(files); }} />
+        <input ref={folder} type="file" aria-label="选择导入文件夹" multiple {...({ webkitdirectory: '', directory: '' } as any)} className="hidden" onChange={e => { const files = Array.from(e.target.files || []).filter(f => /\.(png|json|css|js|zip)$/i.test(f.name)); e.target.value = ''; if (files.length) void context?.importFiles(files); }} />
         <ManagementSearch value={search} onChange={e => { setSearch(e.target.value); setPage(0); }} placeholder="搜索文件、来源路径或识别结果" />
         {selected && <div className="p-3 border space-y-3">
           <p className="text-sm break-all">调整：{selected.relativePath}</p>

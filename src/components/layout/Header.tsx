@@ -42,7 +42,6 @@ export function Header({
   currentPage,
   setCurrentPage,
   currentGroup,
-  importBackupInputRef,
   isImportingBackup,
   setBigDataExportInitialScope,
   setIsBigDataExportModalOpen,
@@ -73,14 +72,15 @@ export function Header({
 
               {currentPage === 'home' && (
                 <div className="flex items-center gap-0.5 sm:gap-1 ml-1 flex-shrink-0">
-                  {/* 导入全部备份数据 */}
+                  {/* 主页统一导入入口 */}
                   <BaseButton
                     designId="header-import-all-btn"
                     type="button"
-                    onClick={() => importBackupInputRef.current?.click()}
-                    disabled={isImportingBackup}
+                    onClick={() => tavernImport?.openCenter()}
+                    disabled={isImportingBackup || !tavernImport}
                     className="p-1 sm:p-1.5 text-zinc-600 dark:text-zinc-400 hover:text-[var(--accent,#486175)] transition-colors flex-shrink-0 cursor-pointer bg-transparent border-none disabled:opacity-50"
-                    title="导入全部备份数据"
+                    aria-label="导入文件或文件夹"
+                    title="打开导入中心：多选文件、文件夹或项目备份"
                   >
                     <Upload className="w-3.5 h-3.5 sm:w-4 sm:h-4 transition-colors" />
                   </BaseButton>
@@ -103,7 +103,7 @@ export function Header({
             </div>
 
             <div className="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
-              {tavernImport && <button aria-label="导入中心" title="导入中心：类型识别、单文件重试与删除" onClick={tavernImport.openCenter} className="p-1.5 sm:p-2 flex items-center gap-1 text-xs shrink-0"><Upload className="w-4 h-4" /><span className="hidden md:inline">导入中心</span></button>}
+              {currentPage !== 'home' && tavernImport && <button type="button" aria-label="导入中心" title="导入中心：类型识别、单文件重试与删除" onClick={tavernImport.openCenter} className="p-1.5 sm:p-2 flex items-center gap-1 text-xs shrink-0"><Upload className="w-4 h-4" /><span className="hidden md:inline">导入中心</span></button>}
               {/* 命运抽卡按钮 (仅展示图标) */}
               <button
                 data-design-id="header-gacha-btn"

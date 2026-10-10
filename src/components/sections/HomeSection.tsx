@@ -16,7 +16,6 @@ import {
   Key,
   ArrowRight,
   Download,
-  Upload,
   Dices,
   Image as ImageIcon,
 } from 'lucide-react';
@@ -39,7 +38,6 @@ interface HomeSectionProps {
   onDrawRandomNormalCard: () => void;
   recentNormalCards: any[];
   onOpenBigDataExport: () => void;
-  onOpenImportCenter: () => void;
   onTriggerExport: () => void;
 }
 
@@ -51,7 +49,6 @@ export const HomeSection: React.FC<HomeSectionProps> = ({
   onDrawRandomNormalCard,
   recentNormalCards,
   onOpenBigDataExport,
-  onOpenImportCenter,
   cardViewMode,
   setCardViewMode,
 }) => {
@@ -963,16 +960,6 @@ export const HomeSection: React.FC<HomeSectionProps> = ({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2 flex-shrink-0">
-          <BaseButton
-            designId="home-backup-import-btn"
-            type="button"
-            variant="outline"
-            onClick={onOpenImportCenter}
-            className="px-3 py-1.5 rounded-lg text-[10px] font-medium hover:border-[var(--line-focus)] hover:text-[var(--accent)] transition-colors"
-          >
-            <Upload className="w-3.5 h-3.5 flex-shrink-0" />
-            <span>导入文件 / 备份</span>
-          </BaseButton>
           <BaseButton
             designId="home-backup-export-btn"
             type="button"

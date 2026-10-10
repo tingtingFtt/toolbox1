@@ -4870,7 +4870,7 @@ export default function App() {
         {/* Main Content View */}
         {/* Main Content View */}
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-          <Header appDataHydrated={appDataHydrated} appDataDirtyRef={appDataDirtyRef} handleExportFullBackup={handleExportFullBackup} uploadFileInputRef={uploadFileInputRef} qrFileInputRef={qrFileInputRef} setSidebarOpen={setSidebarOpen} currentPage={currentPage} setCurrentPage={setCurrentPage} currentGroup={currentGroup} importBackupInputRef={importBackupInputRef} isImportingBackup={isImportingBackup} setBigDataExportInitialScope={setBigDataExportInitialScope} setIsBigDataExportModalOpen={setIsBigDataExportModalOpen} handleDrawRandomCard={handleDrawRandomCard} showThemeMenu={showThemeMenu} setShowThemeMenu={setShowThemeMenu} isInspectMode={isInspectMode} setIsInspectMode={setIsInspectMode} />
+          <Header appDataHydrated={appDataHydrated} appDataDirtyRef={appDataDirtyRef} handleExportFullBackup={handleExportFullBackup} uploadFileInputRef={uploadFileInputRef} qrFileInputRef={qrFileInputRef} setSidebarOpen={setSidebarOpen} currentPage={currentPage} setCurrentPage={setCurrentPage} currentGroup={currentGroup} isImportingBackup={isImportingBackup} setBigDataExportInitialScope={setBigDataExportInitialScope} setIsBigDataExportModalOpen={setIsBigDataExportModalOpen} handleDrawRandomCard={handleDrawRandomCard} showThemeMenu={showThemeMenu} setShowThemeMenu={setShowThemeMenu} isInspectMode={isInspectMode} setIsInspectMode={setIsInspectMode} />
 
           {/* Page Body Container */}
           <div id="app-content" className={`flex-1 overflow-y-auto ${currentPage === 'settings' ? 'p-0' : 'p-4 md:p-6'}`}>
@@ -4892,7 +4892,6 @@ export default function App() {
                   setBigDataExportInitialScope('all');
                   setIsBigDataExportModalOpen(true);
                 }}
-                onOpenImportCenter={() => setShowImportCenter(true)}
                 onTriggerExport={handleExportFullBackup}
               />            ) : currentPage === 'st-cards' ? (
               <STCardsSection cardViewMode={stCardViewMode} setCardViewMode={setStCardViewMode}
