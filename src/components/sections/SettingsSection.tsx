@@ -1,3 +1,6 @@
+import { streamSillyTavernFiles } from '../../utils/sillyTavernApi';
+import { runTavernImport, isTavernImportRunning } from '../../utils/tavernImportPipeline';
+import { createSafeJsonBlob } from '../../utils';
 import { CustomSelect } from '../ui/CustomSelect';
 import { BaseButton } from '../ui/BaseButton';
 import { BaseInput } from '../ui/BaseInput';
@@ -566,7 +569,8 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
   };
 
   const runSyncFromHandle = async (handle: FileSystemDirectoryHandle, archivePointId?: string) => {
-    const abortCtrl = createImportAbortController();
+    if (isTavernImportRunning()) { showToast?.('已有导入任务进行中，请先完成或取消', 'info'); return; }
+      const abortCtrl = createImportAbortController();
 
     setIsScanning(true);
     setScanComplete(false);
@@ -630,7 +634,7 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
                 overwritten: (currentStats as any).overwritten || 0,
                 skipped: currentStats.skippedDuplicates,
                 stagedDuplicates: (currentStats as any).stagedDuplicates || 0,
-                failed: 0
+                failed: currentStats.failed || 0
               }
             } : null);
           }
@@ -741,7 +745,8 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    const abortCtrl = createImportAbortController();
+    if (isTavernImportRunning()) { showToast?.('已有导入任务进行中，请先完成或取消', 'info'); return; }
+      const abortCtrl = createImportAbortController();
 
     setIsScanning(true);
     setScanComplete(false);
@@ -801,7 +806,7 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
                 overwritten: (currentStats as any).overwritten || 0,
                 skipped: currentStats.skippedDuplicates,
                 stagedDuplicates: (currentStats as any).stagedDuplicates || 0,
-                failed: 0
+                failed: currentStats.failed || 0
               }
             } : null);
           }
@@ -965,7 +970,8 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
           const folderId = 'extra_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6);
           await saveExtraFolderHandle(folderId, handle);
 
-          const abortCtrl = createImportAbortController();
+          if (isTavernImportRunning()) { showToast?.('已有导入任务进行中，请先完成或取消', 'info'); return; }
+      const abortCtrl = createImportAbortController();
 
           setIsScanning(true);
           setScanComplete(false);
@@ -1132,7 +1138,8 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    const abortCtrl = createImportAbortController();
+    if (isTavernImportRunning()) { showToast?.('已有导入任务进行中，请先完成或取消', 'info'); return; }
+      const abortCtrl = createImportAbortController();
 
     setIsScanning(true);
     setScanComplete(false);
@@ -1193,7 +1200,7 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
                 overwritten: (currentStats as any).overwritten || 0,
                 skipped: currentStats.skippedDuplicates,
                 stagedDuplicates: (currentStats as any).stagedDuplicates || 0,
-                failed: 0
+                failed: currentStats.failed || 0
               }
             } : null);
           }
@@ -1300,7 +1307,8 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
 
   const handleSyncExtraFolder = async (folder: ExtraScanFolder) => {
     setSyncingExtraFolderId(folder.id);
-    const abortCtrl = createImportAbortController();
+    if (isTavernImportRunning()) { showToast?.('已有导入任务进行中，请先完成或取消', 'info'); return; }
+      const abortCtrl = createImportAbortController();
     try {
       const handle = await getExtraFolderHandle(folder.id);
       if (handle) {
@@ -1363,7 +1371,7 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
                   overwritten: (currentStats as any).overwritten || 0,
                   skipped: currentStats.skippedDuplicates,
                   stagedDuplicates: (currentStats as any).stagedDuplicates || 0,
-                  failed: 0
+                  failed: currentStats.failed || 0
                 }
               } : null);
             }
@@ -1671,9 +1679,8 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
     }
   };
 
-  const handleExportFullBackup = () => {
-    const dataStr = JSON.stringify(appData, null, 2);
-    const blob = new Blob([dataStr], { type: 'application/json;charset=utf-8' });
+  const handleExportFullBackup = async () => {
+    const blob = await createSafeJsonBlob(appData as any);
     const downloadAnchor = document.createElement('a');
     downloadAnchor.setAttribute('href', URL.createObjectURL(blob));
     downloadAnchor.setAttribute('download', `TavernVault_Backup_${new Date().toISOString().slice(0, 10)}.json`);
@@ -1763,184 +1770,18 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
   };
 
   const handlePullFromTavern = async () => {
+    if (isTavernImportRunning()) { showToast?.('已有导入任务进行中，请先完成或取消', 'info'); return; }
     setIsPullingTavern(true);
-    setBatchImportProgress?.({
-      isActive: true,
-      isMinimized: false,
-      total: 10,
-      current: 0,
-      currentName: '正在连接酒馆服务 API...',
-      currentPhase: 'parsing',
-      startTime: Date.now(),
-      stats: {
-        added: 0,
-        updatedVersion: 0,
-        distinctCard: 0,
-        overwritten: 0,
-        skipped: 0,
-        stagedDuplicates: 0,
-        failed: 0
-      },
-      stagedCards: [],
-      isCompleted: false
-    });
-
+    const controller = createImportAbortController();
+    setBatchImportProgress?.({ isActive: true, isMinimized: false, total: 0, current: 0, currentName: '正在连接酒馆服务…', currentPhase: 'parsing', startTime: Date.now(), stats: { added: 0, updatedVersion: 0, distinctCard: 0, overwritten: 0, skipped: 0, stagedDuplicates: 0, failed: 0 }, stagedCards: [], isCompleted: false, onCancelImport: abortActiveImport });
     try {
-      const result = await pullFromSillyTavern(tavernUrl, tavernApiKey, (current: number, total: number, name: string, phase?: string) => {
-        setBatchImportProgress?.(prev => prev ? {
-          ...prev,
-          total: total || prev.total,
-          current,
-          currentName: name,
-          currentPhase: phase === 'downloading' ? 'parsing' : phase === 'converting' ? 'extracting' : 'diffing'
-        } : null);
-      });
-
-      if (result.charactersCount > 0 || result.worldBooksCount > 0) {
-        if (result.newCards && result.newCards.length > 0 && promptDuplicateAction) {
-          const processed = await processCardImportList(
-            result.newCards,
-            appData,
-            promptDuplicateAction,
-            { defaultGroup: '酒馆拉取', sourceTag: '酒馆', isTavernSource: true }
-          );
-
-          // Merge standalone pulled worldbooks
-          const existingWbNames = new Set((processed.currentWorldBooks || []).map(w => (w.name || '').toLowerCase()));
-          const newWorldBooks: STWorldBookEntry[] = (result.newWorldBooks || []).map(w => ({
-            id: generateId('wb'),
-            name: w.name || '未命名世界书',
-            description: '从酒馆网络服务直接拉取',
-            source: 'tavern-network',
-            entries: w.entries || [],
-            createdAt: Date.now(),
-            updatedAt: Date.now(),
-            jsonData: w.jsonData || {}
-          }));
-
-          const mergedWbs = [...processed.currentWorldBooks];
-          newWorldBooks.forEach(w => {
-            if (!existingWbNames.has((w.name || '').toLowerCase())) {
-              mergedWbs.push(w);
-            }
-          });
-
-          // Atomically update app data and run association engine
-          updateAppData(prev => {
-            const synced = autoAssociateAllAssets({
-              ...prev,
-              cards: processed.currentCards,
-              stWorldBooks: mergedWbs,
-              scripts: processed.currentScripts,
-              stRegexScripts: processed.currentRegexes,
-              cardTags: Array.from(new Set(processed.currentTags))
-            });
-            return synced;
-          });
-
-          setBatchImportProgress?.(prev => prev ? {
-            ...prev,
-            current: prev.total,
-            currentName: '酒馆拉取完成',
-            currentPhase: 'complete',
-            isCompleted: true,
-            stats: {
-              added: processed.stats.added,
-              updatedVersion: processed.stats.updatedVersion,
-              distinctCard: processed.stats.distinctCard,
-              overwritten: processed.stats.overwritten,
-              skipped: processed.stats.skipped,
-              stagedDuplicates: (processed.stats as any).stagedDuplicates || 0,
-              failed: 0
-            }
-          } : null);
-
-          const summaryParts: string[] = [];
-          if (processed.stats.added > 0) summaryParts.push(`新增 ${processed.stats.added} 张`);
-          if (processed.stats.updatedVersion > 0) summaryParts.push(`升级版本 ${processed.stats.updatedVersion} 张`);
-          if (processed.stats.distinctCard > 0) summaryParts.push(`同名独立卡面 ${processed.stats.distinctCard} 张`);
-          if (processed.stats.overwritten > 0) summaryParts.push(`覆盖 ${processed.stats.overwritten} 张`);
-          if (processed.stats.skipped > 0) summaryParts.push(`跳过 ${processed.stats.skipped} 张`);
-          if (result.worldBooksCount > 0) summaryParts.push(`世界书 ${result.worldBooksCount} 本`);
-
-          showToast?.(
-            `酒馆拉取完成：${summaryParts.join('，') || '未发现变动'}`,
-            'success'
-          );
-        } else {
-          updateAppData(prev => {
-            const newCards: CardEntry[] = result.newCards.map(c => ({
-              id: c.id || generateId('card'),
-              name: c.name || '未命名卡片',
-              fileName: c.fileName || `${c.name}.png`,
-              coverImage: c.coverImage || null,
-              author: c.author || '',
-              authorManual: false,
-              customTags: ['酒馆拉取'],
-              version: c.version || 'v2',
-              fileType: 'png',
-              source: 'tavern-network',
-              group: '酒馆拉取',
-              createdAt: Date.now(),
-              updatedAt: Date.now(),
-              rawData: c.rawData || {},
-              versions: []
-            }));
-
-            const newWorldBooks: STWorldBookEntry[] = (result.newWorldBooks || []).map(w => ({
-              id: generateId('wb'),
-              name: w.name || '未命名世界书',
-              description: '从酒馆网络服务直接拉取',
-              source: 'tavern-network',
-              entries: w.entries || [],
-              createdAt: Date.now(),
-              updatedAt: Date.now(),
-              jsonData: w.jsonData || {}
-            }));
-
-            return {
-              ...prev,
-              cards: [...(prev.cards || []), ...newCards],
-              stWorldBooks: [...(prev.stWorldBooks || []), ...newWorldBooks]
-            };
-          });
-
-          setBatchImportProgress?.(prev => prev ? {
-            ...prev,
-            current: prev.total,
-            currentName: '酒馆拉取完成',
-            currentPhase: 'complete',
-            isCompleted: true,
-            stats: {
-              added: result.charactersCount,
-              updatedVersion: 0,
-              distinctCard: 0,
-              overwritten: 0,
-              skipped: 0,
-              stagedDuplicates: 0,
-              failed: 0
-            }
-          } : null);
-
-          showToast?.(`成功拉取 ${result.charactersCount} 张角色卡与 ${result.worldBooksCount} 本世界书！`, 'success');
-        }
-      } else {
-        setBatchImportProgress?.(null);
-        if (result.errors.length > 0) {
-          showToast?.(`拉取遇到问题: ${result.errors[0]}`, 'error');
-        } else {
-          showToast?.('酒馆未返回可拉取的角色或世界书数据', 'info');
-        }
-      }
-    } catch (e: any) {
-      setBatchImportProgress?.(null);
-      showToast?.(`拉取失败: ${e.message}`, 'error');
-    } finally {
-      setIsPullingTavern(false);
-    }
+      const result = await runTavernImport(streamSillyTavernFiles(tavernUrl, tavernApiKey, controller.signal), appData, { signal: controller.signal, source: 'tavern', group: '酒馆拉取', onProgress: p => setBatchImportProgress?.(prev => prev && ({ ...prev, total: p.total, current: p.current, currentName: p.name, currentPhase: p.phase, stats: { ...prev.stats, added: p.stats.added, skipped: p.stats.skipped, stagedDuplicates: p.stats.staged, failed: p.stats.failed } })) });
+      setBatchImportProgress?.(prev => prev && ({ ...prev, current: result.processed, total: result.total, currentName: result.cancelled ? '已取消，已完成的批次保留' : '酒馆拉取完成', currentPhase: result.cancelled ? 'aborted' : 'complete', isCompleted: true }));
+      showToast?.(`酒馆拉取${result.cancelled ? '已取消' : '完成'}：新增 ${result.stats.added}，重复 ${result.stats.skipped}，暂存 ${result.stats.staged}，失败 ${result.stats.failed}`, 'info');
+    } catch (error: any) { showToast?.(`酒馆拉取停止：${error.message}`, 'error'); setBatchImportProgress?.(null); }
+    finally { setIsPullingTavern(false); }
   };
 
-  // --- Archive Points Handlers ---
   const handleCreateArchivePoint = async () => {
     if (canUseFSA) {
       try {
@@ -1979,7 +1820,8 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    const abortCtrl = createImportAbortController();
+    if (isTavernImportRunning()) { showToast?.('已有导入任务进行中，请先完成或取消', 'info'); return; }
+      const abortCtrl = createImportAbortController();
 
     const folderName = (files[0].webkitRelativePath && files[0].webkitRelativePath.includes('/'))
       ? files[0].webkitRelativePath.split('/')[0]
@@ -4397,3 +4239,4 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
     </div>
   );
 };
+

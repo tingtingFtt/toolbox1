@@ -1,3 +1,4 @@
+import { hydrateCard, hydrateCardBoundAssets } from './largeCardStore';
 import { CardEntry, STWorldBookEntry, AppData } from '../types';
 import { injectBoundAssetsForExport, generateCardPngBlob, createZip, triggerFileDownload, extractPngTextAsync, fileToDataURL } from '../utils';
 
@@ -379,7 +380,7 @@ export async function pushCardToSillyTavern(
 
     // Fallback to /api/characters/import if upload endpoint rejected
     if (!res.ok) {
-      const v3Payload = injectBoundAssetsForExport(card, appData);
+      const v3Payload = injectBoundAssetsForExport(await hydrateCard(card), await hydrateCardBoundAssets(card, appData));
       const jsonHeaders = createApiHeaders(apiKey, 'application/json');
       res = await fetch(`${serverUrl}/api/characters/import`, {
         method: 'POST',
@@ -427,7 +428,8 @@ export async function packageCardsForSillyTavern(
   const files: Array<{ name: string; content: Blob | Uint8Array | string }> = [];
   const processedWbIds = new Set<string>();
 
-  for (const card of cards) {
+  for (const summary of cards) {
+    const card = await hydrateCard(summary);
     const safeName = (card.name || 'character').replace(/[\\/:*?"<>|]/g, '_');
     const historyVersions = card.versions || [];
     const activeVerNum = card.activeVersionNumber || (historyVersions.length + 1);
@@ -442,14 +444,14 @@ export async function packageCardsForSillyTavern(
         content: pngBlob,
       });
     } catch (e) {
-      const fullData = injectBoundAssetsForExport(card, appData);
+      const fullData = injectBoundAssetsForExport(await hydrateCard(card), await hydrateCardBoundAssets(card, appData));
       files.push({
         name: `characters/${activeFileBase}.json`,
         content: JSON.stringify(fullData, null, 2),
       });
     }
 
-    const fullData = injectBoundAssetsForExport(card, appData);
+    const fullData = injectBoundAssetsForExport(await hydrateCard(card), await hydrateCardBoundAssets(card, appData));
     files.push({
       name: `characters_json/${activeFileBase}.json`,
       content: JSON.stringify(fullData, null, 2),
@@ -485,14 +487,14 @@ export async function packageCardsForSillyTavern(
           content: pngBlob,
         });
       } catch (e) {
-        const hData = injectBoundAssetsForExport(histCard, appData);
+        const hData = injectBoundAssetsForExport(histCard, await hydrateCardBoundAssets(histCard, appData));
         files.push({
           name: `characters/${histFileBase}.json`,
           content: JSON.stringify(hData, null, 2),
         });
       }
 
-      const hData = injectBoundAssetsForExport(histCard, appData);
+      const hData = injectBoundAssetsForExport(histCard, await hydrateCardBoundAssets(histCard, appData));
       files.push({
         name: `characters_json/${histFileBase}.json`,
         content: JSON.stringify(hData, null, 2),
@@ -519,4 +521,36 @@ export async function packageCardsForSillyTavern(
   const now = new Date();
   const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
   triggerFileDownload(zipBlob, `SillyTavern_Cards_Export_${dateStr}.zip`);
+}
+
+
+
+/** Stream original files into the shared import pipeline; never retain all downloaded cards. */
+export async function* streamSillyTavernFiles(rawUrl: string, apiKey: string, signal: AbortSignal) {
+  const base = normalizeServerUrl(rawUrl), headers = createApiHeaders(apiKey);
+  const response = await fetch(`${base}/api/characters`, { headers, signal });
+  if (!response.ok) throw Error(`获取角色列表失败 (${response.status})`);
+  const characters = await response.json();
+  if (!Array.isArray(characters)) throw Error('酒馆角色列表格式不正确');
+  for (const item of characters) {
+    if (signal.aborted) throw new DOMException('已取消', 'AbortError');
+    const avatar = typeof item === 'string' ? item : item.avatar || item.name;
+    if (!avatar) continue;
+    const res = await fetch(`${base}/characters/${encodeURIComponent(avatar)}`, { headers, signal });
+    if (!res.ok) throw Error(`读取角色 ${avatar} 失败 (${res.status})，已完成的批次保留`);
+    const file = new File([await res.blob()], /\.png$/i.test(avatar) ? avatar : `${avatar}.png`, { type: 'image/png' });
+    yield { file, relativePath: `characters/${file.name}` };
+  }
+  const worlds = await fetch(`${base}/api/worldinfo`, { headers, signal });
+  if (!worlds.ok) return;
+  const data = await worlds.json();
+  const books = Array.isArray(data) ? data : Object.entries(data || {}).map(([name, value]) => ({ ...(value as any), name }));
+  for (const item of books) {
+    if (signal.aborted) throw new DOMException('已取消', 'AbortError');
+    const name = typeof item === 'string' ? item : item.name || '世界书';
+    // A name-only remote reference is kept pending; it must not become an empty worldbook.
+    const book = typeof item === 'string' ? { name, remoteReference: item } : item;
+    const file = new File([JSON.stringify(book)], `${name}.json`, { type: 'application/json' });
+    yield { file, relativePath: `worlds/${file.name}` };
+  }
 }

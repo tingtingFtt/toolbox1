@@ -1,3 +1,4 @@
+import { useTavernImport } from '../../hooks/TavernImportContext';
 import { ManagementSearch, ManagementHeader, ManagementToolbarFrame, ManagementBatchBar, ManagementGrid, ManagementBatchOverlay } from '../ui/ManagementChrome';
 import { ActionButton } from '../ui/ActionButton';
 import React, { useRef } from 'react';
@@ -100,7 +101,9 @@ export const STPresetsSection = (props: any) => {
     }
   }, [jumpTargetId, appData.presets]);
 
+  const tavernImport = useTavernImport();
   const handleLocalFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (tavernImport && e.target.files) { const files = Array.from(e.target.files); e.target.value = ''; await tavernImport.importFiles(files); return; }
     const files = Array.from(e.target.files || []);
     e.target.value = '';
     const entries: PresetEntry[] = [];

@@ -1,3 +1,5 @@
+import { hydrateCardAsset } from '../../utils/largeCardStore';
+import { useTavernImport } from '../../hooks/TavernImportContext';
 import { ManagementSearch, ManagementHeader, ManagementBatchBar, ManagementToolbarFrame, ManagementGrid, ManagementBatchOverlay } from '../ui/ManagementChrome';
 import { DetailTabBar, DetailTabButton, DetailPanel, DetailHeader, DetailBody, DetailFooter } from '../ui/DetailChrome';
 import { ActionButton } from '../ui/ActionButton';
@@ -42,6 +44,7 @@ export const STScriptsSection = React.memo<STScriptsSectionProps>(({
   jumpTargetId,
   onClearJumpTarget,
 }) => {
+  const tavernImport = useTavernImport();
   const [searchQuery, setSearchQuery] = useState(() => sessionStore.stScripts.searchQuery);
   const [sourceFilter, setSourceFilter] = useState<ResourceSourceFilter>('all');
   const [tagFilter, setTagFilter] = useState<string[]>(() => sessionStore.stScripts.tagFilter);
@@ -91,6 +94,12 @@ export const STScriptsSection = React.memo<STScriptsSectionProps>(({
 
   // Modals & Detail
   const [activeScript, setActiveScript] = useState<ScriptEntry | null>(null);
+  useEffect(() => {
+    if (!activeScript?.assetStub) return;
+    let cancelled = false;
+    hydrateCardAsset(activeScript).then(full => { if (!cancelled) { setActiveScript(full); setEditingContent(full.rawContent || JSON.stringify(full.jsonData || {}, null, 2)); } }).catch(error => { if (!cancelled) { showToast(error.message, 'error'); setActiveScript(null); } });
+    return () => { cancelled = true; };
+  }, [activeScript]);
   const [focusedEntryKey, setFocusedEntryKey] = useState<string | null>(null);
 
   useEffect(() => {
@@ -153,7 +162,7 @@ export const STScriptsSection = React.memo<STScriptsSectionProps>(({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const rawScripts = appData.scripts || [];
+  const rawScripts = useMemo(() => (appData.scripts || []).filter(item => item.type !== 'qr'), [appData.scripts]);
   const categories = Array.from(
     new Set(['默认', ...(appData.scriptCategories || []), ...rawScripts.map((p: any) => p.category || '默认')])
   );
@@ -193,6 +202,7 @@ export const STScriptsSection = React.memo<STScriptsSectionProps>(({
   }, [filtered, sortOrder, sortItemList]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (tavernImport && e.target.files) { const files = Array.from(e.target.files); e.target.value = ''; await tavernImport.importFiles(files); return; }
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
@@ -395,13 +405,15 @@ export const STScriptsSection = React.memo<STScriptsSectionProps>(({
         }
       }
       nextJson = (entries || []).map(cleanPresetResource);
+    } else if (scriptOverride && target.entries) {
+      nextJson = target.entries.map(cleanPresetResource);
     } else {
       try { nextJson = JSON.parse(content); } catch { /* Independent scripts may contain plain JavaScript. */ }
     }
     const updated: ScriptEntry = {
       ...target,
       entries,
-      rawContent: target.sourceResources ? JSON.stringify(nextJson, null, 2) : content,
+      rawContent: target.sourceResources || (scriptOverride && target.entries) ? JSON.stringify(nextJson, null, 2) : content,
       jsonData: nextJson,
       updatedAt: Date.now(),
     };
@@ -493,7 +505,8 @@ export const STScriptsSection = React.memo<STScriptsSectionProps>(({
     showToast('条目已保存', 'success');
   };
 
-  const handleExportScript = (script: ScriptEntry) => {
+  const handleExportScript = async (script: ScriptEntry) => {
+    script = await hydrateCardAsset(script);
     const content = script.rawContent || JSON.stringify(script.jsonData || script.entries || {}, null, 2);
     const blob = new Blob([content], { type: 'application/json;charset=utf-8' });
     triggerFileDownload(blob, `${script.name || 'ST脚本'}.json`);
@@ -559,25 +572,13 @@ export const STScriptsSection = React.memo<STScriptsSectionProps>(({
 
   const PAGE_SIZE = 50;
   const [visibleCount, setVisibleCount] = React.useState(PAGE_SIZE);
-  const loadMoreRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
     setVisibleCount(PAGE_SIZE);
-  }, [searchQuery, categoryFilter, tagFilter, sortOrder]);
+  }, [searchQuery, categoryFilter, tagFilter, sortOrder, sourceFilter]);
 
-  React.useEffect(() => {
-    const el = loadMoreRef.current;
-    if (!el) return;
-    const observer = new IntersectionObserver((entries) => {
-      if (entries[0]?.isIntersecting) {
-        setVisibleCount(prev => Math.min(prev + PAGE_SIZE, sorted.length));
-      }
-    }, { rootMargin: '600px' });
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [sorted.length]);
-
-  const visibleSorted = sorted.slice(0, visibleCount);
+  React.useEffect(() => setVisibleCount(n => Math.min(n, Math.max(PAGE_SIZE, Math.ceil(sorted.length / PAGE_SIZE) * PAGE_SIZE))), [sorted.length]);
+  const visibleSorted = sorted.slice(Math.max(0, visibleCount - PAGE_SIZE), visibleCount);
 
   return (
     <div className="max-w-7xl mx-auto w-full space-y-5 ">
@@ -587,7 +588,7 @@ export const STScriptsSection = React.memo<STScriptsSectionProps>(({
         ref={fileInputRef}
         onChange={handleFileUpload}
         multiple
-        accept=".json,.js"
+        accept=".png,.json,.css,.js,.zip"
         className="hidden"
       />
 
@@ -762,7 +763,7 @@ export const STScriptsSection = React.memo<STScriptsSectionProps>(({
         <ManagementGrid className=" grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
           {visibleSorted.map((script: ScriptEntry) => {
             const isSelected = selectedIds.includes(script.id);
-            const subEntriesCount = script.entries?.length || 0;
+            const subEntriesCount = script.entryCount ?? script.entries?.length ?? 0;
             return (
               <div
                 key={script.id}
@@ -914,7 +915,12 @@ export const STScriptsSection = React.memo<STScriptsSectionProps>(({
       )}
 
       {/* Script Detail Modal */}
-      {activeScript && (
+      <div className="flex justify-center items-center gap-4 flex-wrap py-4 text-xs">
+        <button disabled={visibleCount <= PAGE_SIZE} onClick={() => setVisibleCount(n => Math.max(PAGE_SIZE, n - PAGE_SIZE))}>上一页</button>
+        <span>第 {Math.ceil(visibleCount / PAGE_SIZE)} / {Math.max(1, Math.ceil(sorted.length / PAGE_SIZE))} 页 · 共 {sorted.length} 个集合</span>
+        <button disabled={visibleCount >= sorted.length} onClick={() => setVisibleCount(n => n + PAGE_SIZE)}>下一页</button>
+      </div>
+      {activeScript && !activeScript.assetStub && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-0 bg-zinc-900/40 dark:bg-black/60 backdrop-blur-sm animate-in fade-in" onClick={() => setActiveScript(null)} role="dialog" aria-modal="true">
           <div 
             className="absolute inset-0 bg-transparent transition-opacity"

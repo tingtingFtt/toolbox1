@@ -87,6 +87,7 @@ export function computeContentHash(str: string): string {
 // 1. CARD COMPARISON ENGINE
 // -------------------------------------------------------------
 export function getCardCoreSignature(card: Partial<CardEntry>): string {
+  if (card.payloadStub && card.contentFingerprint) return card.contentFingerprint;
   const data = card.rawData?.data || card.rawData || {};
   const signatureObj = {
     name: (card.name || data.name || '').trim(),
@@ -742,4 +743,5 @@ export function compareNormalCards(incomingContent: string, existingCard: any): 
     changedFields: []
   };
 }
+
 

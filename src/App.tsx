@@ -1,3 +1,10 @@
+import { flushSync } from 'react-dom';
+import { TavernImportContext } from './hooks/TavernImportContext';
+import { setTavernImportCheckpoint } from './utils/tavernImportPipeline';
+import { useCardPayload } from './hooks/useCardPayload';
+import { hydrateCard, hydrateCardAsset, hydrateCardBoundAssets } from './utils/largeCardStore';
+import { ImportCenter } from './components/st/ImportCenter';
+import { STQuickRepliesSection } from './components/st/STQuickRepliesSection';
 import * as fflate from 'fflate';
 import { connectTavernDirectory, scanTavernDirectory } from "./utils/tavernSync";
 import { SettingsSection } from './components/sections/SettingsSection';
@@ -114,6 +121,7 @@ export default function App() {
   const appDataDirtyRef = useRef(false);
   const appDataHydratedRef = useRef(false);
   const [appDataHydrated, setAppDataHydrated] = useState(false);
+  const [storageLoadError, setStorageLoadError] = useState('');
   
   const [showGroupTagManager, setShowGroupTagManager] = useState(false);
   const [isInspectMode, setIsInspectMode] = useState(false);
@@ -291,7 +299,15 @@ export default function App() {
   // 保证 appData 变更后稳定持久化写入 IndexedDB / 本地存储（后台防抖安全存储）
   useEffect(() => {
     if (appDataHydrated && appDataDirtyRef.current) {
-      saveAppData(appData);
+      const snapshot = appData;
+      saveAppData(snapshot).then(saved => {
+        if (saved) setAppData(prev => {
+          if (prev !== snapshot) return prev;
+          const stored = loadAppData();
+          appDataDirtyRef.current = false;
+          return stored;
+        });
+      });
     }
   }, [appData, appDataHydrated]);
 
@@ -308,7 +324,7 @@ export default function App() {
         setAppData(synced);
       }
       setAppDataHydrated(true);
-    });
+    }).catch(error => { if (!cancelled) setStorageLoadError(error.message); });
 
     // Cross-tab sync
     const channel = new BroadcastChannel('tavern_vault_sync');
@@ -1665,7 +1681,7 @@ export default function App() {
 
   const handleImportCurrentSection = async (file: File) => {
     try {
-      if (currentPage === 'st-cards') {
+      if (['st-cards', 'st-presets', 'st-worldbooks', 'st-regex', 'st-scripts', 'st-qr', 'st-themes'].includes(currentPage)) {
         await handleFileUpload([file]);
       } else if (currentPage === 'normal-cards') {
         const nc = await parseNormalCardFile(file);
@@ -3673,6 +3689,17 @@ export default function App() {
     showToast(`已将 ${selectedNormalCardIds.length} 个角色卡移动到 “${target}”`, 'success');
   };
 
+  const [showImportCenter, setShowImportCenter] = useState(false);
+  useEffect(() => {
+    setTavernImportCheckpoint(async apply => {
+      flushSync(() => updateAppData(apply));
+      const snapshot = appDataRef.current;
+      if (!await saveAppData(snapshot, true)) throw Error('本批数据保存失败，请释放存储空间后重试');
+      flushSync(() => setAppData(prev => { if (prev !== snapshot) return prev; appDataDirtyRef.current = false; return loadAppData(); }));
+      return appDataRef.current;
+    });
+    return () => setTavernImportCheckpoint(null);
+  }, [updateAppData]);
   const setStagedDuplicates = (cards: any[]) => {
     updateAppData((prev: any) => ({ ...prev, stagedDuplicateCards: cards }));
   };
@@ -3705,26 +3732,48 @@ export default function App() {
   }, [updateAppData]);
 
   // Apply Staging Vault Decisions (Multi-select, All, or Discard)
-  const handleApplyStagingVaultDecisions = (decisions: Array<{ stagedId: string; action: 'skip' | 'new_version' | 'distinct_face' | 'overwrite' }>) => {
-    if (!decisions.length) return;
+  const handleApplyStagingVaultDecisions = async (decisions: Array<{ stagedId: string; action: 'skip' | 'new_version' | 'distinct_face' | 'overwrite' }>, quiet = false): Promise<boolean> => {
+    if (!decisions.length) return true;
+    if (decisions.length > 32) {
+      showToast(`正在分批处理 ${decisions.length} 张暂存卡片…`, 'info');
+      for (let i = 0; i < decisions.length; i += 32) {
+        if (!await handleApplyStagingVaultDecisions(decisions.slice(i, i + 32), true)) return false;
+        await new Promise(resolve => setTimeout(resolve, 0));
+      }
+      showToast('暂存卡片已分批处理完成', 'success');
+      return true;
+    }
 
+    const fullCards = new Map<string, CardEntry>();
+    const fullAssets = new Map<string, any>();
+    try {
+      for (const decision of decisions) {
+        if (decision.action === 'skip') continue;
+        const staged = appDataRef.current.stagedDuplicateCards?.find(s => s.id === decision.stagedId);
+        if (!staged) continue;
+        for (const card of [staged.incomingCard, appDataRef.current.cards.find(c => c.id === staged.matchedCard.id) || staged.matchedCard]) if (!fullCards.has(card.id)) fullCards.set(card.id, await hydrateCard(card));
+      }
+      const owners = new Set([...fullCards.keys()]);
+      for (const asset of [...(appDataRef.current.stWorldBooks || []), ...(appDataRef.current.stRegexScripts || []), ...(appDataRef.current.scripts || [])]) if (asset.sourceCardId && owners.has(asset.sourceCardId)) fullAssets.set(asset.id, await hydrateCardAsset(asset));
+    } catch (error: any) { showToast(error.message, 'error'); return false; }
     let newVerCount = 0;
     let distinctCount = 0;
     let overwriteCount = 0;
     let skipCount = 0;
 
-    updateAppData(prev => {
-      let currentCards = [...prev.cards];
-      let currentWorldBooks = [...(prev.stWorldBooks || [])];
-      let currentScripts = [...(prev.scripts || [])];
-      let currentRegexes = [...(prev.stRegexScripts || [])];
+    flushSync(() => updateAppData(prev => {
+      let currentCards = prev.cards.map(card => fullCards.get(card.id) || card);
+      let currentWorldBooks = (prev.stWorldBooks || []).map(item => fullAssets.get(item.id) || item);
+      let currentScripts = (prev.scripts || []).map(item => fullAssets.get(item.id) || item);
+      let currentRegexes = (prev.stRegexScripts || []).map(item => fullAssets.get(item.id) || item);
       let currentStaged = [...(prev.stagedDuplicateCards || [])];
 
       for (const d of decisions) {
         const stagedIdx = currentStaged.findIndex(s => s.id === d.stagedId);
         if (stagedIdx === -1) continue;
         const stagedItem = currentStaged[stagedIdx];
-        const { incomingCard, matchedCard } = stagedItem;
+        const incomingCard = fullCards.get(stagedItem.incomingCard.id) || stagedItem.incomingCard;
+        const matchedCard = fullCards.get(stagedItem.matchedCard.id) || stagedItem.matchedCard;
 
         const isTavernItem = (stagedItem as any).fileSource === 'tavern' || (stagedItem as any).isTavernSource === true || incomingCard.source === 'tavern-folder' || incomingCard.source === 'tavern-network';
 
@@ -3759,6 +3808,8 @@ export default function App() {
                 author: targetCard.author,
                 rawData: JSON.parse(JSON.stringify(targetCard.rawData || {})),
                 coverImage: targetCard.coverImage,
+                coverFileKey: targetCard.coverFileKey,
+                thumbnailKey: targetCard.thumbnailKey,
                 editHistory: targetCard.editHistory ? JSON.parse(JSON.stringify(targetCard.editHistory)) : undefined,
                 customTags: targetCard.customTags ? [...targetCard.customTags] : [],
                 boundWorldBooks: targetCard.boundWorldBooks ? [...targetCard.boundWorldBooks] : [],
@@ -3838,7 +3889,11 @@ export default function App() {
               fileType: incomingCard.fileType || targetCard.fileType,
               version: incomingCard.version || targetCard.version,
               author: incomingCard.author || targetCard.author,
-              coverImage: incomingCard.coverImage || targetCard.coverImage,
+              coverImage: incomingCard.coverFileKey ? incomingCard.coverImage : incomingCard.coverImage || targetCard.coverImage,
+              coverFileKey: incomingCard.coverFileKey || targetCard.coverFileKey,
+              thumbnailKey: incomingCard.thumbnailKey || targetCard.thumbnailKey,
+              importInfo: incomingCard.importInfo || targetCard.importInfo,
+              payloadStub: false,
               updatedAt: Date.now(),
               importedAt: Date.now(),
               source: shouldAddTavernTag ? 'tavern-folder' : 'local',
@@ -4014,7 +4069,11 @@ export default function App() {
               fileType: incomingCard.fileType || targetCard.fileType,
               version: incomingCard.version || targetCard.version,
               author: incomingCard.author || targetCard.author,
-              coverImage: incomingCard.coverImage || targetCard.coverImage,
+              coverImage: incomingCard.coverFileKey ? incomingCard.coverImage : incomingCard.coverImage || targetCard.coverImage,
+              coverFileKey: incomingCard.coverFileKey || targetCard.coverFileKey,
+              thumbnailKey: incomingCard.thumbnailKey || targetCard.thumbnailKey,
+              importInfo: incomingCard.importInfo || targetCard.importInfo,
+              payloadStub: false,
               updatedAt: Date.now(),
               source: shouldAddTavernTag ? 'tavern-folder' : 'local',
               boundWorldBooks: extracted.boundWbIds.length > 0 ? extracted.boundWbIds : (targetCard.boundWorldBooks || []),
@@ -4041,8 +4100,24 @@ export default function App() {
         stagedDuplicateCards: currentStaged
       });
 
+      const actions = new Map(decisions.map(d => [d.stagedId, d.action]));
+      const previousStaged = new Map((prev.stagedDuplicateCards || []).map(s => [s.id, s]));
+      synced.importRecords = (prev.importRecords || []).map(record => {
+        const target = record.targets.find(t => t.field === 'stagedDuplicateCards' && actions.has(t.id));
+        if (!target) return record;
+        const action = actions.get(target.id)!, stage = previousStaged.get(target.id);
+        if (!stage || action === 'skip') return { ...record, status: 'skipped', message: '已放弃此重复文件', targets: [] };
+        const owner = synced.cards.find(card => card.importInfo?.recordId === record.recordId) || synced.cards.find(card => card.id === stage.matchedCard.id);
+        if (!owner) return record;
+        return { ...record, status: 'imported', message: '已通过暂存处确认导入', targets: [
+          { field: 'cards', id: owner.id },
+          ...(synced.stWorldBooks || []).filter(item => item.sourceCardId === owner.id).map(item => ({ field: 'stWorldBooks' as const, id: item.id })),
+          ...(synced.stRegexScripts || []).filter(item => item.sourceCardId === owner.id).map(item => ({ field: 'stRegexScripts' as const, id: item.id })),
+          ...(synced.scripts || []).filter(item => item.sourceCardId === owner.id).map(item => ({ field: 'scripts' as const, id: item.id })),
+        ] };
+      });
       return synced;
-    });
+    }));
 
     const summaryParts: string[] = [];
     if (newVerCount > 0) summaryParts.push(`升级版本 ${newVerCount} 张`);
@@ -4050,7 +4125,9 @@ export default function App() {
     if (overwriteCount > 0) summaryParts.push(`覆盖 ${overwriteCount} 张`);
     if (skipCount > 0) summaryParts.push(`放弃/跳过 ${skipCount} 张`);
 
-    showToast(`暂存处处理完成：${summaryParts.join('，') || '已完成'}`, 'success');
+    if (!await saveAppData(appDataRef.current, true)) { showToast('暂存处理结果未保存，请释放存储空间后重试', 'error'); return false; }
+    if (!quiet) showToast(`暂存处处理完成：${summaryParts.join('，') || '已完成'}`, 'success');
+    return true;
   };
 
   const handleClearAllStagingVault = () => {
@@ -4061,13 +4138,16 @@ export default function App() {
     showToast('已清空暂缓去重库', 'info');
   };
 
-  const exportAsJson = useCallback((card: CardEntry) => {
+  const exportAsJson = useCallback(async (card: CardEntry) => {
+    try {
+    card = await hydrateCard(card);
     const rawCardData = getCurrentCardData(card);
-    const pureData = injectBoundAssetsForExport(card, appDataRef.current);
+    const pureData = injectBoundAssetsForExport(card, await hydrateCardBoundAssets(card, appDataRef.current));
     const jsonStr = JSON.stringify(pureData, null, 2);
     const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8' });
     triggerFileDownload(blob, `${getCardDisplayName(card)}.json`);
     showToast('JSON 导出成功（已移除附加图片与分类数据）', 'success');
+    } catch (error: any) { showToast(`导出失败：${error.message}`, 'error'); }
   }, []);
 
   const exportAsPng = useCallback(async (card: CardEntry) => {
@@ -4241,7 +4321,8 @@ export default function App() {
     
     try {
       const zipFiles = [];
-      for (const card of cardsToExport) {
+      for (const summary of cardsToExport) {
+        const card = await hydrateCard(summary);
         const baseName = getCardDisplayName(card).replace(/[\\/:*?"<>|]/g, '_');
         const historyVersions = card.versions || [];
         const activeVerNum = card.activeVersionNumber || (historyVersions.length + 1);
@@ -4256,7 +4337,7 @@ export default function App() {
             content: pngBlob
           });
         } catch {
-          const pureData = injectBoundAssetsForExport(card, appDataRef.current);
+          const pureData = injectBoundAssetsForExport(card, await hydrateCardBoundAssets(card, appDataRef.current));
           zipFiles.push({
             name: `${activeFileName}.json`,
             content: JSON.stringify(pureData, null, 2)
@@ -4293,7 +4374,7 @@ export default function App() {
               content: pngBlob
             });
           } catch {
-            const pureData = injectBoundAssetsForExport(histCard, appDataRef.current);
+            const pureData = injectBoundAssetsForExport(histCard, await hydrateCardBoundAssets(histCard, appDataRef.current));
             zipFiles.push({
               name: `${histFileName}.json`,
               content: JSON.stringify(pureData, null, 2)
@@ -4379,28 +4460,42 @@ export default function App() {
     setCardVisibleCount(CARD_PAGE_SIZE);
   }, [searchQuery, currentGroup, cardSortOrder]);
 
-  // 滚动到底部哨兵元素进入视口时自动加载下一页角色卡。
-  useEffect(() => {
-    const el = cardLoadMoreRef.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0]?.isIntersecting) {
-          setCardVisibleCount((prev) => Math.min(prev + CARD_PAGE_SIZE, filteredCards.length));
-        }
-      },
-      { rootMargin: '600px' }
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [filteredCards.length]);
-
-  const visibleFilteredCards = useMemo(() => filteredCards.slice(0, cardVisibleCount), [filteredCards, cardVisibleCount]);
+  useEffect(() => setCardVisibleCount(n => Math.min(n, Math.max(CARD_PAGE_SIZE, Math.ceil(filteredCards.length / CARD_PAGE_SIZE) * CARD_PAGE_SIZE))), [filteredCards.length, cardTagFilter]);
+  const visibleFilteredCards = useMemo(() => filteredCards.slice(Math.max(0, cardVisibleCount - CARD_PAGE_SIZE), cardVisibleCount), [filteredCards, cardVisibleCount]);
 
   // Current Active Detail Card
-  const activeDetailCard = useMemo(() => {
+  const detailCardSummary = useMemo(() => {
     return detailCardId ? appData.cards.find((c) => c.id === detailCardId) : undefined;
   }, [appData.cards, detailCardId]);
+  const { card: activeDetailCard, loading: detailLoading, error: detailLoadError } = useCardPayload(detailCardSummary);
+  useEffect(() => {
+    if (activeDetailCard && detailCardSummary?.payloadStub) setAppData(prev => ({ ...prev, cards: prev.cards.map(card => card === detailCardSummary ? activeDetailCard : card) }));
+  }, [activeDetailCard, detailCardSummary]);
+  useEffect(() => {
+    if (!activeDetailCard) return;
+    let cancelled = false;
+    const resources = [
+      ...(appData.stWorldBooks || []).filter(item => item.assetStub && activeDetailCard.boundWorldBooks?.includes(item.id)).map(item => ({ field: 'stWorldBooks', item })),
+      ...(appData.stRegexScripts || []).filter(item => item.assetStub && activeDetailCard.boundRegexes?.includes(item.id)).map(item => ({ field: 'stRegexScripts', item })),
+      ...(appData.scripts || []).filter(item => item.assetStub && activeDetailCard.boundScripts?.includes(item.id)).map(item => ({ field: 'scripts', item })),
+    ];
+    Promise.all(resources.map(async ({ field, item }) => ({ field, old: item, full: await hydrateCardAsset(item) }))).then(loaded => {
+      if (cancelled || !loaded.length) return;
+      setAppData(prev => {
+        const next = { ...prev };
+        for (const { field, old, full } of loaded) (next as any)[field] = ((next as any)[field] || []).map((item: any) => item === old ? full : item);
+        return next;
+      });
+    }).catch(error => { if (!cancelled) showToast(error.message, 'error'); });
+    return () => { cancelled = true; };
+  }, [activeDetailCard, appData.stWorldBooks, appData.stRegexScripts, appData.scripts]);
+  useEffect(() => {
+    if (detailCardId || appDataDirtyRef.current) return;
+    setAppData(prev => {
+      const stored = loadAppData();
+      return prev === stored ? prev : { ...prev, cards: stored.cards, stWorldBooks: stored.stWorldBooks, stRegexScripts: stored.stRegexScripts, scripts: stored.scripts };
+    });
+  }, [detailCardId]);
   const previewVersion = null;
   const displayDetailCard = activeDetailCard;
   const activeLiveCardData = useMemo(() => activeDetailCard ? getCurrentCardData(activeDetailCard) : null, [activeDetailCard]);
@@ -4740,14 +4835,15 @@ export default function App() {
     updateAppData
   };
   return (
-    <>
+    <TavernImportContext.Provider value={{ importFiles: handleFileUpload, openCenter: () => setShowImportCenter(true) }}>
     
     {!appDataHydrated && (
       <div className="fixed inset-0 z-[99999] flex flex-col items-center justify-center bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 transition-opacity duration-300">
         <div className="flex flex-col items-center space-y-4">
           <div className="w-10 h-10 border-4 border-blue-200 dark:border-blue-900 border-t-blue-600 dark:border-t-blue-500 rounded-full animate-spin"></div>
-          <div className="text-sm font-semibold tracking-wide">正在从缓存读取数据...</div>
-          <div className="text-[10px] text-zinc-500">请稍候，首次加载或数据量较大时可能需要几秒钟</div>
+          <div className="text-sm font-semibold tracking-wide">{storageLoadError || '正在从缓存读取数据…'}</div>
+          <div className="text-[10px] text-zinc-500">{storageLoadError ? '已有数据保留，请重试读取或从备份恢复。' : '请稍候，首次加载或数据量较大时可能需要几秒钟'}</div>
+          {storageLoadError && <button className="px-4 py-2 border" onClick={() => location.reload()}>重新读取</button>}
         </div>
       </div>
     )}
@@ -4869,6 +4965,8 @@ export default function App() {
                 showToast={showToast}
                 sortItemList={sortItemList}
               />
+            ) : currentPage === 'st-qr' ? (
+              <STQuickRepliesSection appData={appData} updateAppData={updateAppData} showToast={showToast} />
             ) : currentPage === 'st-scripts' ? (
               <STScriptsSection
                 onOpenPresetDetail={(id) => { setJumpTargetId(id); setCurrentPage('st-presets'); }}
@@ -5095,10 +5193,10 @@ export default function App() {
         type="file"
         ref={uploadFileInputRef}
         multiple
-        accept=".png,.json,.webp,image/png,application/json"
+        accept=".png,.json,.css,.js,.zip"
         className="hidden"
         onChange={(e) => {
-          if (e.target.files) handleFileUpload(e.target.files);
+          if (e.target.files) void handleFileUpload(Array.from(e.target.files));
           e.target.value = '';
         }}
       />
@@ -5106,11 +5204,12 @@ export default function App() {
       <input
         type="file"
         ref={qrFileInputRef}
+        multiple
         accept=".json,application/json,text/plain"
         className="hidden"
         onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (file) handleQrFileImport(file);
+          const files = Array.from(e.target.files || []);
+          if (files.length) void handleFileUpload(files);
           e.target.value = '';
         }}
       />
@@ -5399,8 +5498,10 @@ export default function App() {
       { /* Card Detail Modal is rendered unconditionally, internally it checks for displayDetailCard */ }
       <CardDetailModal {...cardDetailProps} />
 
+      <ImportCenter open={showImportCenter} onClose={() => setShowImportCenter(false)} appData={appData} updateAppData={updateAppData} showToast={showToast} />
+      {(detailLoading || detailLoadError) && <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/40"><div className="bg-[var(--modal-solid-bg)] p-6 max-w-md w-[calc(100%-2rem)]"><p>{detailLoading ? '正在读取完整卡片数据…' : detailLoadError}</p><button className="mt-4 underline" onClick={() => setDetailCardId(null)}>关闭</button></div></div>}
       <GlobalModals {...appModalProps} />
     </div>
-    </>
+    </TavernImportContext.Provider>
   );
 }

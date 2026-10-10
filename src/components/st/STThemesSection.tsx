@@ -1,3 +1,4 @@
+import { useTavernImport } from '../../hooks/TavernImportContext';
 import { ManagementSearch, ManagementHeader, ManagementToolbarFrame, ManagementBatchBar, ManagementBatchOverlay } from '../ui/ManagementChrome';
 import { ActionButton } from '../ui/ActionButton';
 import React, { useRef } from 'react';
@@ -33,7 +34,9 @@ export const STThemesSection = (props: any) => {
     }
   };
 
+  const tavernImport = useTavernImport();
   const handleLocalFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (tavernImport && e.target.files) { const files = Array.from(e.target.files); e.target.value = ''; void tavernImport.importFiles(files); return; }
     if (e.target.files && e.target.files.length > 0) {
       if (handleThemeDocumentFileUpload) {
         handleThemeDocumentFileUpload(e.target.files);
@@ -91,7 +94,7 @@ export const STThemesSection = (props: any) => {
                   type="file"
                   ref={localFileInputRef}
                   multiple
-                  accept=".docx,.txt,.json,.css"
+                  accept=".png,.json,.css,.js,.zip"
                   className="hidden"
                   onChange={handleLocalFileChange}
                 />

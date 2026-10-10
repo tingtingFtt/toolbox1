@@ -1,3 +1,6 @@
+import { hydrateCardAsset } from '../../utils/largeCardStore';
+import { hydrateCard } from '../../utils/largeCardStore';
+import { useTavernImport } from '../../hooks/TavernImportContext';
 import { ManagementSearch, ManagementHeader, ManagementToolbarFrame, ManagementBatchBar, ManagementGrid, ManagementBatchOverlay } from '../ui/ManagementChrome';
 import { ActionButton } from '../ui/ActionButton';
 import { DetailPanel, DetailHeader, DetailTabs, detailFooterClass, detailIconButtonClass } from '../ui/DetailChrome';
@@ -43,6 +46,7 @@ export const STRegexSection = React.memo<STRegexSectionProps>(({
   jumpTargetId,
   onClearJumpTarget,
 }) => {
+  const tavernImport = useTavernImport();
   const [searchQuery, setSearchQuery] = useState(() => sessionStore.stRegex.searchQuery);
   const [sourceFilter, setSourceFilter] = useState<ResourceSourceFilter>('all');
   const [tagFilter, setTagFilter] = useState<string[]>(() => sessionStore.stRegex.tagFilter);
@@ -89,6 +93,12 @@ export const STRegexSection = React.memo<STRegexSectionProps>(({
 
   // Detail / Inspector Modal
   const [activeRegex, setActiveRegex] = useState<STRegexEntry | null>(null);
+  useEffect(() => {
+    if (!activeRegex?.assetStub) return;
+    let cancelled = false;
+    hydrateCardAsset(activeRegex).then(full => { if (!cancelled) { setActiveRegex(full); setRawJsonDraft(JSON.stringify(full.jsonData || full.rules || [], null, 2)); } }).catch(error => { if (!cancelled) { showToast(error.message, 'error'); setActiveRegex(null); } });
+    return () => { cancelled = true; };
+  }, [activeRegex]);
   const [selectedSubRuleIndex, setSelectedSubRuleIndex] = useState<number | null>(null);
 
   useEffect(() => {
@@ -196,6 +206,7 @@ export const STRegexSection = React.memo<STRegexSectionProps>(({
   }, [filtered, sortOrder, sortItemList]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (tavernImport && e.target.files) { const files = Array.from(e.target.files); e.target.value = ''; await tavernImport.importFiles(files); return; }
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
@@ -362,12 +373,18 @@ export const STRegexSection = React.memo<STRegexSectionProps>(({
     setRawJsonDraft(JSON.stringify(rx.jsonData || rx.rules || [rx], null, 2));
   };
 
-  const handleSaveActiveRegex = (updatedRx: STRegexEntry) => {
+  const handleSaveActiveRegex = async (updatedRx: STRegexEntry) => {
     if (updatedRx.sourceResources) {
       updatedRx = { ...updatedRx, jsonData: (updatedRx.rules || []).map(cleanPresetResource) };
     }
+    let fullOwner: any = null;
+    if (updatedRx.sourceCardId) {
+      const owner = appData.cards.find(c => c.id === updatedRx.sourceCardId);
+      try { if (owner) fullOwner = await hydrateCard(owner); }
+      catch (error: any) { showToast(error.message, 'error'); return; }
+    }
     updateAppData((prev) => {
-      let updatedCards = prev.cards || [];
+      let updatedCards = (prev.cards || []).map(card => card.id === fullOwner?.id ? { ...card, ...fullOwner } : card);
       if (updatedRx.sourceCardId) {
         updatedCards = syncStRegexBackToCards(updatedRx, updatedCards);
       }
@@ -450,7 +467,8 @@ export const STRegexSection = React.memo<STRegexSectionProps>(({
     }
   };
 
-  const handleExportRegex = (rx: STRegexEntry) => {
+  const handleExportRegex = async (rx: STRegexEntry) => {
+    rx = await hydrateCardAsset(rx);
     const payload = rx.jsonData || rx.rules || [{
       scriptName: rx.scriptName,
       findRegex: rx.findRegex,
@@ -617,25 +635,13 @@ export const STRegexSection = React.memo<STRegexSectionProps>(({
 
   const PAGE_SIZE = 50;
   const [visibleCount, setVisibleCount] = React.useState(PAGE_SIZE);
-  const loadMoreRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
     setVisibleCount(PAGE_SIZE);
-  }, [searchQuery, categoryFilter, tagFilter, sortOrder]);
+  }, [searchQuery, categoryFilter, tagFilter, sortOrder, sourceFilter]);
 
-  React.useEffect(() => {
-    const el = loadMoreRef.current;
-    if (!el) return;
-    const observer = new IntersectionObserver((entries) => {
-      if (entries[0]?.isIntersecting) {
-        setVisibleCount(prev => Math.min(prev + PAGE_SIZE, sorted.length));
-      }
-    }, { rootMargin: '600px' });
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [sorted.length]);
-
-  const visibleSorted = sorted.slice(0, visibleCount);
+  React.useEffect(() => setVisibleCount(n => Math.min(n, Math.max(PAGE_SIZE, Math.ceil(sorted.length / PAGE_SIZE) * PAGE_SIZE))), [sorted.length]);
+  const visibleSorted = sorted.slice(Math.max(0, visibleCount - PAGE_SIZE), visibleCount);
 
   return (
     <div className="max-w-7xl mx-auto w-full space-y-5 ">
@@ -645,7 +651,7 @@ export const STRegexSection = React.memo<STRegexSectionProps>(({
         ref={fileInputRef}
         onChange={handleFileUpload}
         multiple
-        accept=".json"
+        accept=".png,.json,.css,.js,.zip"
         className="hidden"
       />
 
@@ -806,7 +812,7 @@ export const STRegexSection = React.memo<STRegexSectionProps>(({
         <ManagementGrid className=" grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {visibleSorted.map((rx) => {
             const isSelected = selectedIds.includes(rx.id);
-            const rulesCount = rx.rules?.length || 1;
+            const rulesCount = rx.entryCount ?? (rx.rules?.length || 1);
             const activeVerLabel = rx.activeVersionLabel || `v${(rx.versions?.length || 0) + 1}`;
             return (
               <div
@@ -944,7 +950,12 @@ export const STRegexSection = React.memo<STRegexSectionProps>(({
       )}
 
       {/* Detail / Inspector Modal */}
-      {activeRegex && (
+      <div className="flex justify-center items-center gap-4 flex-wrap py-4 text-xs">
+        <button disabled={visibleCount <= PAGE_SIZE} onClick={() => setVisibleCount(n => Math.max(PAGE_SIZE, n - PAGE_SIZE))}>上一页</button>
+        <span>第 {Math.ceil(visibleCount / PAGE_SIZE)} / {Math.max(1, Math.ceil(sorted.length / PAGE_SIZE))} 页 · 共 {sorted.length} 个集合</span>
+        <button disabled={visibleCount >= sorted.length} onClick={() => setVisibleCount(n => n + PAGE_SIZE)}>下一页</button>
+      </div>
+      {activeRegex && !activeRegex.assetStub && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-0 bg-zinc-900/40 dark:bg-black/60 backdrop-blur-sm animate-in fade-in" onClick={() => setActiveRegex(null)} role="dialog" aria-modal="true">
           <div 
             className="absolute inset-0 bg-transparent transition-opacity"

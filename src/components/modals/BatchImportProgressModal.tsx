@@ -255,12 +255,15 @@ export const BatchImportProgressModal: React.FC<BatchImportProgressModalProps> =
               </span>
               <span>
                 {state.isCompleted
-                  ? '已全部完成'
+                  ? state.currentPhase === 'aborted' ? '已取消，完成批次保留' : '已全部完成'
                   : `剩余待处理: ${Math.max(0, state.total - state.current)} 个文件`}
               </span>
             </div>
           </div>
 
+          <div className="flex flex-wrap items-center gap-2 text-[10px]" aria-label="导入流程">
+            {[['parsing', '读取 / 类型识别'], ['diffing', '索引查重'], ['extracting', '分批入库'], ['complete', '完成']].map(([phase, label]) => <span key={phase} className={`px-2 py-1 border ${state.currentPhase === phase ? 'border-[var(--accent)] text-[var(--accent)] font-semibold' : 'opacity-60'}`}>{label}</span>)}
+          </div>
           {/* Live Statistics Cards */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             <div className="p-2 sm:p-2.5 rounded-xl border border-emerald-500/20 bg-emerald-500/10 text-emerald-900 dark:text-emerald-300 flex flex-col items-center text-center">
@@ -523,3 +526,4 @@ export const BatchImportProgressModal: React.FC<BatchImportProgressModalProps> =
     </div>
   );
 };
+

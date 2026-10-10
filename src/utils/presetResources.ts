@@ -54,10 +54,10 @@ export function getPresetResources(json: any, kind: 'regex' | 'script'): PresetR
           ['data', 'extensions', 'regex_scripts'],
         ]
       : [
-          ['extensions', 'tavern_helper', 'scripts'],
+          ['extensions', 'tavern_helper'],
           ['extensions', 'scripts'],
           ['scripts'],
-          ['data', 'extensions', 'tavern_helper', 'scripts'],
+          ['data', 'extensions', 'tavern_helper'],
         ];
   const result: PresetResource[] = [];
   const seen = new Map<string, number>();
@@ -66,10 +66,10 @@ export function getPresetResources(json: any, kind: 'regex' | 'script'): PresetR
       if (
         kind === 'script' &&
         value.length === 2 &&
-        value[0] === 'script' &&
+        typeof value[0] === 'string' &&
         typeof value[1] === 'object'
       ) {
-        visit(value[1], [...path, 1], folder);
+        if (value[0] !== 'variables') visit(value[1], [...path, 1], folder);
       } else value.forEach((item, index) => visit(item, [...path, index], folder));
       return;
     }
@@ -82,11 +82,11 @@ export function getPresetResources(json: any, kind: 'regex' | 'script'): PresetR
       return;
     }
     const isLeaf =
-      kind === 'regex' ||
+      (kind === 'regex' && typeof value.findRegex === 'string') ||
       ['content', 'script', 'code'].some((key) => typeof value[key] === 'string') ||
       value.type === 'script';
     if (!isLeaf) {
-      Object.entries(value).forEach(([key, item]) => visit(item, [...path, key], folder));
+      Object.entries(value).forEach(([key, item]) => { if (key !== 'variables') visit(item, [...path, key], folder); });
       return;
     }
     const nativeId = value.id ?? value.uid;
@@ -337,7 +337,7 @@ function appendResources(json: any, kind: 'regex' | 'script', values: any[]) {
       parent = json.extensions.tavern_helper.scripts ||= [];
     }
   }
-  const wrapped = kind === 'script' && parent.some((value: any) => Array.isArray(value) && value[0] === 'script');
+  const wrapped = kind === 'script' && parent.some((value: any) => Array.isArray(value) && typeof value[0] === 'string');
   parent.push(...values.map(value => wrapped ? ['script', value] : value));
 }
 
@@ -386,6 +386,11 @@ function updateCollection(json: any, old: any, updated: any, kind: 'regex' | 'sc
 export function reconcilePresetResources(previous: AppData, next: AppData): PresetResourceData {
   if (previous.presets === next.presets && previous.stRegexScripts === next.stRegexScripts && previous.scripts === next.scripts && next.presets && next.stRegexScripts && next.scripts)
     return next as PresetResourceData;
+  if (previous.presets === next.presets) {
+    const oldCollections = new Map([...(previous.stRegexScripts || []), ...(previous.scripts || [])].filter(item => item.sourcePresetId).map(item => [item.id, item]));
+    const newCollections = [...(next.stRegexScripts || []), ...(next.scripts || [])].filter(item => item.sourcePresetId);
+    if (oldCollections.size === newCollections.length && newCollections.every(item => oldCollections.get(item.id) === item)) return next as PresetResourceData;
+  }
   const presets = (next.presets || []).map(preset => {
     const oldPreset = previous.presets?.find(item => item.id === preset.id);
     let draft = preset;

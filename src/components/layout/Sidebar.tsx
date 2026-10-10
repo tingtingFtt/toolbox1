@@ -55,6 +55,7 @@ export function Sidebar({ sidebarOpen, setSidebarOpen, currentPage, setCurrentPa
                   { id: 'st-presets', name: 'ST 预设' },
                   { id: 'st-plugins', name: 'ST 插件' },
                   { id: 'st-scripts', name: 'ST 脚本' },
+                  { id: 'st-qr', name: 'ST QR 快捷回复' },
                   { id: 'st-worldbooks', name: 'ST 世界书' },
                   { id: 'st-regex', name: 'ST 正则' },
                   { id: 'chat-logs', name: '聊天记录存储' },
@@ -205,3 +206,4 @@ export function Sidebar({ sidebarOpen, setSidebarOpen, currentPage, setCurrentPa
     </>
   );
 }
+

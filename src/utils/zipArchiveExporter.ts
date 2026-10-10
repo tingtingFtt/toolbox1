@@ -1,3 +1,5 @@
+import { portableCard, hydrateCardAsset } from './largeCardStore';
+import { createSafeJsonBlob } from '../utils';
 import { AppData, ItemVersion } from '../types';
 import { zipSync, strToU8 } from 'fflate';
 
@@ -147,7 +149,7 @@ export async function generateFullDataZipArchive(
   // 1. 根目录全量 JSON 备份
   addFile(
     `完整数据备份_TavernVault_Backup_${dateStrForFile}.json`,
-    JSON.stringify(appData, null, 2)
+    new Uint8Array(await (await createSafeJsonBlob(appData as any, undefined, signal)).arrayBuffer())
   );
 
   // ================= 01. ST 角色卡 =================
@@ -162,7 +164,9 @@ export async function generateFullDataZipArchive(
   const cards = appData.cards || [];
   if (cards.length > 0) {
     stats.totalSections += 1;
-    cards.forEach((card, idx) => {
+    for (let idx = 0; idx < cards.length; idx++) {
+      if (signal?.aborted) throw new DOMException('已取消', 'AbortError');
+      const card = await portableCard(cards[idx]);
       const cardName = sanitizeFileName(card.charName || card.name, `角色卡_${idx + 1}`);
       const verCount = (card.versions || []).length;
       let imgCount = 0;
@@ -240,9 +244,9 @@ export async function generateFullDataZipArchive(
       }
 
       recordStat('ST角色卡', true, verCount, imgCount);
-    });
+    }
 
-    addFile('01_ST角色卡/ST角色卡汇总清单.json', JSON.stringify(cards, null, 2));
+    addFile('01_ST角色卡/ST角色卡汇总清单.json', new Uint8Array(await (await createSafeJsonBlob({ cards }, undefined, signal)).arrayBuffer()));
   }
 
   // ================= 02. ST 主题 =================
@@ -363,7 +367,9 @@ export async function generateFullDataZipArchive(
   const scripts = appData.scripts || [];
   if (scripts.length > 0) {
     stats.totalSections += 1;
-    scripts.forEach((script, idx) => {
+    for (let idx = 0; idx < scripts.length; idx++) {
+      if (signal?.aborted) throw new DOMException('已取消', 'AbortError');
+      const script = await hydrateCardAsset(scripts[idx]);
       const scriptName = sanitizeFileName(script.name, `脚本_${idx + 1}`);
       const verCount = (script.versions || []).length;
       const baseFolder = `05_ST脚本/${scriptName}`;
@@ -382,8 +388,8 @@ export async function generateFullDataZipArchive(
       }
 
       recordStat('ST脚本', true, verCount, 0);
-    });
-    addFile('05_ST脚本/ST脚本汇总清单.json', JSON.stringify(scripts, null, 2));
+    }
+    addFile('05_ST脚本/ST脚本汇总清单.json', new Uint8Array(await (await createSafeJsonBlob({ scripts }, undefined, signal)).arrayBuffer()));
   }
 
   // ================= 06. ST 世界书 =================
@@ -398,7 +404,9 @@ export async function generateFullDataZipArchive(
   const stWorldBooks = appData.stWorldBooks || [];
   if (stWorldBooks.length > 0) {
     stats.totalSections += 1;
-    stWorldBooks.forEach((wb, idx) => {
+    for (let idx = 0; idx < stWorldBooks.length; idx++) {
+      if (signal?.aborted) throw new DOMException('已取消', 'AbortError');
+      const wb = await hydrateCardAsset(stWorldBooks[idx]);
       const wbName = sanitizeFileName(wb.name, `世界书_${idx + 1}`);
       const verCount = (wb.versions || []).length;
       const baseFolder = `06_ST世界书/${wbName}`;
@@ -417,8 +425,8 @@ export async function generateFullDataZipArchive(
       }
 
       recordStat('ST世界书', true, verCount, 0);
-    });
-    addFile('06_ST世界书/ST世界书汇总清单.json', JSON.stringify(stWorldBooks, null, 2));
+    }
+    addFile('06_ST世界书/ST世界书汇总清单.json', new Uint8Array(await (await createSafeJsonBlob({ stWorldBooks }, undefined, signal)).arrayBuffer()));
   }
 
   // ================= 07. ST 正则 =================
@@ -433,7 +441,9 @@ export async function generateFullDataZipArchive(
   const stRegexScripts = appData.stRegexScripts || [];
   if (stRegexScripts.length > 0) {
     stats.totalSections += 1;
-    stRegexScripts.forEach((rx, idx) => {
+    for (let idx = 0; idx < stRegexScripts.length; idx++) {
+      if (signal?.aborted) throw new DOMException('已取消', 'AbortError');
+      const rx = await hydrateCardAsset(stRegexScripts[idx]);
       const rxName = sanitizeFileName(rx.scriptName || (rx as any).name, `正则_${idx + 1}`);
       const verCount = (rx.versions || []).length;
       const baseFolder = `07_ST正则/${rxName}`;
@@ -452,8 +462,8 @@ export async function generateFullDataZipArchive(
       }
 
       recordStat('ST正则', true, verCount, 0);
-    });
-    addFile('07_ST正则/ST正则汇总清单.json', JSON.stringify(stRegexScripts, null, 2));
+    }
+    addFile('07_ST正则/ST正则汇总清单.json', new Uint8Array(await (await createSafeJsonBlob({ stRegexScripts }, undefined, signal)).arrayBuffer()));
   }
 
   // ================= 08. 聊天记录存储 =================
@@ -885,3 +895,4 @@ export async function generateFullDataZipArchive(
     stats
   };
 }
+

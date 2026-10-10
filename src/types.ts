@@ -29,6 +29,14 @@ export interface CardAssociation {
 }
 
 export interface CardEntry {
+  payloadKey?: string;
+  coverFileKey?: string;
+  thumbnailKey?: string;
+  payloadStub?: boolean;
+  contentFingerprint?: string;
+  historyFingerprints?: string[];
+  versionCount?: number;
+  importInfo?: ImportInfo;
   edited?: boolean;
   createdAt?: number;
   updatedAt?: number;
@@ -79,6 +87,7 @@ export interface CardEntry {
 }
 
 export interface ThemeEntry {
+  importInfo?: ImportInfo;
   importedAt?: number;
   id: string;
   name: string;
@@ -158,6 +167,7 @@ export interface HtmlStorageEntry {
 }
 
 export interface PresetEntry {
+  importInfo?: ImportInfo;
   importedAt?: number;
   id: string;
   name: string;
@@ -358,6 +368,10 @@ export interface ScriptItemRule {
 }
 
 export interface ScriptEntry {
+  assetPayloadKey?: string;
+  assetStub?: boolean;
+  entryCount?: number;
+  importInfo?: ImportInfo;
   activeVersionNumber?: number;
   activeVersionLabel?: string;
   activeVersionId?: string;
@@ -406,6 +420,10 @@ export interface ScriptEntry {
 }
 
 export interface STWorldBookEntry {
+  assetPayloadKey?: string;
+  assetStub?: boolean;
+  entryCount?: number;
+  importInfo?: ImportInfo;
   activeVersionNumber?: number;
   activeVersionLabel?: string;
   activeVersionId?: string;
@@ -448,6 +466,10 @@ export interface STWorldBookEntry {
 }
 
 export interface STRegexEntry {
+  assetPayloadKey?: string;
+  assetStub?: boolean;
+  entryCount?: number;
+  importInfo?: ImportInfo;
   activeVersionNumber?: number;
   activeVersionLabel?: string;
   activeVersionId?: string;
@@ -585,7 +607,25 @@ export interface BatchImportProgressState {
   onCancelImport?: () => void;
 }
 
+export type TavernFileKind = 'card' | 'preset' | 'worldbook' | 'regex' | 'script' | 'qr' | 'theme' | 'unknown';
+export interface ImportInfo {
+  recordId: string;
+  kind: TavernFileKind;
+  fileName: string;
+  relativePath: string;
+  source: 'local' | 'folder' | 'tavern';
+  importedAt: number;
+  hash: string;
+}
+export interface ImportRecord extends ImportInfo {
+  id: string;
+  fileKey: string;
+  status: 'imported' | 'failed' | 'skipped' | 'pending';
+  message: string;
+  targets: { field: keyof AppData; id: string }[];
+}
 export interface AppData {
+  importRecords?: ImportRecord[];
 
   scriptCategories?: string[];
   stWorldBookCategories?: string[];

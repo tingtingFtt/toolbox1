@@ -16,7 +16,8 @@ import {
 } from './tavernLedger';
 import { DuplicateAction } from '../components/modals/DuplicateConfirmModal';
 import { DuplicatePromptHandler } from './cardImportProcessor';
-import { isImportAborted } from './importCancellation';
+import { isImportAborted, getActiveImportSignal } from './importCancellation';
+import { runTavernImport, supportedImportFile } from './tavernImportPipeline';
 
 export interface SyncStats {
   newAdded: number;
@@ -33,6 +34,8 @@ export interface SyncStats {
   themes: number;
   plugins?: number;
   scripts?: number;
+  failed?: number;
+  pending?: number;
   details: {
     added: string[];
     updated: string[];
@@ -76,13 +79,14 @@ export async function scanDirectoryHandle(
         nameLower.endsWith('.yaml') ||
         nameLower.endsWith('.yml') ||
         nameLower.endsWith('.zip') ||
-        ((nameLower.endsWith('.js') || nameLower.endsWith('.css')) && (entryPath.toLowerCase().includes('script') || entryPath.toLowerCase().includes('plugin')));
+        nameLower.endsWith('.js') || nameLower.endsWith('.css');
 
       if (!isValidExt) continue;
 
       try {
         const file = await entry.getFile();
         result.push({ file, relativePath: entryPath });
+        if (result.length % 64 === 0) await new Promise(resolve => setTimeout(resolve, 0));
       } catch (e) {
         console.warn(`Could not read file ${entryPath}:`, e);
       }
@@ -152,7 +156,7 @@ export function fileListToFileItems(files: FileList | File[]): FileItemInfo[] {
       pathLower.endsWith('.yaml') ||
       pathLower.endsWith('.yml') ||
       pathLower.endsWith('.zip') ||
-      ((pathLower.endsWith('.js') || pathLower.endsWith('.css')) && (pathLower.includes('script') || pathLower.includes('plugin')));
+      pathLower.endsWith('.js') || pathLower.endsWith('.css');
 
     if (!isValidExt) {
       continue;
@@ -259,7 +263,7 @@ export async function dataTransferToFileItems(items: DataTransferItemList | Data
  * with two-tier duplicate screening, distinct Plugin/Script module routing,
  * folder lifecycle counts, and permanent ledger integration.
  */
-export async function executeSmartSync(
+async function executeLegacySmartSync(
   fileItems: FileItemInfo[],
   currentAppData: AppData,
   onProgress?: SyncProgressCallback,
@@ -1250,4 +1254,25 @@ export async function executeSmartSync(
   const updatedAppData = autoAssociateAllAssets(rawUpdatedAppData);
 
   return { updatedAppData, stats, stagedDuplicates: stagedDuplicatesList };
+}
+
+
+
+// Files and folders share the same content classifier and bounded worker pipeline.
+export async function executeSmartSync(fileItems: FileItemInfo[], currentAppData: AppData, onProgress?: SyncProgressCallback, options?: Parameters<typeof executeLegacySmartSync>[3]) {
+  const supported = fileItems.filter(item => supportedImportFile(item.file.name));
+  const legacy = fileItems.filter(item => !supportedImportFile(item.file.name));
+  const signal = options?.abortSignal || getActiveImportSignal() || new AbortController().signal;
+  const emptyStats: SyncStats = { newAdded: 0, updatedVersions: 0, skippedDuplicates: 0, stagedDuplicates: 0, cards: 0, worlds: 0, regex: 0, chats: 0, presets: 0, themes: 0, plugins: 0, scripts: 0, details: { added: [], updated: [], skipped: [], staged: [] } };
+  const asStats = (s: any): SyncStats => ({ ...emptyStats, newAdded: s.added, failed: s.failed, pending: s.pending, skippedDuplicates: s.skipped, stagedDuplicates: s.staged, cards: s.counts.card || 0, worlds: s.counts.worldbook || 0, regex: s.counts.regex || 0, presets: s.counts.preset || 0, themes: s.counts.theme || 0, scripts: (s.counts.script || 0) + (s.counts.qr || 0), details: emptyStats.details });
+  const result = await runTavernImport(supported, currentAppData, { signal, source: options?.isTavernSource ? 'tavern' : 'folder', folderId: options?.folderId || options?.folderName, onProgress: p => onProgress?.(p.total ? (p.current / p.total) * 100 : 0, p.name, asStats(p.stats)) });
+  if (result.cancelled || signal.aborted) throw new DOMException('已终止导入，已完成的批次已保存', 'AbortError');
+  const stats = asStats(result.stats);
+  if (legacy.length) {
+    const rest = await executeLegacySmartSync(legacy, result.updatedAppData, onProgress, options);
+    const merged = { ...stats };
+    for (const key of Object.keys(stats) as (keyof SyncStats)[]) if (typeof stats[key] === 'number') (merged as any)[key] += Number(rest.stats[key] || 0);
+    return { ...rest, stats: merged, stagedDuplicates: [...result.stagedDuplicates, ...rest.stagedDuplicates] };
+  }
+  return { updatedAppData: result.updatedAppData, stats, stagedDuplicates: result.stagedDuplicates };
 }

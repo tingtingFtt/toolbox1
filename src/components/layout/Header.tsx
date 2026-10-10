@@ -1,3 +1,4 @@
+import { useTavernImport } from '../../hooks/TavernImportContext';
 import React from 'react';
 import { BaseButton } from '../ui/BaseButton';
 import { Menu, Save, FolderPlus, Download, Check, Upload, QrCode, Settings, Palette, Home, Dices } from 'lucide-react';
@@ -10,6 +11,7 @@ export const PAGE_NAMES: Record<string, string> = {
   'st-presets': 'ST 预设',
   'st-plugins': 'ST 插件',
   'st-scripts': 'ST 脚本',
+  'st-qr': 'ST QR 快捷回复',
   'st-worldbooks': 'ST 世界书',
   'st-regex': 'ST 正则',
   'chat-logs': '聊天记录存储',
@@ -50,6 +52,7 @@ export function Header({
   isInspectMode = false,
   setIsInspectMode = () => {}
 }: any) {
+  const tavernImport = useTavernImport();
   return (
     <>
         {/* Header Bar */}
@@ -100,6 +103,7 @@ export function Header({
             </div>
 
             <div className="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
+              {tavernImport && <button aria-label="导入中心" title="导入中心：类型识别、单文件重试与删除" onClick={tavernImport.openCenter} className="p-1.5 sm:p-2 flex items-center gap-1 text-xs shrink-0"><Upload className="w-4 h-4" /><span className="hidden md:inline">导入中心</span></button>}
               {/* 命运抽卡按钮 (仅展示图标) */}
               <button
                 data-design-id="header-gacha-btn"
@@ -159,3 +163,4 @@ export function Header({
     </>
   );
 }
+

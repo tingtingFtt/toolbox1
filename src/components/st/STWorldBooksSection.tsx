@@ -1,3 +1,6 @@
+import { hydrateCardAsset } from '../../utils/largeCardStore';
+import { hydrateCard } from '../../utils/largeCardStore';
+import { useTavernImport } from '../../hooks/TavernImportContext';
 import { ManagementSearch, ManagementHeader, ManagementToolbarFrame, ManagementBatchBar, ManagementGrid, ManagementBatchOverlay } from '../ui/ManagementChrome';
 import { DetailTabBar, DetailTabButton, DetailPanel, DetailHeader, DetailBody, DetailFooter } from '../ui/DetailChrome';
 import { ActionButton } from '../ui/ActionButton';
@@ -39,6 +42,7 @@ export const STWorldBooksSection = React.memo<STWorldBooksSectionProps>(({
   jumpTargetId,
   onClearJumpTarget,
 }) => {
+  const tavernImport = useTavernImport();
   const [searchQuery, setSearchQuery] = useState(() => sessionStore.stWorldBooks.searchQuery);
   const [tagFilter, setTagFilter] = useState<string[]>(() => sessionStore.stWorldBooks.tagFilter);
   const [categoryFilter, setCategoryFilter] = useState(() => sessionStore.stWorldBooks.categoryFilter);
@@ -84,6 +88,12 @@ export const STWorldBooksSection = React.memo<STWorldBooksSectionProps>(({
 
   // Detail Modal State
   const [activeWb, setActiveWb] = useState<STWorldBookEntry | null>(null);
+  useEffect(() => {
+    if (!activeWb?.assetStub) return;
+    let cancelled = false;
+    hydrateCardAsset(activeWb).then(full => { if (!cancelled) { setActiveWb(full); setRawJsonDraft(JSON.stringify(full.jsonData || { entries: full.entries }, null, 2)); } }).catch(error => { if (!cancelled) { showToast(error.message, 'error'); setActiveWb(null); } });
+    return () => { cancelled = true; };
+  }, [activeWb]);
 
   useEffect(() => {
     if (jumpTargetId && appData.stWorldBooks) {
@@ -170,6 +180,7 @@ export const STWorldBooksSection = React.memo<STWorldBooksSectionProps>(({
   }, [filtered, sortOrder, sortItemList]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (tavernImport && e.target.files) { const files = Array.from(e.target.files); e.target.value = ''; await tavernImport.importFiles(files); return; }
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
@@ -320,9 +331,15 @@ export const STWorldBooksSection = React.memo<STWorldBooksSectionProps>(({
     setRawJsonDraft(JSON.stringify(wb.jsonData || { entries: wb.entries }, null, 2));
   };
 
-  const handleSaveActiveWb = (updatedWb: STWorldBookEntry) => {
+  const handleSaveActiveWb = async (updatedWb: STWorldBookEntry) => {
+    let fullOwner: any = null;
+    if (updatedWb.sourceCardId) {
+      const owner = appData.cards.find(c => c.id === updatedWb.sourceCardId);
+      try { if (owner) fullOwner = await hydrateCard(owner); }
+      catch (error: any) { showToast(error.message, 'error'); return; }
+    }
     updateAppData((prev) => {
-      let updatedCards = prev.cards || [];
+      let updatedCards = (prev.cards || []).map(card => card.id === fullOwner?.id ? { ...card, ...fullOwner } : card);
       if (updatedWb.sourceCardId) {
         updatedCards = syncStWorldBookBackToCards(updatedWb, updatedCards);
       }
@@ -336,7 +353,8 @@ export const STWorldBooksSection = React.memo<STWorldBooksSectionProps>(({
     showToast(updatedWb.sourceCardId ? '世界书已保存并同步回对应角色卡！' : '世界书已保存！', 'success');
   };
 
-  const handleExportWb = (wb: STWorldBookEntry) => {
+  const handleExportWb = async (wb: STWorldBookEntry) => {
+    wb = await hydrateCardAsset(wb);
     const payload = wb.jsonData || {
       name: wb.name,
       description: wb.description,
@@ -470,25 +488,13 @@ export const STWorldBooksSection = React.memo<STWorldBooksSectionProps>(({
 
   const PAGE_SIZE = 50;
   const [visibleCount, setVisibleCount] = React.useState(PAGE_SIZE);
-  const loadMoreRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
     setVisibleCount(PAGE_SIZE);
   }, [searchQuery, categoryFilter, tagFilter, sortOrder]);
 
-  React.useEffect(() => {
-    const el = loadMoreRef.current;
-    if (!el) return;
-    const observer = new IntersectionObserver((entries) => {
-      if (entries[0]?.isIntersecting) {
-        setVisibleCount(prev => Math.min(prev + PAGE_SIZE, sorted.length));
-      }
-    }, { rootMargin: '600px' });
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [sorted.length]);
-
-  const visibleSorted = sorted.slice(0, visibleCount);
+  React.useEffect(() => setVisibleCount(n => Math.min(n, Math.max(PAGE_SIZE, Math.ceil(sorted.length / PAGE_SIZE) * PAGE_SIZE))), [sorted.length]);
+  const visibleSorted = sorted.slice(Math.max(0, visibleCount - PAGE_SIZE), visibleCount);
 
   return (
     <div className="max-w-7xl mx-auto w-full space-y-5 ">
@@ -498,7 +504,7 @@ export const STWorldBooksSection = React.memo<STWorldBooksSectionProps>(({
         ref={fileInputRef}
         onChange={handleFileUpload}
         multiple
-        accept=".json"
+        accept=".png,.json,.css,.js,.zip"
         className="hidden"
       />
 
@@ -743,7 +749,7 @@ export const STWorldBooksSection = React.memo<STWorldBooksSectionProps>(({
                   {/* Stats (Tokens, Entries) */}
                   <div className="flex items-center gap-1.5 mt-1.5 mb-2">
                     <span className="px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-[9px] font-medium text-zinc-600 dark:text-zinc-400">
-                      {(Array.isArray(wb.entries) ? wb.entries : (Object.values(wb.entries || {}) as any[])).length} 个词条
+                      {wb.entryCount ?? (Array.isArray(wb.entries) ? wb.entries : (Object.values(wb.entries || {}) as any[])).length} 个词条
                     </span>
                     <span className="px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-950/50 text-[9px] font-medium text-amber-700 dark:text-amber-400">
                       ~{totalTokens} Tokens
@@ -812,7 +818,12 @@ export const STWorldBooksSection = React.memo<STWorldBooksSectionProps>(({
       )}
 
       {/* WorldBook Detail Modal */}
-      {activeWb && (
+      <div className="flex justify-center items-center gap-4 flex-wrap py-4 text-xs">
+        <button disabled={visibleCount <= PAGE_SIZE} onClick={() => setVisibleCount(n => Math.max(PAGE_SIZE, n - PAGE_SIZE))}>上一页</button>
+        <span>第 {Math.ceil(visibleCount / PAGE_SIZE)} / {Math.max(1, Math.ceil(sorted.length / PAGE_SIZE))} 页 · 共 {sorted.length} 个集合</span>
+        <button disabled={visibleCount >= sorted.length} onClick={() => setVisibleCount(n => n + PAGE_SIZE)}>下一页</button>
+      </div>
+      {activeWb && !activeWb.assetStub && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-0 bg-zinc-900/40 dark:bg-black/60 backdrop-blur-sm animate-in fade-in" role="dialog" aria-modal="true">
           <div 
             className="absolute inset-0 bg-transparent transition-opacity"

@@ -1,3 +1,4 @@
+import { useCardCover } from '../../hooks/useCardPayload';
 import { ManagementSearch, ManagementBatchBar, ManagementHeader, ManagementToolbarFrame, ManagementBatchOverlay } from '../ui/ManagementChrome';
 import { ActionButton } from '../ui/ActionButton';
 import React, { useMemo, useCallback, useState } from 'react';
@@ -85,6 +86,7 @@ const MemoizedCardListItem = React.memo<CardListItemProps>(({
   onSelect,
   onOpenDetail
 }) => {
+  const cover = useCardCover(card);
   const allTags = getCardTags(card);
   const tags = allTags.slice(0, 3);
   const allTagsCount = allTags.length;
@@ -113,9 +115,9 @@ const MemoizedCardListItem = React.memo<CardListItemProps>(({
         </div>
       )}
       <div className="w-12 h-16 bg-zinc-100 dark:bg-zinc-800 relative overflow-hidden flex items-center justify-center rounded-none flex-shrink-0">
-        {card.coverImage ? (
+        {cover ? (
           <img 
-            src={card.coverImage} 
+            src={cover || undefined}
             alt={name} 
             loading="lazy" 
             decoding="async"
@@ -182,10 +184,11 @@ const MemoizedCardGridItem = React.memo<CardGridItemProps>(({
   onExport,
   onDelete
 }) => {
+  const cover = useCardCover(card);
   const allTags = getCardTags(card);
   const tags = allTags.slice(0, 3);
   const activeVerLabel = getPureVersionLabel((card as any).activeVersionLabel, (card.versions?.length || 0) + 1);
-  const hasVersions = card.versions && card.versions.length > 0;
+  const hasVersions = (card.versionCount ?? card.versions?.length ?? 0) > 0;
 
   return (
     <div
@@ -201,9 +204,9 @@ const MemoizedCardGridItem = React.memo<CardGridItemProps>(({
     >
       {/* Card Cover Image */}
       <div className="aspect-[2/3] w-full bg-black/5 dark:bg-white/5 border-none relative overflow-hidden flex items-center justify-center">
-        {card.coverImage ? (
+        {cover ? (
           <img 
-            src={card.coverImage} 
+            src={cover || undefined}
             alt={name} 
             loading="lazy" 
             decoding="async"
@@ -692,18 +695,11 @@ export const STCardsSection = React.memo<STCardsSectionProps>(({
         </div>
       )}
 
-      {filteredCards.length > cardVisibleCount && (
-        <div ref={cardLoadMoreRef} className="flex flex-col items-center justify-center py-6 gap-2">
-          <p className="text-[10px] text-zinc-400">已显示 {cardVisibleCount} / {filteredCards.length} 张角色卡</p>
-          <button
-            type="button"
-            onClick={() => setCardVisibleCount((prev) => Math.min(prev + CARD_PAGE_SIZE, filteredCards.length))}
-            className="px-4 py-1.5 text-[10px] font-medium rounded-lg border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 transition-colors cursor-pointer"
-          >
-            加载更多
-          </button>
-        </div>
-      )}
+      <div className="flex items-center justify-center flex-wrap py-6 gap-3">
+        <button type="button" disabled={cardVisibleCount <= CARD_PAGE_SIZE} onClick={() => setCardVisibleCount(n => Math.max(CARD_PAGE_SIZE, n - CARD_PAGE_SIZE))} className="px-3 py-2 border disabled:opacity-30">上一页</button>
+        <span className="text-xs">第 {Math.ceil(cardVisibleCount / CARD_PAGE_SIZE)} / {Math.max(1, Math.ceil(filteredCards.length / CARD_PAGE_SIZE))} 页 · 共 {filteredCards.length} 张</span>
+        <button type="button" disabled={cardVisibleCount >= filteredCards.length} onClick={() => setCardVisibleCount(n => n + CARD_PAGE_SIZE)} className="px-3 py-2 border disabled:opacity-30">下一页</button>
+      </div>
 
       <BatchTagModal
         isOpen={showBatchTagModal}

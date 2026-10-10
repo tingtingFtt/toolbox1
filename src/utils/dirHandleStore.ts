@@ -1,3 +1,4 @@
+import { createSafeJsonBlob } from '../utils';
 // IndexedDB storage for FileSystemDirectoryHandle to enable direct one-click sync without reopening folder dialogs
 
 const DB_NAME = 'TavernVaultDirectoryStore';
@@ -207,7 +208,7 @@ export async function writeBackupToDirectoryHandle(
     const fileHandle = await handle.getFileHandle(fileName, { create: true });
     // @ts-ignore
     const writable = await fileHandle.createWritable();
-    const dataStr = JSON.stringify(appData, null, 2);
+    const dataStr = await createSafeJsonBlob(appData as any);
     await writable.write(dataStr);
     await writable.close();
 
@@ -245,4 +246,5 @@ export async function writeBackupToDirectoryHandle(
     };
   }
 }
+
 

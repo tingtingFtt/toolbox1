@@ -6,147 +6,58 @@ import { normalizeResourceName } from '../utils';
  * are bi-directionally associated with each other.
  */
 export function linkSameNameCards(cards: CardEntry[]): CardEntry[] {
-  // Group cards by normalized character name
-  const nameMap = new Map<string, CardEntry[]>();
-
-  cards.forEach(card => {
-    const rawData = card.rawData?.data || card.rawData || {};
-    const charName = normalizeResourceName(card.name || rawData.name || '');
-    if (!charName) return;
-
-    const list = nameMap.get(charName) || [];
-    list.push(card);
-    nameMap.set(charName, list);
-  });
-
-  // For each group with more than 1 card, establish mutual associations
-  return cards.map(card => {
-    const rawData = card.rawData?.data || card.rawData || {};
-    const charName = normalizeResourceName(card.name || rawData.name || '');
-    if (!charName) return card;
-
-    const group = nameMap.get(charName) || [];
-    if (group.length <= 1) return card;
-
-    // Existing associations
-    const currentAssociations: CardAssociation[] = card.associations ? [...card.associations] : [];
-
-    // For all other cards in the same name group, ensure an association exists
-    group.forEach((sibling, idx) => {
-      if (sibling.id === card.id) return;
-
-      const exists = currentAssociations.some(a => a.cardId === sibling.id);
-      if (!exists) {
-        currentAssociations.push({
-          cardId: sibling.id,
-          note: `同名卡面 (卡面 ${idx + 1})`,
-          isPrimary: idx === 0,
-          createdAt: Date.now()
-        });
-      }
-    });
-
-    return {
-      ...card,
-      associations: currentAssociations
-    };
-  });
+  const groups = new Map<string, CardEntry[]>();
+  for (const card of cards) {
+    const name = normalizeResourceName(card.name || card.rawData?.data?.name || card.rawData?.name || '');
+    if (!name) continue;
+    const list = groups.get(name) || []; list.push(card); groups.set(name, list);
+  }
+  const additions = new Map<string, CardAssociation[]>();
+  for (const group of groups.values()) {
+    if (group.length < 2) continue;
+    for (let i = 0; i < group.length; i++) {
+      const card = group[i], known = new Set((card.associations || []).map(a => a.cardId)), extra: CardAssociation[] = [];
+      // Large groups keep a connected chain rather than materializing millions of pairwise links.
+      const siblings = group.length > 64 ? [group[i - 1], group[i + 1]].filter(Boolean) : group;
+      for (const sibling of siblings) if (sibling.id !== card.id && !known.has(sibling.id)) extra.push({ cardId: sibling.id, note: '同名卡面', isPrimary: sibling === group[0], createdAt: Date.now() });
+      if (extra.length) additions.set(card.id, extra);
+    }
+  }
+  return cards.map(card => additions.has(card.id) ? { ...card, associations: [...(card.associations || []), ...additions.get(card.id)!] } : card);
 }
 
-/**
- * Automatically binds embedded or strictly paired WorldBooks, Regexes, and Scripts to cards.
- * Ensures strict 1-to-1 mapping: 1 card maps to at most 1 companion WorldBook, 1 Regex, and 1 Script.
- */
 export function autoAssociateAllAssets(appData: AppData): AppData {
-  let modifiedCards = [...(appData.cards || [])];
-  let modifiedWorldBooks = [...(appData.stWorldBooks || [])];
-  let modifiedRegexes = [...(appData.stRegexScripts || [])];
-  let modifiedScripts = [...(appData.scripts || [])];
-
-  // 1. Link same name cards
-  modifiedCards = linkSameNameCards(modifiedCards);
-
-  // 2. Link WorldBooks, Regexes, and Scripts to Cards (Strict 1-to-1 Companion Binding)
-  modifiedCards = modifiedCards.map(card => {
-    const raw = card.rawData?.data || card.rawData || {};
-    const cardName = (card.name || raw.name || '').trim();
-    const cardId = card.id;
-
-    // A. Single WorldBook Binding
-    let boundWbId: string | null = null;
-    if (card.boundWorldBooks && card.boundWorldBooks.length > 0) {
-      const valid = modifiedWorldBooks.find(w => card.boundWorldBooks!.includes(w.id) && (!w.sourceCardId || w.sourceCardId === cardId));
-      if (valid) boundWbId = valid.id;
-    }
-    if (!boundWbId) {
-      const bySource = modifiedWorldBooks.find(w => w.sourceCardId === cardId);
-      if (bySource) boundWbId = bySource.id;
-    }
-    if (!boundWbId && cardName) {
-      const exactName = `${cardName}_世界书`;
-      const byExactName = modifiedWorldBooks.find(w => !w.sourceCardId && (w.name.trim().toLowerCase() === exactName.toLowerCase() || w.name.trim().toLowerCase() === `[${cardName}] 世界书`.toLowerCase()));
-      if (byExactName) {
-        boundWbId = byExactName.id;
-        byExactName.sourceCardId = cardId;
-        byExactName.sourceCardName = card.name;
-      }
-    }
-
-    // B. Single Regex Script Binding
-    let boundRegexId: string | null = null;
-    if (card.boundRegexes && card.boundRegexes.length > 0) {
-      const valid = modifiedRegexes.find(r => card.boundRegexes!.includes(r.id) && (!r.sourceCardId || r.sourceCardId === cardId));
-      if (valid) boundRegexId = valid.id;
-    }
-    if (!boundRegexId) {
-      const bySource = modifiedRegexes.find(r => r.sourceCardId === cardId);
-      if (bySource) boundRegexId = bySource.id;
-    }
-    if (!boundRegexId && cardName) {
-      const exactName = `[${cardName}] 正则脚本`;
-      const byExactName = modifiedRegexes.find(r => !r.sourceCardId && !r.sourcePresetId && (r.scriptName?.trim().toLowerCase() === exactName.toLowerCase() || r.scriptName?.trim().toLowerCase() === `${cardName}_正则`.toLowerCase()));
-      if (byExactName) {
-        boundRegexId = byExactName.id;
-        byExactName.sourceCardId = cardId;
-        byExactName.sourceCardName = card.name;
-      }
-    }
-
-    // C. Single Script Binding
-    let boundScriptId: string | null = null;
-    if (card.boundScripts && card.boundScripts.length > 0) {
-      const valid = modifiedScripts.find(s => card.boundScripts!.includes(s.id) && (!s.sourceCardId || s.sourceCardId === cardId));
-      if (valid) boundScriptId = valid.id;
-    }
-    if (!boundScriptId) {
-      const bySource = modifiedScripts.find(s => s.sourceCardId === cardId);
-      if (bySource) boundScriptId = bySource.id;
-    }
-    if (!boundScriptId && cardName) {
-      const exactName = `[${cardName}] 酒馆脚本`;
-      const byExactName = modifiedScripts.find(s => !s.sourceCardId && !s.sourcePresetId && (s.name.trim().toLowerCase() === exactName.toLowerCase() || s.name.trim().toLowerCase() === `${cardName}_脚本`.toLowerCase()));
-      if (byExactName) {
-        boundScriptId = byExactName.id;
-        byExactName.sourceCardId = cardId;
-        byExactName.sourceCardName = card.name;
-      }
-    }
-
-    return {
-      ...card,
-      boundWorldBooks: boundWbId ? [boundWbId] : [],
-      boundRegexes: boundRegexId ? [boundRegexId] : [],
-      boundScripts: boundScriptId ? [boundScriptId] : []
-    };
-  });
-
-  return {
-    ...appData,
-    cards: modifiedCards,
-    stWorldBooks: modifiedWorldBooks,
-    stRegexScripts: modifiedRegexes,
-    scripts: modifiedScripts
+  const cards = linkSameNameCards(appData.cards || []);
+  const worldbooks = [...(appData.stWorldBooks || [])], regexes = [...(appData.stRegexScripts || [])], scripts = [...(appData.scripts || [])];
+  const makeIndex = (items: any[], getName: (item: any) => string) => {
+    const ids = new Map(items.map(item => [item.id, item])), owners = new Map<string, any>(), names = new Map<string, any>();
+    items.forEach(item => { if (item.sourceCardId && !owners.has(item.sourceCardId)) owners.set(item.sourceCardId, item); if (!item.sourceCardId && !item.sourcePresetId && item.type !== 'qr') names.set(getName(item).trim().toLowerCase(), item); });
+    return { ids, owners, names };
   };
+  const wbIndex = makeIndex(worldbooks, item => item.name || ''), rxIndex = makeIndex(regexes, item => item.scriptName || ''), scriptIndex = makeIndex(scripts, item => item.name || '');
+  const find = (card: CardEntry, bound: string[] | undefined, index: ReturnType<typeof makeIndex>, aliases: string[], items: any[]) => {
+    const existing = (bound || []).map(id => index.ids.get(id)).find(item => item && (!item.sourceCardId || item.sourceCardId === card.id));
+    if (existing) return [existing.id];
+    const owned = index.owners.get(card.id); if (owned) return [owned.id];
+    for (const alias of aliases) {
+      const paired = index.names.get(alias.toLowerCase());
+      if (!paired || paired.sourceCardId) continue;
+      const linked = { ...paired, sourceCardId: card.id, sourceCardName: card.name };
+      const position = items.indexOf(paired); if (position >= 0) items[position] = linked;
+      index.ids.set(linked.id, linked); index.owners.set(card.id, linked); index.names.delete(alias.toLowerCase());
+      return [linked.id];
+    }
+    return [];
+  };
+  const same = (a: string[] | undefined, b: string[]) => (a || []).length === b.length && (a || []).every((id, i) => id === b[i]);
+  const nextCards = cards.map(card => {
+    const name = (card.name || '').trim();
+    const wb = find(card, card.boundWorldBooks, wbIndex, [`${name}_世界书`, `[${name}] 世界书`], worldbooks);
+    const rx = find(card, card.boundRegexes, rxIndex, [`${name}_正则`, `[${name}] 正则脚本`], regexes);
+    const sc = find(card, card.boundScripts, scriptIndex, [`${name}_脚本`, `[${name}] 酒馆脚本`], scripts);
+    return same(card.boundWorldBooks, wb) && same(card.boundRegexes, rx) && same(card.boundScripts, sc) ? card : { ...card, boundWorldBooks: wb, boundRegexes: rx, boundScripts: sc };
+  });
+  return { ...appData, cards: nextCards, stWorldBooks: worldbooks, stRegexScripts: regexes, scripts };
 }
 
 /**

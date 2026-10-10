@@ -1,4 +1,5 @@
 // @ts-nocheck
+import { useCardCover } from '../../hooks/useCardPayload';
 import { DetailPanel, DetailBody, DetailFooter, DetailHeader, DetailTabs } from '../ui/DetailChrome';
 import { ActionButton } from '../ui/ActionButton';
 import React, { useState, useRef, useMemo } from 'react';
@@ -173,6 +174,7 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
   associationNote,
   getAssociationCandidates,
 }) => {
+  const lazyCover = useCardCover(displayDetailCard, false);
   const [editingMainGreeting, setEditingMainGreeting] = useState(false);
   const [editingAltGreetingIndex, setEditingAltGreetingIndex] = useState<number | null>(null);
   const [showAIRefineModal, setShowAIRefineModal] = useState(false);
@@ -1012,8 +1014,8 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
 
                     {/* Cover Main Box */}
                     <div className="aspect-[2/3] w-full rounded-xl overflow-hidden bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 relative flex items-center justify-center">
-                      {displayDetailCard.coverImage ? (
-                        <img src={displayDetailCard.coverImage} alt="Cover" className="w-full h-full object-contain" />
+                      {lazyCover ? (
+                        <img src={lazyCover || undefined} alt="Cover" className="w-full h-full object-contain" />
                       ) : (
                         <span className="text-[10px] text-zinc-400">无封面</span>
                       )}

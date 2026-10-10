@@ -1,3 +1,7 @@
+import { resourceLeaves } from './utils/tavernFileTypes';
+import { delMany } from 'idb-keyval';
+import { readCollection, writeCollection } from './utils/recordPersistence';
+import { hydrateCard, getCardCover, portableCard, hydrateCardAsset, referencedImportKeys, hydrateCardBoundAssets } from './utils/largeCardStore';
 import { compareWorldBooks, compareScripts, compareRegexScripts } from './utils/diffEngine';
 import { get, set } from 'idb-keyval';
 import mammoth from 'mammoth';
@@ -98,7 +102,7 @@ function sanitizeForStorage<T>(val: T): T {
 // 大数据版本的关键优化：不再每次保存都把整个 AppData（可能包含大量图片/字体）
 // 一次性 structured-clone 到 IndexedDB。每个顶层数据集合独立存储，只保存发生变化的集合。
 const DATA_FIELDS: (keyof AppData)[] = [
-  'cards', 'groups', 'phoneLinks', 'themes', 'themeCategories',
+  'importRecords', 'stagedDuplicateCards', 'cards', 'groups', 'phoneLinks', 'themes', 'themeCategories',
   'beautifications', 'beautificationCategories', 'presets', 'presetCategories',
   'plugins', 'pluginCategories', 'scripts', 'scriptCategories',
   'stWorldBooks', 'stWorldBookCategories', 'stRegexScripts', 'stRegexCategories',
@@ -121,6 +125,8 @@ const fieldKey = (field: keyof AppData) => `${STORAGE_KEY}::${String(field)}`;
 const SPLIT_MARKER_KEY = `${STORAGE_KEY}::__split_v1`;
 
 const mergeDefaults = (data: any): AppData => ({
+  importRecords: Array.isArray(data?.importRecords) ? data.importRecords : [],
+  stagedDuplicateCards: Array.isArray(data?.stagedDuplicateCards) ? data.stagedDuplicateCards : [],
   cards: Array.isArray(data?.cards) ? data.cards : [],
   groups: Array.isArray(data?.groups) && data.groups.length ? data.groups : ['默认'],
   phoneLinks: Array.isArray(data?.phoneLinks) ? data.phoneLinks : [],
@@ -196,13 +202,18 @@ export async function loadAppDataAsync(): Promise<AppData> {
       DATA_FIELDS.forEach((field, index) => {
         if (values[index] !== undefined) partial[field] = values[index];
       });
+      for (const field of DATA_FIELDS) {
+        const value = partial[field];
+        partial[field] = await readCollection(String(field), value);
+        if (Array.isArray(value) && value.length && value.every(v => v && typeof v.id === 'string')) partial[field] = await writeCollection(fieldKey(field), String(field), value);
+      }
       merged = mergeDefaults(partial);
     } else {
       // 首次从旧版本迁移时读取一次旧根数据，随后立刻拆分保存；之后启动不再读取巨型根对象。
       const root = await get<AppData>(STORAGE_KEY);
-      merged = mergeDefaults(root || {});
+      merged = mergeDefaults(root || loadAppDataFromLocalStorage());
       for (const field of DATA_FIELDS) {
-        await set(fieldKey(field), sanitizeForStorage((merged as any)[field]));
+        (merged as any)[field] = await writeCollection(fieldKey(field), String(field), sanitizeForStorage((merged as any)[field]));
         // 迁移大数据时主动让出主线程，避免移动端同时 clone 多个大数组。
         await new Promise((resolve) => setTimeout(resolve, 0));
       }
@@ -211,11 +222,9 @@ export async function loadAppDataAsync(): Promise<AppData> {
     cachedAppData = merged;
     return merged;
   } catch (err) {
-    console.warn('IndexedDB load fallback to LocalStorage', err);
+    console.error('存储读取失败，保留现有数据', err);
+    throw new Error('存储读取失败：' + (err instanceof Error ? err.message : String(err)));
   }
-  const fallback = loadAppDataFromLocalStorage();
-  cachedAppData = fallback;
-  return fallback;
 }
 
 export function loadAppData(): AppData {
@@ -234,81 +243,48 @@ function loadAppDataFromLocalStorage(): AppData {
   }
 }
 
-let saveTimer: any = null;
-let pendingSaveResolvers: ((val: boolean) => void)[] = [];
+let saveTimer: ReturnType<typeof setTimeout> | null = null;
 let pendingSaveData: AppData | null = null;
+let pendingSaveResolvers: ((saved: boolean) => void)[] = [];
 
-/**
- * Persist only changed top-level collections. This prevents large cards/fonts/stickers
- * from being cloned again when an unrelated setting is saved.
- * Optimized with trailing debounce and requestIdleCallback to prevent UI stalls during large data operations.
- */
-export function saveAppData(data: AppData, immediate = false): Promise<boolean> {
-  pendingSaveData = data;
-
-  const performWrite = async () => {
-    const dataToWrite = pendingSaveData || data;
+function queuePendingSave() {
+  const snapshot = pendingSaveData;
+  if (!snapshot) return saveQueue;
+  const resolvers = pendingSaveResolvers.splice(0);
+  pendingSaveData = null;
+  const write = async () => {
     const previous = cachedAppData;
-    cachedAppData = dataToWrite;
-    const changed = DATA_FIELDS.filter((field) => !previous || (previous as any)[field] !== (dataToWrite as any)[field]);
-    if (changed.length === 0) return true;
-
+    const saved: AppData = { ...snapshot };
     try {
-      for (const field of changed) {
-        const val = (dataToWrite as any)[field];
-        try {
-          await set(fieldKey(field), val);
-        } catch (storageErr) {
-          // If native structured clone fails (e.g. non-clonable property), fallback to safe serialized copy
-          try {
-            const safeVal = JSON.parse(JSON.stringify(val));
-            await set(fieldKey(field), safeVal);
-          } catch (e) {
-            console.error(`Failed to persist field ${String(field)}:`, e);
-          }
-        }
-        // Yield to browser event loop / frame scheduler so UI stays at 60fps
-        await new Promise((resolve) => setTimeout(resolve, 4));
+      for (const field of DATA_FIELDS) {
+        if (previous && (previous as any)[field] === (snapshot as any)[field]) continue;
+        (saved as any)[field] = await writeCollection(fieldKey(field), String(field), (snapshot as any)[field], (previous as any)?.[field]);
+        await new Promise(resolve => setTimeout(resolve, 0));
       }
       await set(SPLIT_MARKER_KEY, true);
+      cachedAppData = saved;
+      if (previous) {
+        const live = referencedImportKeys(saved), old = referencedImportKeys(previous);
+        const unused = [...old].filter(key => !live.has(key));
+        try { for (let i = 0; i < unused.length; i += 64) await delMany(unused.slice(i, i + 64)); } catch (error) { console.warn('旧导入正文清理失败，稍后重试', error); }
+      }
       return true;
-    } catch (err) {
-      console.error('IndexedDB save error:', err);
+    } catch (error) {
+      console.error('数据未保存，保留内存中的数据以供重试', error);
       return false;
     }
   };
+  saveQueue = saveQueue.then(write, write).then(saved => { resolvers.forEach(resolve => resolve(saved)); return saved; });
+  return saveQueue;
+}
 
-  if (immediate) {
-    if (saveTimer) {
-      clearTimeout(saveTimer);
-      saveTimer = null;
-    }
-    saveQueue = saveQueue.then(performWrite, performWrite);
-    return saveQueue;
-  }
-
-  return new Promise((resolve) => {
-    pendingSaveResolvers.push(resolve);
-    if (saveTimer) {
-      clearTimeout(saveTimer);
-    }
-    saveTimer = setTimeout(() => {
-      saveTimer = null;
-      const runSave = () => {
-        saveQueue = saveQueue.then(performWrite, performWrite).then((res) => {
-          const resolvers = pendingSaveResolvers;
-          pendingSaveResolvers = [];
-          resolvers.forEach((r) => r(res));
-          return res;
-        });
-      };
-      if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
-        (window as any).requestIdleCallback(runSave, { timeout: 1000 });
-      } else {
-        runSave();
-      }
-    }, 350);
-  });
+export function saveAppData(data: AppData, immediate = false): Promise<boolean> {
+  pendingSaveData = data;
+  const result = new Promise<boolean>(resolve => pendingSaveResolvers.push(resolve));
+  if (saveTimer) clearTimeout(saveTimer);
+  if (immediate) { saveTimer = null; queuePendingSave(); }
+  else saveTimer = setTimeout(() => { saveTimer = null; queuePendingSave(); }, 350);
+  return result;
 }
 
 if (typeof window !== 'undefined') {
@@ -1731,7 +1707,8 @@ export function estimateObjectBytes(obj: any): number {
 export const ALL_SECTIONS_CONFIG: Record<string, { dataKeys: string[]; label: string }> = {
   'st-cards': { dataKeys: ['cards', 'groups'], label: 'ST 角色卡' },
   'st-plugins': { dataKeys: ['plugins', 'pluginCategories'], label: 'ST 插件' },
-  'st-scripts': { dataKeys: ['scripts', 'scriptCategories'], label: 'ST 脚本' },
+  'st-scripts': { dataKeys: ['scripts', 'scriptCategories'], label: 'ST 脚本 / QR' },
+  'st-qr': { dataKeys: ['scripts'], label: 'ST QR' },
   'st-worldbooks': { dataKeys: ['stWorldBooks', 'stWorldBookCategories'], label: 'ST 世界书' },
   'st-regex': { dataKeys: ['stRegexScripts', 'stRegexCategories'], label: 'ST 正则' },
   'chat-logs': { dataKeys: ['chatLogs', 'chatLogCategories'], label: '聊天记录存储' },
@@ -1822,7 +1799,7 @@ export async function createSafeJsonBlob(
 
     parts.push(`  ${JSON.stringify(key)}: `);
 
-    if (Array.isArray(val) && val.length > 20) {
+    if (Array.isArray(val)) {
       parts.push('[\n');
       const itemChunkSize = 5; // 每5个复杂条目切一次，极度安全
       for (let i = 0; i < val.length; i += itemChunkSize) {
@@ -1833,7 +1810,13 @@ export async function createSafeJsonBlob(
         }
 
         const chunk = val.slice(i, i + itemChunkSize);
-        const chunkStrs = chunk.map((item) => JSON.stringify(item));
+        const chunkStrs: string[] = [];
+        for (let item of chunk) {
+          if (item?.payloadKey) item = await portableCard(item);
+          if (item?.assetStub) item = await hydrateCardAsset(item);
+          if (item?.incomingCard) item = { ...item, incomingCard: await portableCard(item.incomingCard), matchedCard: await portableCard(item.matchedCard) };
+          chunkStrs.push(JSON.stringify(item));
+        }
         const joined = chunkStrs.join(',\n');
         if (i > 0) parts.push(',\n');
         parts.push(joined);
@@ -1850,8 +1833,10 @@ export async function createSafeJsonBlob(
         await new Promise((resolve) => setTimeout(resolve, 0));
       }
       parts.push('\n  ]');
+    } else if (val && typeof val === 'object') {
+      parts.push(await createSafeJsonBlob(val, undefined, signal));
     } else {
-      parts.push(JSON.stringify(val));
+      parts.push(JSON.stringify(val) ?? 'null');
     }
 
     if (kIdx < totalKeys - 1) {
@@ -1897,7 +1882,7 @@ export async function generateBatchedExport(
   } else {
     // all
     targetSections = Object.entries(ALL_SECTIONS_CONFIG)
-      .filter(([id]) => (excludeFonts ? id !== 'fonts' : true))
+      .filter(([id]) => id !== 'st-qr' && (excludeFonts ? id !== 'fonts' : true))
       .map(([id, config]) => ({ id, config }));
   }
 
@@ -1912,7 +1897,8 @@ export async function generateBatchedExport(
       throw err;
     }
     for (const key of sec.config.dataKeys) {
-      const val = (appData as any)[key];
+      const original = (appData as any)[key];
+      const val = key === 'scripts' && scope === 'current' ? (original || []).filter((entry: any) => currentSectionId === 'st-qr' ? entry.type === 'qr' : entry.type !== 'qr') : original;
       if (Array.isArray(val)) {
         if (key.endsWith('Categories') || key === 'groups') {
           sharedCategories[key] = Array.from(new Set(val));
@@ -2479,6 +2465,7 @@ export function injectBoundAssetsForExport(card: import('./types').CardEntry, ap
     if (wbList.length > 0) {
       const targetWb = wbList[0];
       character_book = {
+        ...(character_book || {}), ...(targetWb.jsonData || {}),
         name: targetWb.name || targetWb.fileName || `${name}_世界书`,
         description: targetWb.description || '',
         scan_depth: (targetWb as any).scan_depth ?? 100,
@@ -2486,6 +2473,7 @@ export function injectBoundAssetsForExport(card: import('./types').CardEntry, ap
         recursive_scanning: (targetWb as any).recursive_scanning ?? false,
         extensions: (targetWb as any).extensions || {},
         entries: (Array.isArray(targetWb.entries) ? targetWb.entries : Object.values(targetWb.entries || {})).map((e: any, idx: number) => ({
+          ...e,
           id: e.id ?? idx,
           keys: Array.isArray(e.keys) ? e.keys : (typeof e.keys === 'string' ? e.keys.split(',').map((k: string) => k.trim()) : (e.key ? [e.key] : [])),
           secondary_keys: e.secondary_keys || [],
@@ -2507,8 +2495,13 @@ export function injectBoundAssetsForExport(card: import('./types').CardEntry, ap
   if (appData && card.boundScripts?.length) {
     const scriptList = (appData.scripts || []).filter(s => card.boundScripts!.includes(s.id));
     if (scriptList.length > 0) {
-      if (!extensions.tavern_helper) extensions.tavern_helper = {};
-      extensions.tavern_helper.scripts = scriptList.map(s => s.jsonData || { name: s.name, type: 'script', content: s.rawContent });
+      const leaves = scriptList.flatMap(s => s.entries?.length ? s.entries : resourceLeaves(s.jsonData || { name: s.name, type: 'script', content: s.rawContent }, 'script'));
+      const helper = extensions.tavern_helper;
+      if (Array.isArray(helper)) {
+        const scriptPair = helper.find(pair => Array.isArray(pair) && (pair[0] === 'scripts' || pair[0] === 'script'));
+        if (scriptPair) scriptPair[1] = leaves;
+        else helper.push(['scripts', leaves]);
+      } else extensions.tavern_helper = { ...(helper || {}), scripts: leaves };
     }
   }
 
@@ -2516,7 +2509,7 @@ export function injectBoundAssetsForExport(card: import('./types').CardEntry, ap
   if (appData && card.boundRegexes?.length) {
     const regexList = (appData.stRegexScripts || []).filter(r => card.boundRegexes!.includes(r.id));
     if (regexList.length > 0) {
-      extensions.regex_scripts = regexList.map(r => r.jsonData || {
+      extensions.regex_scripts = regexList.flatMap(r => r.rules?.length ? r.rules : resourceLeaves(r.jsonData || {
         id: r.id,
         scriptName: r.scriptName,
         findRegex: r.findRegex,
@@ -2530,9 +2523,11 @@ export function injectBoundAssetsForExport(card: import('./types').CardEntry, ap
         substituteRegex: Boolean((r as any).substituteRegex),
         minDepth: (r as any).minDepth ?? null,
         maxDepth: (r as any).maxDepth ?? null
-      });
+      }, 'regex'));
     }
   }
+
+  if (card.qrData) extensions.qrData = card.qrData;
 
   const dataPayload: Record<string, any> = {
     name,
@@ -2578,7 +2573,11 @@ export function injectBoundAssetsForExport(card: import('./types').CardEntry, ap
  * with embedded CCv3 & CCv2 metadata text chunks.
  */
 export async function generateCardPngBlob(card: import('./types').CardEntry, appData?: import('./types').AppData): Promise<Blob> {
-  const fullExportObj = injectBoundAssetsForExport(card, appData);
+  card = { ...await hydrateCard(card) };
+  const storedCover = await getCardCover(card);
+  if (storedCover instanceof Blob) card = { ...card, coverImage: await fileToDataURL(storedCover as File) };
+  else if (storedCover) card = { ...card, coverImage: storedCover };
+  const fullExportObj = injectBoundAssetsForExport(card, await hydrateCardBoundAssets(card, appData));
   const dataPayload = fullExportObj.data || fullExportObj;
 
   const v3Data = {
@@ -2790,12 +2789,8 @@ export function extractBundledAssets(
   }
 
   // 2. Scripts (酒馆脚本 - 融合为单个角色卡脚本文件，包含所有子条目)
-  const rawScriptsData = raw.extensions?.tavern_helper?.scripts || raw.extensions?.scripts;
-  const scriptList: any[] = Array.isArray(rawScriptsData)
-    ? rawScriptsData
-    : rawScriptsData && typeof rawScriptsData === 'object'
-    ? [rawScriptsData]
-    : [];
+  const rawScriptsData = raw.extensions?.tavern_helper || raw.extensions?.scripts;
+  const scriptList: any[] = resourceLeaves(rawScriptsData, 'script');
 
   if (scriptList.length > 0) {
     const sName = `[${targetCardName || card.name}] 酒馆脚本`;

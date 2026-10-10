@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { CustomSelect } from '../ui/CustomSelect';
 import { BaseCard } from '../ui/BaseCard';
 import { StagedDuplicateCard } from '../../types';
@@ -37,6 +37,9 @@ export const StagingVaultModal: React.FC<StagingVaultModalProps> = ({
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [individualActions, setIndividualActions] = useState<Record<string, 'skip' | 'new_version' | 'distinct_face' | 'overwrite'>>({});
   const [searchFilter, setSearchFilter] = useState('');
+  const [page, setPage] = useState(0);
+  useEffect(() => setPage(0), [searchFilter]);
+  useEffect(() => setPage(p => Math.min(p, Math.max(0, Math.ceil(stagedCards.length / 50) - 1))), [stagedCards.length]);
 
   if (!isOpen) return null;
 
@@ -257,7 +260,7 @@ export const StagingVaultModal: React.FC<StagingVaultModalProps> = ({
               <p className="text-[11px] text-zinc-500">所有本地卡面已全部顺利入库或已完成决策</p>
             </div>
           ) : (
-            filteredCards.map((staged) => {
+            filteredCards.slice(page * 50, page * 50 + 50).map((staged) => {
               const inc = staged.incomingCard;
               const ext = staged.matchedCard;
               const currentAction = individualActions[staged.id] || staged.userDecision || 'new_version';
@@ -394,6 +397,11 @@ export const StagingVaultModal: React.FC<StagingVaultModalProps> = ({
           )}
         </div>
 
+        <div className="flex justify-center gap-4 items-center py-2 text-xs border-t">
+          <button disabled={!page} onClick={() => setPage(p => p - 1)}>上一页</button>
+          <span>{page + 1} / {Math.max(1, Math.ceil(filteredCards.length / 50))} 页 · 共 {filteredCards.length} 张</span>
+          <button disabled={(page + 1) * 50 >= filteredCards.length} onClick={() => setPage(p => p + 1)}>下一页</button>
+        </div>
         {/* Floating Batch Action Popup when cards are selected (Ultra-compact & compressed) */}
         {hasSelection && (
           <div
@@ -531,3 +539,4 @@ export const StagingVaultModal: React.FC<StagingVaultModalProps> = ({
     </div>
   );
 };
+
