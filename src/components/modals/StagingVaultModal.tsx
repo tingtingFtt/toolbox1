@@ -1,7 +1,13 @@
+import { ManagementGrid } from '../ui/ManagementChrome';
+import { useFixedPagination } from '../../hooks/useFixedPagination';
+import { useCardCover } from '../../hooks/useCardPayload';
+import { ManagementPagination } from '../ui/ManagementPagination';
+import { managementViewClass } from '../ui/ManagementListItem';
+import { ViewModeDropdown, ViewMode } from '../ui/ViewModeDropdown';
 import React, { useState, useEffect } from 'react';
 import { CustomSelect } from '../ui/CustomSelect';
 import { BaseCard } from '../ui/BaseCard';
-import { StagedDuplicateCard } from '../../types';
+import { CardEntry, StagedDuplicateCard } from '../../types';
 import {
   Inbox,
   X,
@@ -18,6 +24,13 @@ import {
   Sparkles,
   Search
 } from 'lucide-react';
+
+function StagedCover({ card }: { card: CardEntry }) {
+  const cover = useCardCover(card);
+  return <div className="w-8 h-10 sm:w-10 sm:h-12 rounded-md bg-zinc-200 dark:bg-zinc-800 overflow-hidden shrink-0 border border-[var(--line,#e2d0bc)]">
+    {cover ? <img src={cover} alt="" loading="lazy" className="w-full h-full object-cover" /> : <span className="w-full h-full flex items-center justify-center text-zinc-400">{card.name?.[0] || '卡'}</span>}
+  </div>;
+}
 
 export interface StagingVaultModalProps {
   isOpen: boolean;
@@ -37,11 +50,7 @@ export const StagingVaultModal: React.FC<StagingVaultModalProps> = ({
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [individualActions, setIndividualActions] = useState<Record<string, 'skip' | 'new_version' | 'distinct_face' | 'overwrite'>>({});
   const [searchFilter, setSearchFilter] = useState('');
-  const [page, setPage] = useState(0);
-  useEffect(() => setPage(0), [searchFilter]);
-  useEffect(() => setPage(p => Math.min(p, Math.max(0, Math.ceil(stagedCards.length / 50) - 1))), [stagedCards.length]);
-
-  if (!isOpen) return null;
+  const [viewMode, setViewMode] = useState<ViewMode>('list');
 
   const filteredCards = stagedCards.filter(sc => {
     if (!searchFilter.trim()) return true;
@@ -52,11 +61,22 @@ export const StagingVaultModal: React.FC<StagingVaultModalProps> = ({
     return nameMatch || fileMatch || authorMatch;
   });
 
+  const pagination = useFixedPagination(filteredCards.length, searchFilter);
+  const selectedSet = new Set(selectedIds);
+  const allSelected = filteredCards.length > 0 && filteredCards.every(card => selectedSet.has(card.id));
+  useEffect(() => {
+    const liveIds = new Set(stagedCards.map(card => card.id));
+    setSelectedIds(prev => prev.every(id => liveIds.has(id)) ? prev : prev.filter(id => liveIds.has(id)));
+  }, [stagedCards]);
+
+  if (!isOpen) return null;
+
   const handleSelectAll = () => {
-    if (selectedIds.length === filteredCards.length && filteredCards.length > 0) {
-      setSelectedIds([]);
+    if (allSelected) {
+      const filteredIds = new Set(filteredCards.map(card => card.id));
+      setSelectedIds(prev => prev.filter(id => !filteredIds.has(id)));
     } else {
-      setSelectedIds(filteredCards.map(c => c.id));
+      setSelectedIds(prev => [...new Set([...prev, ...filteredCards.map(c => c.id)])]);
     }
   };
 
@@ -131,7 +151,6 @@ export const StagingVaultModal: React.FC<StagingVaultModalProps> = ({
     onClose();
   };
 
-  const allSelected = selectedIds.length === filteredCards.length && filteredCards.length > 0;
   const hasSelection = selectedIds.length > 0;
 
   return (
@@ -209,6 +228,10 @@ export const StagingVaultModal: React.FC<StagingVaultModalProps> = ({
             </span>
           </div>
 
+          <div className="flex items-center justify-between flex-wrap gap-1">
+            <ViewModeDropdown viewMode={viewMode} setViewMode={setViewMode} />
+            <span className="text-[10px] text-zinc-500">全选涵盖筛选结果，换页保留勾选</span>
+          </div>
           {/* Row 2: 4 Batch Preset Buttons strictly in one row on mobile and desktop, compressed height h-5.5 */}
           <div className="grid grid-cols-4 gap-1 sm:flex sm:items-center sm:gap-1.5 sm:justify-end">
             <button
@@ -250,7 +273,7 @@ export const StagingVaultModal: React.FC<StagingVaultModalProps> = ({
         </div>
 
         {/* Scrollable List of Staged Cards */}
-        <div data-design-id="staging-vault-card-list" className="p-2 sm:p-3 overflow-y-auto space-y-2 flex-1 text-xs relative">
+        <div data-design-id="staging-vault-card-list" className="p-2 sm:p-3 overflow-y-auto flex-1 min-h-0 text-xs relative">
           {filteredCards.length === 0 ? (
             <div className="py-12 text-center text-zinc-400 space-y-2">
               <CheckCircle2 className="w-9 h-9 sm:w-11 sm:h-11 text-emerald-500 mx-auto" />
@@ -260,7 +283,8 @@ export const StagingVaultModal: React.FC<StagingVaultModalProps> = ({
               <p className="text-[11px] text-zinc-500">所有本地卡面已全部顺利入库或已完成决策</p>
             </div>
           ) : (
-            filteredCards.slice(page * 50, page * 50 + 50).map((staged) => {
+            <ManagementGrid viewMode={viewMode} className={managementViewClass(viewMode)} key={`${pagination.page}:${searchFilter}`}>
+            {filteredCards.slice(pagination.start, pagination.end).map((staged) => {
               const inc = staged.incomingCard;
               const ext = staged.matchedCard;
               const currentAction = individualActions[staged.id] || staged.userDecision || 'new_version';
@@ -279,7 +303,7 @@ export const StagingVaultModal: React.FC<StagingVaultModalProps> = ({
                 >
                   <div className="flex flex-col gap-1.5">
                     {/* Top Row: Checkbox + Name Title + Single-line Action Selector */}
-                    <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
                       <div className="flex items-center gap-1.5 min-w-0">
                         <button
                           data-design-id={`staging-vault-check-${staged.id}`}
@@ -329,18 +353,10 @@ export const StagingVaultModal: React.FC<StagingVaultModalProps> = ({
                     </div>
 
                     {/* Dual Comparison Cards: Top-to-Bottom stacked on mobile, Side-by-side on desktop */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5 sm:gap-2">
+                    <div className={`grid gap-1.5 sm:gap-2 ${viewMode === 'list' ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1'}`}>
                       {/* Left / Top: Incoming Card */}
                       <div className="p-1.5 sm:p-2 rounded-md border border-blue-500/25 bg-blue-500/5 dark:bg-blue-950/20 flex items-center gap-2">
-                        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-md bg-zinc-200 dark:bg-zinc-800 overflow-hidden shrink-0 border border-[var(--line,#e2d0bc)] shadow-2xs">
-                          {inc.coverImage ? (
-                            <img src={inc.coverImage} alt="" className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center font-bold text-[10px] text-zinc-400">
-                              {inc.name?.[0] || '卡'}
-                            </div>
-                          )}
-                        </div>
+                        <StagedCover card={inc} />
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-1">
                             <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0" />
@@ -359,15 +375,7 @@ export const StagingVaultModal: React.FC<StagingVaultModalProps> = ({
 
                       {/* Right / Bottom: Existing Library Card */}
                       <div className="p-1.5 sm:p-2 rounded-md border border-emerald-500/25 bg-emerald-500/5 dark:bg-emerald-950/20 flex items-center gap-2">
-                        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-md bg-zinc-200 dark:bg-zinc-800 overflow-hidden shrink-0 border border-[var(--line,#e2d0bc)] shadow-2xs">
-                          {ext.coverImage ? (
-                            <img src={ext.coverImage} alt="" className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center font-bold text-[10px] text-zinc-400">
-                              {ext.name?.[0] || '卡'}
-                            </div>
-                          )}
-                        </div>
+                        <StagedCover card={ext} />
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-1">
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
@@ -393,14 +401,13 @@ export const StagingVaultModal: React.FC<StagingVaultModalProps> = ({
                   </div>
                 </BaseCard>
               );
-            })
+            })}
+            </ManagementGrid>
           )}
         </div>
 
-        <div className="flex justify-center gap-4 items-center py-2 text-xs border-t">
-          <button disabled={!page} onClick={() => setPage(p => p - 1)}>上一页</button>
-          <span>{page + 1} / {Math.max(1, Math.ceil(filteredCards.length / 50))} 页 · 共 {filteredCards.length} 张</span>
-          <button disabled={(page + 1) * 50 >= filteredCards.length} onClick={() => setPage(p => p + 1)}>下一页</button>
+        <div className="shrink-0 border-t border-[var(--line)]">
+          <ManagementPagination total={filteredCards.length} page={pagination.page} pageSize={pagination.pageSize} onPageChange={pagination.setPage} unit="张" label="暂存角色卡分页" />
         </div>
         {/* Floating Batch Action Popup when cards are selected (Ultra-compact & compressed) */}
         {hasSelection && (
@@ -473,7 +480,7 @@ export const StagingVaultModal: React.FC<StagingVaultModalProps> = ({
         {/* Footer: 5 Buttons arranged in TWO tidy rows with compressed height h-5.5 */}
         <div data-design-id="staging-vault-footer" className="px-3 sm:px-4 py-1.5 border-t border-[var(--line,#e2d0bc)] flex flex-col gap-1.5 flex-shrink-0 bg-[var(--btn-primary-bg,rgba(217,119,6,0.04))]">
           {/* Row 1: Left (Clear/Skip all, Delete Selected) + Right (Retain/Cancel) */}
-          <div className="flex items-center justify-between gap-1.5">
+          <div className="flex items-center justify-between flex-wrap gap-1.5">
             <div className="flex items-center gap-1.5">
               <button
                 data-design-id="staging-vault-skip-all-btn"

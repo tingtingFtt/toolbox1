@@ -1,3 +1,7 @@
+import { useFixedPagination } from '../../hooks/useFixedPagination';
+import { ManagementPagination } from '../ui/ManagementPagination';
+import { ManagementListItem, managementViewClass } from '../ui/ManagementListItem';
+import { ViewModeDropdown, ViewMode } from '../ui/ViewModeDropdown';
 import { useTavernImport } from '../../hooks/TavernImportContext';
 import { ManagementSearch, ManagementHeader, ManagementToolbarFrame, ManagementBatchBar, ManagementGrid, ManagementBatchOverlay } from '../ui/ManagementChrome';
 import { ActionButton } from '../ui/ActionButton';
@@ -76,6 +80,10 @@ export const STPresetsSection = (props: any) => {
   setpresetTagsFilter = () => {}, updateAppData, showToast, 
         setPresetBatchMode, setPresetCategoryFilter, MoreHorizontal, setPresetEntrySearchQuery, setManagingPresetGroup, setPresetSearchQuery, handleBatchDeletePresets, presetCategoryFilter, Circle, FolderPlus, setRenamePresetGroupInput, setPresetSortOrder, presetsList, CheckSquare, sortItemList, selectedPresetIds, setShowPresetBatchMoveModal, presetBatchMode, presetSearchQuery, presetSortOrder, Move, setEditingPresetTab, setSelectedPresetIds, setEditingPreset, filteredPresets, setShowNewPresetGroupModal, ArrowUpDown,
     } = props;
+
+  const [viewMode, setViewMode] = React.useState<ViewMode>('grid-4');
+  const sortedPresets = React.useMemo(() => sortItemList(filteredPresets, presetSortOrder, (item: any) => item.fileName || item.name || '', (item: any) => item.importedAt || item.updatedAt || item.createdAt || 0), [filteredPresets, presetSortOrder, sortItemList]);
+  const pagination = useFixedPagination(sortedPresets.length, JSON.stringify([presetSearchQuery, presetCategoryFilter, presetTagsFilter, presetSortOrder]));
 
   const localFileInputRef = useRef<HTMLInputElement>(null);
   const [showBatchTagModal, setShowBatchTagModal] = React.useState(false);
@@ -228,6 +236,7 @@ export const STPresetsSection = (props: any) => {
 
                 {/* Search Bar & Category Group Bar */}
                 <ManagementToolbarFrame>
+                  <ViewModeDropdown viewMode={viewMode} setViewMode={setViewMode} />
                   <ManagementSearch type="text" value={presetSearchQuery} onChange={(e: any) => setPresetSearchQuery(e.target.value)} placeholder="搜索预设文件名、作者、分类或内容..." />
 
                   <div className="flex flex-wrap items-center gap-2 flex-shrink-0">
@@ -352,14 +361,11 @@ export const STPresetsSection = (props: any) => {
                     </p>
                   </div>
                 ) : (
-                  <ManagementGrid className=" grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {sortItemList(
-                      filteredPresets,
-                      presetSortOrder,
-                      (item: any) => item.fileName || item.name || '',
-                      (item: any) => item.importedAt || item.updatedAt || item.createdAt || 0
-                    ).map((item: any) => {
+                  <ManagementGrid viewMode={viewMode} className={managementViewClass(viewMode)}>
+                    {sortedPresets.slice(pagination.start, pagination.end).map((item: any) => {
                       const isSelected = selectedPresetIds.includes(item.id);
+                      if (viewMode === 'list') return <ManagementListItem key={item.id} title={item.name || item.fileName || '未命名预设'} summary={`${extractPromptList(getPresetJson(item)).length} 条提示词 · ${item.category || '默认'} · ${item.author || '未知作者'}`} selected={isSelected} batchMode={presetBatchMode} onSelect={() => setSelectedPresetIds((prev: string[]) => prev.includes(item.id) ? prev.filter(id => id !== item.id) : [...prev, item.id])} onOpen={() => openPresetDetail(item, 'details')} />;
+
 
                       return (
                         <div
@@ -504,6 +510,7 @@ export const STPresetsSection = (props: any) => {
                     })}
                   </ManagementGrid>
                 )}
+                <ManagementPagination total={sortedPresets.length} page={pagination.page} pageSize={pagination.pageSize} onPageChange={pagination.setPage} unit="个预设" label="预设分页" />
               
 
 

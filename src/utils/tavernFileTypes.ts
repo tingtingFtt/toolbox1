@@ -10,7 +10,7 @@ const regexLeaf = (v: any) => object(v) && typeof v.findRegex === 'string' && ty
 const scriptLeaf = (v: any) => object(v) && v.type !== 'folder' && ['content', 'code', 'script'].some(k => typeof v[k] === 'string') && (v.type === 'script' || typeof v.name === 'string');
 export const isQRDocument = (v: any) => object(v) && Array.isArray(v.qrList) && v.qrList.every((r: any) => object(r) && typeof r.message === 'string');
 
-export function resourceLeaves(root: any, kind: 'regex' | 'script'): any[] {
+export function resourceLeaves(root: any, kind: 'regex' | 'script', allowLegacyRegex = false): any[] {
   const result: any[] = [];
   const visit = (value: any, depth = 0) => {
     if (depth > 60) return;
@@ -19,10 +19,29 @@ export function resourceLeaves(root: any, kind: 'regex' | 'script'): any[] {
       value.forEach(v => visit(v, depth + 1)); return;
     }
     if (!object(value)) return;
-    if ((kind === 'regex' ? regexLeaf : scriptLeaf)(value)) { result.push(value); return; }
+    const matches = kind === 'regex'
+      ? regexLeaf(value) || (allowLegacyRegex && ['findRegex', 'find_regex', 'pattern', 'find', 'regex'].some(key => typeof value[key] === 'string'))
+      : scriptLeaf(value);
+    if (matches) { result.push(value); return; }
     Object.entries(value).forEach(([k, v]) => { if (k !== 'variables') visit(v, depth + 1); });
   };
   visit(root); return result;
+}
+
+/** Cards may carry both helper scripts and extension scripts, or regexes in several supported locations. */
+export function cardEmbeddedResources(data: any) {
+  const unique = (roots: any[], kind: 'regex' | 'script') => {
+    const seen = new Set<string>();
+    return roots.flatMap(root => resourceLeaves(root, kind, kind === 'regex')).filter(value => {
+      const key = JSON.stringify(value);
+      if (seen.has(key)) return false;
+      seen.add(key); return true;
+    });
+  };
+  return {
+    regexes: unique([data.extensions?.regex_scripts, data.extensions?.regex, data.regex_scripts, data.character_book?.extensions?.regex_scripts], 'regex'),
+    scripts: unique([data.extensions?.tavern_helper, data.extensions?.scripts], 'script'),
+  };
 }
 
 export function detectTavernFileKind(json: any): TavernFileKind {
@@ -91,9 +110,10 @@ export function buildTavernBundle(json: any, fileName: string, info: ImportInfo,
     const card: CardEntry = { ...common, name: title, fileType: /\.png$/i.test(fileName) ? 'png' : 'json', version: json.spec === 'chara_card_v3' || json.spec_version === '3.0' ? 'v3' : 'v2', authorManual: false, group: '默认', rawData: json, coverImage: null, customTags: [...new Set(['本地', ...list(d.tags).filter(v => typeof v === 'string')])], boundWorldBooks: [], boundRegexes: [], boundScripts: [] };
     card.contentFingerprint = getCardCoreSignature(card); add('cards', card);
     if (d.character_book) { const wbId = `wb_card_${id}`; add('stWorldBooks', { ...common, id: wbId, name: d.character_book.name || title + ' · 世界书', entries: bookEntries(d.character_book), jsonData: d.character_book, sourceCardId: id, sourceCardName: title, sourceScope: 'card', isBuiltIn: true }); card.boundWorldBooks = [wbId]; }
-    const rx = resourceLeaves(d.extensions?.regex_scripts || d.regex_scripts || d.character_book?.extensions?.regex_scripts, 'regex');
+    const embedded = cardEmbeddedResources(d);
+    const rx = embedded.regexes.map(value => ({ ...value, findRegex: value.findRegex ?? value.find_regex ?? value.pattern ?? value.find ?? value.regex ?? '', replaceString: value.replaceString ?? value.replace_string ?? value.replacement ?? value.replace ?? '' }));
     if (rx.length) { const entry = regexCollection(rx, 'card'); add('stRegexScripts', entry); card.boundRegexes = [entry.id]; }
-    const scripts = resourceLeaves(d.extensions?.tavern_helper || d.extensions?.scripts, 'script');
+    const scripts = embedded.scripts;
     if (scripts.length) { const entry = scriptCollection(scripts, 'card'); add('scripts', entry); card.boundScripts = [entry.id]; }
     const qr = d.qrData || d.extensions?.qrData || json.qrData;
     if (isQRDocument(qr)) { card.qrData = qr; add('scripts', { ...common, id: `qr_card_${id}`, name: qr.name || title + ' · QR', type: 'qr', jsonData: qr, rawContent: JSON.stringify(qr), sourceCardId: id, sourceCardName: title, sourceScope: 'card', isBuiltIn: true }); }

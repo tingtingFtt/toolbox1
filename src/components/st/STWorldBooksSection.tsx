@@ -1,3 +1,9 @@
+import { ResourceSourceControls, ResourceSourceBadge, ResourceSourceFilter } from './ResourceSourceControls';
+import { resourceSource } from '../../utils/presetResources';
+import { useFixedPagination } from '../../hooks/useFixedPagination';
+import { ManagementPagination } from '../ui/ManagementPagination';
+import { ManagementListItem, managementViewClass } from '../ui/ManagementListItem';
+import { ViewModeDropdown, ViewMode } from '../ui/ViewModeDropdown';
 import { hydrateCardAsset } from '../../utils/largeCardStore';
 import { hydrateCard } from '../../utils/largeCardStore';
 import { useTavernImport } from '../../hooks/TavernImportContext';
@@ -60,6 +66,7 @@ export const STWorldBooksSection = React.memo<STWorldBooksSectionProps>(({
   useEffect(() => {
     sessionStore.stWorldBooks.sortOrder = sortOrder;
   }, [sortOrder]);
+  const [sourceFilter, setSourceFilter] = useState<ResourceSourceFilter>('all');
   const [batchMode, setBatchMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [showBatchTagModal, setShowBatchTagModal] = React.useState(false);
@@ -147,6 +154,7 @@ export const STWorldBooksSection = React.memo<STWorldBooksSectionProps>(({
   const builtInTags: string[] = [];
   const filtered = useMemo(() => {
     return rawWorldBooks.filter((item: any) => {
+      if (sourceFilter !== 'all' && resourceSource(item) !== sourceFilter) return false;
       if (categoryFilter !== '全部分组' && (item.category || '默认') !== categoryFilter) {
         return false;
       }
@@ -168,7 +176,7 @@ export const STWorldBooksSection = React.memo<STWorldBooksSectionProps>(({
         }))
       );
     });
-  }, [rawWorldBooks, categoryFilter, tagFilter, searchQuery]);
+  }, [rawWorldBooks, categoryFilter, tagFilter, searchQuery, sourceFilter]);
 
   const sorted = useMemo(() => {
     return sortItemList(
@@ -486,15 +494,9 @@ export const STWorldBooksSection = React.memo<STWorldBooksSectionProps>(({
     }
   };
 
-  const PAGE_SIZE = 50;
-  const [visibleCount, setVisibleCount] = React.useState(PAGE_SIZE);
-
-  React.useEffect(() => {
-    setVisibleCount(PAGE_SIZE);
-  }, [searchQuery, categoryFilter, tagFilter, sortOrder]);
-
-  React.useEffect(() => setVisibleCount(n => Math.min(n, Math.max(PAGE_SIZE, Math.ceil(sorted.length / PAGE_SIZE) * PAGE_SIZE))), [sorted.length]);
-  const visibleSorted = sorted.slice(Math.max(0, visibleCount - PAGE_SIZE), visibleCount);
+  const [viewMode, setViewMode] = useState<ViewMode>('grid-3');
+  const pagination = useFixedPagination(sorted.length, JSON.stringify([searchQuery, categoryFilter, tagFilter, sortOrder, sourceFilter]));
+  const visibleSorted = sorted.slice(pagination.start, pagination.end);
 
   return (
     <div className="max-w-7xl mx-auto w-full space-y-5 ">
@@ -534,6 +536,8 @@ export const STWorldBooksSection = React.memo<STWorldBooksSectionProps>(({
       />
 
       <ManagementToolbarFrame>
+        <ViewModeDropdown viewMode={viewMode} setViewMode={setViewMode} />
+        <ResourceSourceControls items={rawWorldBooks} value={sourceFilter} onChange={value => { setSourceFilter(value); setCategoryFilter('全部分组'); setTagFilter([]); }} />
         {/* Search Input */}
         <ManagementSearch type="text" placeholder="搜索世界书名称、词条关键词或描述…" value={searchQuery} onChange={(e: any) => setSearchQuery(e.target.value)} />
 
@@ -659,13 +663,14 @@ export const STWorldBooksSection = React.memo<STWorldBooksSectionProps>(({
           </p>
         </div>
       ) : (
-        <ManagementGrid className=" grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <ManagementGrid viewMode={viewMode} className={managementViewClass(viewMode)}>
           {visibleSorted.map((wb) => {
             const isSelected = selectedIds.includes(wb.id);
             const totalTokens = (Array.isArray(wb.entries) ? wb.entries : (Object.values(wb.entries || {}) as any[])).reduce(
               (sum, e) => sum + estimateTokens(e.content || '') + estimateTokens(Array.isArray(e.keys) ? e.keys.join(', ') : e.keys || ''),
               0
             );
+            if (viewMode === 'list') return <ManagementListItem key={wb.id} title={wb.name} summary={`${wb.entryCount ?? (Array.isArray(wb.entries) ? wb.entries.length : Object.keys(wb.entries || {}).length)} 条世界书 · ${wb.category || '默认'} · ${wb.author || '未知作者'}`} source={<ResourceSourceBadge item={wb} onOpenCard={onOpenCardDetail} />} selected={isSelected} batchMode={batchMode} onSelect={() => setSelectedIds(prev => prev.includes(wb.id) ? prev.filter(id => id !== wb.id) : [...prev, wb.id])} onOpen={() => handleOpenDetail(wb)} onExport={() => handleExportWb(wb)} onDelete={() => handleDeleteWb(wb.id)} />;
             return (
                 <div
                   key={wb.id}
@@ -678,7 +683,7 @@ export const STWorldBooksSection = React.memo<STWorldBooksSectionProps>(({
                       handleOpenDetail(wb);
                     }
                   }}
-                  className={`bg-white dark:bg-zinc-900 border rounded-xl p-3 shadow-sm transition-all flex flex-col h-full justify-between cursor-pointer ${
+                  className={`min-w-0 bg-white dark:bg-zinc-900 border rounded-xl p-3 shadow-sm transition-all flex flex-col h-full justify-between cursor-pointer ${
                     isSelected
                       ? 'border-amber-500 ring-2 ring-amber-500/20 bg-amber-50/20 dark:bg-amber-950/20'
                       : 'border-zinc-200 dark:border-zinc-800 hover:border-amber-500/50 dark:hover:border-amber-500/50'
@@ -818,11 +823,7 @@ export const STWorldBooksSection = React.memo<STWorldBooksSectionProps>(({
       )}
 
       {/* WorldBook Detail Modal */}
-      <div className="flex justify-center items-center gap-4 flex-wrap py-4 text-xs">
-        <button disabled={visibleCount <= PAGE_SIZE} onClick={() => setVisibleCount(n => Math.max(PAGE_SIZE, n - PAGE_SIZE))}>上一页</button>
-        <span>第 {Math.ceil(visibleCount / PAGE_SIZE)} / {Math.max(1, Math.ceil(sorted.length / PAGE_SIZE))} 页 · 共 {sorted.length} 个集合</span>
-        <button disabled={visibleCount >= sorted.length} onClick={() => setVisibleCount(n => n + PAGE_SIZE)}>下一页</button>
-      </div>
+      <ManagementPagination total={sorted.length} page={pagination.page} pageSize={pagination.pageSize} onPageChange={pagination.setPage} unit="个集合" label="世界书分页" />
       {activeWb && !activeWb.assetStub && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-0 bg-zinc-900/40 dark:bg-black/60 backdrop-blur-sm animate-in fade-in" role="dialog" aria-modal="true">
           <div 

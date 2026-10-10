@@ -1,4 +1,4 @@
-import { resourceLeaves } from './utils/tavernFileTypes';
+import { resourceLeaves, cardEmbeddedResources } from './utils/tavernFileTypes';
 import { delMany } from 'idb-keyval';
 import { readCollection, writeCollection } from './utils/recordPersistence';
 import { hydrateCard, getCardCover, portableCard, hydrateCardAsset, referencedImportKeys, hydrateCardBoundAssets } from './utils/largeCardStore';
@@ -2694,7 +2694,7 @@ export function extractBundledAssets(
   const targetBoundRxs = new Set<string>([...(matched?.boundRegexes || []), ...(card.boundRegexes || [])]);
 
   // 1. WorldBooks (世界书 - 严格 1 张角色卡对应 1 本专属绑定世界书)
-  if (raw.character_book && Array.isArray(raw.character_book.entries)) {
+  if (raw.character_book?.entries && typeof raw.character_book.entries === 'object') {
     const rawWbName = (raw.character_book.name || '').trim();
     const wbName = rawWbName || `${targetCardName || card.name}_世界书`;
 
@@ -2789,8 +2789,10 @@ export function extractBundledAssets(
   }
 
   // 2. Scripts (酒馆脚本 - 融合为单个角色卡脚本文件，包含所有子条目)
-  const rawScriptsData = raw.extensions?.tavern_helper || raw.extensions?.scripts;
-  const scriptList: any[] = resourceLeaves(rawScriptsData, 'script');
+  const embedded = cardEmbeddedResources(raw);
+  const scriptRoots = [raw.extensions?.tavern_helper, raw.extensions?.scripts].filter(value => value != null);
+  const rawScriptsData = scriptRoots.length === 1 ? scriptRoots[0] : scriptRoots;
+  const scriptList: any[] = embedded.scripts;
 
   if (scriptList.length > 0) {
     const sName = `[${targetCardName || card.name}] 酒馆脚本`;
@@ -2899,12 +2901,8 @@ export function extractBundledAssets(
   }
 
   // 3. Regex Scripts (正则脚本 - 融合为单个角色卡正则文件，包含所有子条目)
-  const rawRegexData = raw.extensions?.regex_scripts || raw.extensions?.regex;
-  const regexList: any[] = Array.isArray(rawRegexData)
-    ? rawRegexData
-    : rawRegexData && typeof rawRegexData === 'object'
-    ? [rawRegexData]
-    : [];
+  const rawRegexData = embedded.regexes;
+  const regexList: any[] = embedded.regexes;
 
   if (regexList.length > 0) {
     const rName = `[${targetCardName || card.name}] 正则脚本`;

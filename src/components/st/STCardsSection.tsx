@@ -1,3 +1,4 @@
+import { ManagementPagination } from '../ui/ManagementPagination';
 import { useCardCover } from '../../hooks/useCardPayload';
 import { ManagementSearch, ManagementBatchBar, ManagementHeader, ManagementToolbarFrame, ManagementBatchOverlay } from '../ui/ManagementChrome';
 import { ActionButton } from '../ui/ActionButton';
@@ -695,11 +696,7 @@ export const STCardsSection = React.memo<STCardsSectionProps>(({
         </div>
       )}
 
-      <div className="flex items-center justify-center flex-wrap py-6 gap-3">
-        <button type="button" disabled={cardVisibleCount <= CARD_PAGE_SIZE} onClick={() => setCardVisibleCount(n => Math.max(CARD_PAGE_SIZE, n - CARD_PAGE_SIZE))} className="px-3 py-2 border disabled:opacity-30">上一页</button>
-        <span className="text-xs">第 {Math.ceil(cardVisibleCount / CARD_PAGE_SIZE)} / {Math.max(1, Math.ceil(filteredCards.length / CARD_PAGE_SIZE))} 页 · 共 {filteredCards.length} 张</span>
-        <button type="button" disabled={cardVisibleCount >= filteredCards.length} onClick={() => setCardVisibleCount(n => n + CARD_PAGE_SIZE)} className="px-3 py-2 border disabled:opacity-30">下一页</button>
-      </div>
+      <ManagementPagination total={filteredCards.length} page={Math.ceil(cardVisibleCount / CARD_PAGE_SIZE) - 1} pageSize={CARD_PAGE_SIZE} onPageChange={page => setCardVisibleCount((page + 1) * CARD_PAGE_SIZE)} unit="张" label="角色卡分页" />
 
       <BatchTagModal
         isOpen={showBatchTagModal}

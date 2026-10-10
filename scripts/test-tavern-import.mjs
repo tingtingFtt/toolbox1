@@ -9,7 +9,7 @@ globalThis.localStorage = { getItem: () => null };
 const root = process.cwd(), temp = await mkdtemp(path.join(os.tmpdir(), 'tavern-import-test-'));
 const memoryModule = `const db = globalThis.__importTestDB = new Map(); globalThis.__writeBatches = []; export async function get(k) { return structuredClone(db.get(k)); } export async function set(k,v) { if(globalThis.__failKey === k) throw Error('injected failure'); db.set(k, structuredClone(v)); } export async function getMany(keys) { return Promise.all(keys.map(get)); } export async function setMany(entries) { globalThis.__writeBatches.push(entries.length); if(entries.some(([k])=>globalThis.__failKey===k)) throw Error('injected failure'); for(const [k,v] of entries) db.set(k, structuredClone(v)); } export async function delMany(keys) { for(const k of keys) db.delete(k); }`;
 try {
-  await build({ stdin: { contents: `export * from './src/utils/tavernFileTypes'; export * from './src/utils/tavernImportPipeline'; export * from './src/utils/tavernZip'; export * from './src/utils/largeCardStore'; export * from './src/utils/recordPersistence'; export * from './src/utils/cardImportIndex'; export * from './src/utils/presetResources'; export { createSafeJsonBlob, saveAppData, loadAppDataAsync, loadAppData, injectBoundAssetsForExport, generateBatchedExport } from './src/utils'; export { autoAssociateAllAssets } from './src/utils/associationEngine';`, resolveDir: root }, bundle: true, platform: 'node', format: 'esm', outfile: path.join(temp, 'core.mjs'), plugins: [{ name: 'storage-contract', setup(builder) { builder.onResolve({ filter: /^mammoth$/ }, () => ({ path: 'mammoth', namespace: 'mammoth-test' })); builder.onLoad({ filter: /.*/, namespace: 'mammoth-test' }, () => ({ contents: 'export default {}' })); builder.onResolve({ filter: /^idb-keyval$/ }, () => ({ path: 'memory', namespace: 'test' })); builder.onLoad({ filter: /.*/, namespace: 'test' }, () => ({ contents: memoryModule })); builder.onResolve({ filter: /\?worker&inline$/ }, () => ({ path: 'worker', namespace: 'worker-test' })); builder.onLoad({ filter: /.*/, namespace: 'worker-test' }, () => ({ contents: 'export default class {}' })); } }] });
+  await build({ stdin: { contents: `export * from './src/utils/tavernFileTypes'; export * from './src/utils/tavernImportPipeline'; export * from './src/utils/tavernZip'; export * from './src/utils/largeCardStore'; export * from './src/utils/recordPersistence'; export * from './src/utils/cardImportIndex'; export * from './src/utils/presetResources'; export { extractBundledAssets, createSafeJsonBlob, saveAppData, loadAppDataAsync, loadAppData, injectBoundAssetsForExport, generateBatchedExport } from './src/utils'; export { autoAssociateAllAssets } from './src/utils/associationEngine';`, resolveDir: root }, bundle: true, platform: 'node', format: 'esm', outfile: path.join(temp, 'core.mjs'), plugins: [{ name: 'storage-contract', setup(builder) { builder.onResolve({ filter: /^mammoth$/ }, () => ({ path: 'mammoth', namespace: 'mammoth-test' })); builder.onLoad({ filter: /.*/, namespace: 'mammoth-test' }, () => ({ contents: 'export default {}' })); builder.onResolve({ filter: /^idb-keyval$/ }, () => ({ path: 'memory', namespace: 'test' })); builder.onLoad({ filter: /.*/, namespace: 'test' }, () => ({ contents: memoryModule })); builder.onResolve({ filter: /\?worker&inline$/ }, () => ({ path: 'worker', namespace: 'worker-test' })); builder.onLoad({ filter: /.*/, namespace: 'worker-test' }, () => ({ contents: 'export default class {}' })); } }] });
   const core = await import(pathToFileURL(path.join(temp, 'core.mjs')));
   const empty = () => ({ cards: [], groups: ['默认'], presets: [], stWorldBooks: [], stRegexScripts: [], scripts: [], themes: [], importRecords: [], stagedDuplicateCards: [] });
   const jsonFile = (name, data) => new File([JSON.stringify(data)], name);
@@ -53,6 +53,31 @@ try {
   assert.throws(() => core.decodePngCard(new Uint8Array([137,80]).buffer));
   console.log('PASS PNG tEXt / zTXt / compressed and uncompressed iTXt with Unicode metadata');
   const card = { spec: 'chara_card_v3', spec_version: '3.0', data: { name: 'Example', description: 'body', first_mes: 'greeting', extensions: { regex_scripts: [{ scriptName: 'R1', findRegex: 'a', replaceString: 'b' }, { scriptName: 'R2', findRegex: 'b', replaceString: 'c' }], tavern_helper: [['scripts', [{ type: 'script', name: 'S', content: 'never executed' }]], ['variables', { name: 'config', content: 'not a script' }]] } } };
+  const multi = structuredClone(card);
+  const r1 = multi.data.extensions.regex_scripts[0];
+  multi.data.regex_scripts = [structuredClone(r1), { scriptName: 'R3', findRegex: 'c', replaceString: 'd' }, { name: 'Legacy', pattern: 'old', replacement: 'new' }];
+  multi.data.character_book = { name: 'Embedded book', entries: { 0: { uid: 0, key: ['key'], content: 'book entry' } }, extensions: { regex_scripts: [{ scriptName: 'R4', findRegex: 'd', replaceString: 'e' }] } };
+  multi.data.extensions.scripts = [structuredClone(multi.data.extensions.tavern_helper[0][1][0]), { type: 'script', name: 'S2', content: 'also never executed' }];
+  const combined = await core.runTavernImport([{ file: jsonFile('Embedded.json', multi), relativePath: 'Embedded.json' }], empty(), { signal: new AbortController().signal });
+  const embeddedState = combined.updatedAppData, owner = embeddedState.cards[0];
+  assert.equal(embeddedState.stWorldBooks.length, 1);
+  assert.equal(embeddedState.stRegexScripts.length, 1);
+  assert.equal(embeddedState.scripts.length, 1);
+  for (const [field, binding, size, contentKey] of [['stWorldBooks', 'boundWorldBooks', 1, 'entries'], ['stRegexScripts', 'boundRegexes', 5, 'rules'], ['scripts', 'boundScripts', 2, 'entries']]) {
+    const resource = embeddedState[field][0];
+    assert.equal(resource.sourceCardId, owner.id);
+    assert.equal(resource.sourceScope, 'card');
+    assert.deepEqual(owner[binding], [resource.id]);
+    assert.equal((await core.hydrateCardAsset(resource))[contentKey].length, size);
+  }
+  const extracted = core.extractBundledAssets(await core.hydrateCard(owner), empty());
+  assert.equal(extracted.newWorldBooks[0].entries.length, 1);
+  assert.equal(extracted.newRegexes[0].rules.length, 5);
+  assert.equal(extracted.newRegexes[0].rules.find(rule => rule.scriptName === 'Legacy').findRegex, 'old');
+  assert.equal((await core.hydrateCardAsset(embeddedState.stRegexScripts[0])).rules.find(rule => rule.name === 'Legacy').replaceString, 'new');
+  assert.equal(extracted.newScripts[0].entries.length, 2);
+  assert.deepEqual(extracted.newScripts[0].jsonData[0][1], multi.data.extensions.tavern_helper[1]);
+  console.log('PASS immediate card companion routing, merged supported locations, deduplication and staged-decision extraction');
   const file = jsonFile('Example.json', card);
   let state = empty();
   const commit = async apply => { state = apply(state); return state; };

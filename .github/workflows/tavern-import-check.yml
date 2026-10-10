@@ -18,6 +18,6 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run lint
-      - run: node --import tsx --test src/utils/presetResources.test.ts src/utils/baiduApi.test.ts
+      - run: node --import tsx --test src/utils/presetResources.test.ts src/utils/baiduApi.test.ts src/utils/pagination.test.ts
       - run: npm run test:imports
       - run: npm run build

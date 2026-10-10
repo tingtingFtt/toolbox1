@@ -35,6 +35,40 @@
   align-items: stretch;
 }
 
+/* Explicit display choices take precedence over the default auto-fill grid.
+   Use panel width, so a sidebar or split-screen never forces tiny cards. */
+.resource-card-grid[data-view-mode] {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+[data-design-id="staging-vault-modal-panel"] {
+  container-type: inline-size;
+}
+
+@container (min-width: 36rem) {
+  .resource-card-grid[data-view-mode]:not([data-view-mode="list"]) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@container (min-width: 54rem) {
+  .resource-card-grid[data-view-mode]:not([data-view-mode="list"]) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@container (min-width: 64rem) {
+  .resource-card-grid:is([data-view-mode="grid-4"], [data-view-mode="grid-5"]) {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@container (min-width: 76rem) {
+  .resource-card-grid[data-view-mode="grid-5"] {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
 .file-detail-modal > :where(header, footer, .tab-nav-bar, .detail-header, [data-design-id="card-detail-header"], .detail-footer, [data-design-id="card-detail-footer"]) {
   flex-shrink: 0;
   min-width: 0;

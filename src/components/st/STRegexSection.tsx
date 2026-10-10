@@ -1,3 +1,7 @@
+import { useFixedPagination } from '../../hooks/useFixedPagination';
+import { ManagementPagination } from '../ui/ManagementPagination';
+import { ManagementListItem, managementViewClass } from '../ui/ManagementListItem';
+import { ViewModeDropdown, ViewMode } from '../ui/ViewModeDropdown';
 import { hydrateCardAsset } from '../../utils/largeCardStore';
 import { hydrateCard } from '../../utils/largeCardStore';
 import { useTavernImport } from '../../hooks/TavernImportContext';
@@ -633,15 +637,9 @@ export const STRegexSection = React.memo<STRegexSectionProps>(({
     return result;
   };
 
-  const PAGE_SIZE = 50;
-  const [visibleCount, setVisibleCount] = React.useState(PAGE_SIZE);
-
-  React.useEffect(() => {
-    setVisibleCount(PAGE_SIZE);
-  }, [searchQuery, categoryFilter, tagFilter, sortOrder, sourceFilter]);
-
-  React.useEffect(() => setVisibleCount(n => Math.min(n, Math.max(PAGE_SIZE, Math.ceil(sorted.length / PAGE_SIZE) * PAGE_SIZE))), [sorted.length]);
-  const visibleSorted = sorted.slice(Math.max(0, visibleCount - PAGE_SIZE), visibleCount);
+  const [viewMode, setViewMode] = useState<ViewMode>('grid-3');
+  const pagination = useFixedPagination(sorted.length, JSON.stringify([searchQuery, categoryFilter, tagFilter, sortOrder, sourceFilter]));
+  const visibleSorted = sorted.slice(pagination.start, pagination.end);
 
   return (
     <div className="max-w-7xl mx-auto w-full space-y-5 ">
@@ -681,6 +679,7 @@ export const STRegexSection = React.memo<STRegexSectionProps>(({
       />
 
       <ManagementToolbarFrame>
+        <ViewModeDropdown viewMode={viewMode} setViewMode={setViewMode} />
         <ResourceSourceControls items={rawRegexList} value={sourceFilter} onChange={value => { setSourceFilter(value); setCategoryFilter('全部分组'); setTagFilter([]); }} />
         {/* Search Input */}
         <ManagementSearch type="text" placeholder="搜索正则名称、匹配模式、替换词或所属角色…" value={searchQuery} onChange={(e: any) => setSearchQuery(e.target.value)} />
@@ -809,11 +808,12 @@ export const STRegexSection = React.memo<STRegexSectionProps>(({
           </p>
         </div>
       ) : (
-        <ManagementGrid className=" grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <ManagementGrid viewMode={viewMode} className={managementViewClass(viewMode)}>
           {visibleSorted.map((rx) => {
             const isSelected = selectedIds.includes(rx.id);
             const rulesCount = rx.entryCount ?? (rx.rules?.length || 1);
             const activeVerLabel = rx.activeVersionLabel || `v${(rx.versions?.length || 0) + 1}`;
+            if (viewMode === 'list') return <ManagementListItem key={rx.id} title={rx.scriptName} summary={`${rulesCount} 条正则 · ${rx.category || '默认'} · ${rx.author || '未知作者'}`} source={<ResourceSourceBadge item={rx} onOpenCard={onOpenCardDetail} onOpenPreset={onOpenPresetDetail} />} selected={isSelected} batchMode={batchMode} onSelect={() => setSelectedIds(prev => prev.includes(rx.id) ? prev.filter(id => id !== rx.id) : [...prev, rx.id])} onOpen={() => handleOpenDetail(rx)} onExport={() => handleExportRegex(rx)} onDelete={() => handleDeleteRegex(rx.id)} />;
             return (
               <div
                 key={rx.id}
@@ -826,7 +826,7 @@ export const STRegexSection = React.memo<STRegexSectionProps>(({
                     handleOpenDetail(rx);
                   }
                 }}
-                className={`bg-white dark:bg-zinc-900 border rounded-xl p-4 shadow-sm transition-all flex flex-col justify-between cursor-pointer ${
+                className={`min-w-0 bg-white dark:bg-zinc-900 border rounded-xl p-4 shadow-sm transition-all flex flex-col justify-between cursor-pointer ${
                   isSelected
                     ? 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-50/20 dark:bg-rose-950/20'
                     : 'border-zinc-200 dark:border-zinc-800 hover:border-rose-500/50 dark:hover:border-rose-500/50'
@@ -950,11 +950,7 @@ export const STRegexSection = React.memo<STRegexSectionProps>(({
       )}
 
       {/* Detail / Inspector Modal */}
-      <div className="flex justify-center items-center gap-4 flex-wrap py-4 text-xs">
-        <button disabled={visibleCount <= PAGE_SIZE} onClick={() => setVisibleCount(n => Math.max(PAGE_SIZE, n - PAGE_SIZE))}>上一页</button>
-        <span>第 {Math.ceil(visibleCount / PAGE_SIZE)} / {Math.max(1, Math.ceil(sorted.length / PAGE_SIZE))} 页 · 共 {sorted.length} 个集合</span>
-        <button disabled={visibleCount >= sorted.length} onClick={() => setVisibleCount(n => n + PAGE_SIZE)}>下一页</button>
-      </div>
+      <ManagementPagination total={sorted.length} page={pagination.page} pageSize={pagination.pageSize} onPageChange={pagination.setPage} unit="个集合" label="正则分页" />
       {activeRegex && !activeRegex.assetStub && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-0 bg-zinc-900/40 dark:bg-black/60 backdrop-blur-sm animate-in fade-in" onClick={() => setActiveRegex(null)} role="dialog" aria-modal="true">
           <div 

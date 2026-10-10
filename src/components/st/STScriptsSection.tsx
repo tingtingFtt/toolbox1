@@ -1,3 +1,7 @@
+import { useFixedPagination } from '../../hooks/useFixedPagination';
+import { ManagementPagination } from '../ui/ManagementPagination';
+import { ManagementListItem, managementViewClass } from '../ui/ManagementListItem';
+import { ViewModeDropdown, ViewMode } from '../ui/ViewModeDropdown';
 import { hydrateCardAsset } from '../../utils/largeCardStore';
 import { useTavernImport } from '../../hooks/TavernImportContext';
 import { ManagementSearch, ManagementHeader, ManagementBatchBar, ManagementToolbarFrame, ManagementGrid, ManagementBatchOverlay } from '../ui/ManagementChrome';
@@ -570,15 +574,9 @@ export const STScriptsSection = React.memo<STScriptsSectionProps>(({
     showToast(`成功新建分组: ${trimmed}`, 'success');
   };
 
-  const PAGE_SIZE = 50;
-  const [visibleCount, setVisibleCount] = React.useState(PAGE_SIZE);
-
-  React.useEffect(() => {
-    setVisibleCount(PAGE_SIZE);
-  }, [searchQuery, categoryFilter, tagFilter, sortOrder, sourceFilter]);
-
-  React.useEffect(() => setVisibleCount(n => Math.min(n, Math.max(PAGE_SIZE, Math.ceil(sorted.length / PAGE_SIZE) * PAGE_SIZE))), [sorted.length]);
-  const visibleSorted = sorted.slice(Math.max(0, visibleCount - PAGE_SIZE), visibleCount);
+  const [viewMode, setViewMode] = useState<ViewMode>('grid-3');
+  const pagination = useFixedPagination(sorted.length, JSON.stringify([searchQuery, categoryFilter, tagFilter, sortOrder, sourceFilter]));
+  const visibleSorted = sorted.slice(pagination.start, pagination.end);
 
   return (
     <div className="max-w-7xl mx-auto w-full space-y-5 ">
@@ -671,6 +669,7 @@ export const STScriptsSection = React.memo<STScriptsSectionProps>(({
       )}
 
       <ManagementToolbarFrame>
+        <ViewModeDropdown viewMode={viewMode} setViewMode={setViewMode} />
         <ResourceSourceControls items={rawScripts} value={sourceFilter} onChange={value => { setSourceFilter(value); setCategoryFilter('全部分组'); setTagFilter([]); }} />
         {/* Search Input */}
         <ManagementSearch type="text" placeholder="搜索脚本名称、作者、描述或关联角色卡…" value={searchQuery} onChange={(e: any) => setSearchQuery(e.target.value)} />
@@ -760,10 +759,11 @@ export const STScriptsSection = React.memo<STScriptsSectionProps>(({
           </div>
         </div>
       ) : (
-        <ManagementGrid className=" grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+        <ManagementGrid viewMode={viewMode} className={managementViewClass(viewMode)}>
           {visibleSorted.map((script: ScriptEntry) => {
             const isSelected = selectedIds.includes(script.id);
             const subEntriesCount = script.entryCount ?? script.entries?.length ?? 0;
+            if (viewMode === 'list') return <ManagementListItem key={script.id} title={script.name} summary={`${subEntriesCount} 条脚本 · ${script.category || '默认'} · ${script.author || '未知作者'}`} source={<ResourceSourceBadge item={script} onOpenCard={onOpenCardDetail} onOpenPreset={onOpenPresetDetail} />} selected={isSelected} batchMode={batchMode} onSelect={() => setSelectedIds(prev => prev.includes(script.id) ? prev.filter(id => id !== script.id) : [...prev, script.id])} onOpen={() => handleOpenDetail(script)} onExport={() => handleExportScript(script)} onDelete={() => handleDeleteScript(script.id)} />;
             return (
               <div
                 key={script.id}
@@ -776,7 +776,7 @@ export const STScriptsSection = React.memo<STScriptsSectionProps>(({
                     handleOpenDetail(script);
                   }
                 }}
-                className={`bg-white dark:bg-zinc-900 border rounded-xl p-3 flex flex-col h-full justify-between transition-all cursor-pointer shadow-xs hover:border-emerald-400 dark:hover:border-emerald-600/60 ${
+                className={`min-w-0 bg-white dark:bg-zinc-900 border rounded-xl p-3 flex flex-col h-full justify-between transition-all cursor-pointer shadow-xs hover:border-emerald-400 dark:hover:border-emerald-600/60 ${
                   isSelected
                     ? 'border-emerald-500 ring-2 ring-emerald-500/20'
                     : 'border-zinc-200 dark:border-zinc-800'
@@ -915,11 +915,7 @@ export const STScriptsSection = React.memo<STScriptsSectionProps>(({
       )}
 
       {/* Script Detail Modal */}
-      <div className="flex justify-center items-center gap-4 flex-wrap py-4 text-xs">
-        <button disabled={visibleCount <= PAGE_SIZE} onClick={() => setVisibleCount(n => Math.max(PAGE_SIZE, n - PAGE_SIZE))}>上一页</button>
-        <span>第 {Math.ceil(visibleCount / PAGE_SIZE)} / {Math.max(1, Math.ceil(sorted.length / PAGE_SIZE))} 页 · 共 {sorted.length} 个集合</span>
-        <button disabled={visibleCount >= sorted.length} onClick={() => setVisibleCount(n => n + PAGE_SIZE)}>下一页</button>
-      </div>
+      <ManagementPagination total={sorted.length} page={pagination.page} pageSize={pagination.pageSize} onPageChange={pagination.setPage} unit="个集合" label="脚本分页" />
       {activeScript && !activeScript.assetStub && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-0 bg-zinc-900/40 dark:bg-black/60 backdrop-blur-sm animate-in fade-in" onClick={() => setActiveScript(null)} role="dialog" aria-modal="true">
           <div 

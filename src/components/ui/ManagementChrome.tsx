@@ -2,6 +2,7 @@ import React from 'react';
 import { cn } from '../../utils/cn';
 import { Search } from 'lucide-react';
 import { BaseInput } from './BaseInput';
+import { ViewMode } from './ViewModeDropdown';
 
 interface ManagementHeaderProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'title'> {
   icon: React.ReactNode;
@@ -31,8 +32,8 @@ type RegionProps = React.HTMLAttributes<HTMLDivElement>;
 export const ManagementToolbarFrame = React.forwardRef<HTMLDivElement, RegionProps>(function ManagementToolbarFrame({ className, ...props }, ref) {
   return <div {...props} ref={ref} className={cn('management-toolbar space-y-2.5 mb-6 w-full min-w-0', className)} />;
 });
-export const ManagementGrid = React.forwardRef<HTMLDivElement, RegionProps>(function ManagementGrid({ className, ...props }, ref) {
-  return <div {...props} ref={ref} className={cn('resource-card-grid grid gap-4', className)} />;
+export const ManagementGrid = React.forwardRef<HTMLDivElement, RegionProps & { viewMode?: ViewMode }>(function ManagementGrid({ className, viewMode, ...props }, ref) {
+  return <div {...props} ref={ref} data-view-mode={viewMode} className={cn('resource-card-grid grid gap-4', className)} />;
 });
 export function ManagementBatchBar({ className, ...props }: RegionProps) {
   return <div {...props} className={cn('batch-floating-card py-[5px] px-[8px] flex flex-col gap-[4px]', className)} />;
