@@ -4892,7 +4892,7 @@ export default function App() {
                   setBigDataExportInitialScope('all');
                   setIsBigDataExportModalOpen(true);
                 }}
-                onTriggerImport={() => importBackupInputRef.current?.click()}
+                onOpenImportCenter={() => setShowImportCenter(true)}
                 onTriggerExport={handleExportFullBackup}
               />            ) : currentPage === 'st-cards' ? (
               <STCardsSection cardViewMode={stCardViewMode} setCardViewMode={setStCardViewMode}
@@ -5498,7 +5498,7 @@ export default function App() {
       { /* Card Detail Modal is rendered unconditionally, internally it checks for displayDetailCard */ }
       <CardDetailModal {...cardDetailProps} />
 
-      <ImportCenter open={showImportCenter} onClose={() => setShowImportCenter(false)} appData={appData} updateAppData={updateAppData} showToast={showToast} />
+      <ImportCenter open={showImportCenter} onClose={() => setShowImportCenter(false)} onImportBackup={() => importBackupInputRef.current?.click()} appData={appData} updateAppData={updateAppData} showToast={showToast} />
       {(detailLoading || detailLoadError) && <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/40"><div className="bg-[var(--modal-solid-bg)] p-6 max-w-md w-[calc(100%-2rem)]"><p>{detailLoading ? '正在读取完整卡片数据…' : detailLoadError}</p><button className="mt-4 underline" onClick={() => setDetailCardId(null)}>关闭</button></div></div>}
       <GlobalModals {...appModalProps} />
     </div>

@@ -1,6 +1,7 @@
 import { ManagementPagination } from '../ui/ManagementPagination';
 import { useCardCover } from '../../hooks/useCardPayload';
-import { ManagementSearch, ManagementBatchBar, ManagementHeader, ManagementToolbarFrame, ManagementBatchOverlay } from '../ui/ManagementChrome';
+import { ManagementSearch, ManagementBatchBar, ManagementHeader, ManagementToolbarFrame, ManagementBatchOverlay, ManagementGrid } from '../ui/ManagementChrome';
+import { managementViewClass } from '../ui/ManagementListItem';
 import { ActionButton } from '../ui/ActionButton';
 import React, { useMemo, useCallback, useState } from 'react';
 import { 
@@ -638,17 +639,7 @@ export const STCardsSection = React.memo<STCardsSectionProps>(({
           </p>
         </div>
       ) : (
-        <div className={
-          cardViewMode === 'list' 
-            ? "flex flex-col gap-2" 
-            : `grid gap-2 sm:gap-2.5 md:gap-3 ${
-                cardViewMode === 'grid-3'
-                  ? 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3'
-                  : cardViewMode === 'grid-4'
-                  ? 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4'
-                  : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5'
-              }`
-        }>
+        <ManagementGrid viewMode={cardViewMode} className={`${managementViewClass(cardViewMode)} gap-2 sm:gap-2.5 md:gap-3`}>
           {visibleFilteredCards.map((card) => {
             const name = getCardDisplayName(card);
             const author = getCardCreator(card);
@@ -693,7 +684,7 @@ export const STCardsSection = React.memo<STCardsSectionProps>(({
               />
             );
           })}
-        </div>
+        </ManagementGrid>
       )}
 
       <ManagementPagination total={filteredCards.length} page={Math.ceil(cardVisibleCount / CARD_PAGE_SIZE) - 1} pageSize={CARD_PAGE_SIZE} onPageChange={page => setCardVisibleCount((page + 1) * CARD_PAGE_SIZE)} unit="张" label="角色卡分页" />

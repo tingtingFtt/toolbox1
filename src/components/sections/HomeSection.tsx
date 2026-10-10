@@ -24,6 +24,8 @@ import { BaseCard } from '../ui/BaseCard';
 import { BaseButton } from '../ui/BaseButton';
 import { BaseBadge } from '../ui/BaseBadge';
 import { ViewModeDropdown } from '../ui/ViewModeDropdown';
+import { ManagementGrid } from '../ui/ManagementChrome';
+import { managementViewClass } from '../ui/ManagementListItem';
 import { AppData } from '../../types';
 import { getCardDisplayName, getCardCreator, getCardDescription } from '../../utils';
 
@@ -37,7 +39,7 @@ interface HomeSectionProps {
   onDrawRandomNormalCard: () => void;
   recentNormalCards: any[];
   onOpenBigDataExport: () => void;
-  onTriggerImport: () => void;
+  onOpenImportCenter: () => void;
   onTriggerExport: () => void;
 }
 
@@ -49,7 +51,7 @@ export const HomeSection: React.FC<HomeSectionProps> = ({
   onDrawRandomNormalCard,
   recentNormalCards,
   onOpenBigDataExport,
-  onTriggerImport,
+  onOpenImportCenter,
   cardViewMode,
   setCardViewMode,
 }) => {
@@ -564,13 +566,7 @@ export const HomeSection: React.FC<HomeSectionProps> = ({
                   })}
                 </div>
               ) : (
-                <div className={`grid gap-2 sm:gap-2.5 md:gap-3 ${
-                  cardViewMode === 'grid-3'
-                    ? 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3'
-                    : cardViewMode === 'grid-4'
-                    ? 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4'
-                    : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5'
-                }`}>
+                <ManagementGrid viewMode={cardViewMode} className={`${managementViewClass(cardViewMode)} gap-2 sm:gap-2.5 md:gap-3`}>
                   {recentCards.map((card) => {
                     const name = getCardDisplayName(card);
                     return (
@@ -614,7 +610,7 @@ export const HomeSection: React.FC<HomeSectionProps> = ({
                       </BaseCard>
                     );
                   })}
-                </div>
+                </ManagementGrid>
               )}
             </div>
         </div>
@@ -854,13 +850,7 @@ export const HomeSection: React.FC<HomeSectionProps> = ({
                   })}
                 </div>
               ) : (
-                <div className={`grid gap-2 sm:gap-2.5 md:gap-3 ${
-                  cardViewMode === 'grid-3'
-                    ? 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3'
-                    : cardViewMode === 'grid-4'
-                    ? 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4'
-                    : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5'
-                }`}>
+                <ManagementGrid viewMode={cardViewMode} className={`${managementViewClass(cardViewMode)} gap-2 sm:gap-2.5 md:gap-3`}>
                   {recentNormalCardsToDisplay.map((card: any) => {
                     const name = card.charName || card.name || card.fileName || '未命名卡片';
                     return (
@@ -906,7 +896,7 @@ export const HomeSection: React.FC<HomeSectionProps> = ({
                       </BaseCard>
                     );
                   })}
-                </div>
+                </ManagementGrid>
               )}
             </div>
 
@@ -977,11 +967,11 @@ export const HomeSection: React.FC<HomeSectionProps> = ({
             designId="home-backup-import-btn"
             type="button"
             variant="outline"
-            onClick={onTriggerImport}
+            onClick={onOpenImportCenter}
             className="px-3 py-1.5 rounded-lg text-[10px] font-medium hover:border-[var(--line-focus)] hover:text-[var(--accent)] transition-colors"
           >
             <Upload className="w-3.5 h-3.5 flex-shrink-0" />
-            <span>导入备份</span>
+            <span>导入文件 / 备份</span>
           </BaseButton>
           <BaseButton
             designId="home-backup-export-btn"
@@ -998,3 +988,4 @@ export const HomeSection: React.FC<HomeSectionProps> = ({
     </div>
   );
 };
+

@@ -11,7 +11,7 @@ import { ManagementSearch } from '../ui/ManagementChrome';
 import { ActionButton } from '../ui/ActionButton';
 import { DeleteConfirmationModal } from '../ui/UnifiedModal';
 const statuses = { imported: '已导入', pending: '待处理', failed: '失败', skipped: '重复跳过' };
-export function ImportCenter({ open, onClose, appData, updateAppData, showToast }: { open: boolean; onClose: () => void; appData: AppData; updateAppData: (apply: (prev: AppData) => AppData) => void; showToast: (message: string, type?: 'success' | 'error' | 'info') => void }) {
+export function ImportCenter({ open, onClose, onImportBackup, appData, updateAppData, showToast }: { open: boolean; onClose: () => void; onImportBackup?: () => void; appData: AppData; updateAppData: (apply: (prev: AppData) => AppData) => void; showToast: (message: string, type?: 'success' | 'error' | 'info') => void }) {
   const context = useTavernImport(), upload = useRef<HTMLInputElement>(null), folder = useRef<HTMLInputElement>(null), replacementInput = useRef<HTMLInputElement>(null);
   const [search, setSearch] = useState(''), [page, setPage] = useState(0), [tab, setTab] = useState('all'), [selected, setSelected] = useState<ImportRecord | null>(null), [kind, setKind] = useState<TavernFileKind>('unknown'), [busy, setBusy] = useState(false), [progress, setProgress] = useState(''), [deleteTarget, setDeleteTarget] = useState<ImportRecord | null>(null);
   const records = useMemo(() => (appData.importRecords || []).filter(r => (tab === 'all' || r.status === tab) && (!search || `${r.fileName} ${r.relativePath} ${TAVERN_KIND_LABELS[r.kind]} ${r.message}`.toLowerCase().includes(search.toLowerCase()))).slice().reverse(), [appData.importRecords, search, tab]);
@@ -48,7 +48,7 @@ export function ImportCenter({ open, onClose, appData, updateAppData, showToast 
       <DetailHeader designPrefix="import-center" title="导入中心" badge="本地解析" tags={<span>按内容识别 → 查重 → 分批保存 → 单文件调整</span>} onClose={onClose} />
       <DetailTabs designPrefix="import-center" label="导入结果" tabs={[{ id: 'all', name: `全部 (${appData.importRecords?.length || 0})` }, { id: 'imported', name: '已导入' }, { id: 'pending', name: '待处理' }, { id: 'failed', name: '失败' }, { id: 'skipped', name: '重复' }]} activeTab={tab} onChange={value => { setTab(value); setPage(0); }} />
       <DetailBody className="space-y-4">
-        <div className="flex flex-wrap gap-2"><ActionButton action="import" onClick={() => upload.current?.click()}>导入文件 / ZIP</ActionButton><ActionButton action="import" onClick={() => folder.current?.click()}>导入文件夹</ActionButton></div>
+        <div className="flex flex-wrap gap-2"><ActionButton action="import" onClick={() => upload.current?.click()}>导入文件 / ZIP</ActionButton><ActionButton action="import" onClick={() => folder.current?.click()}>导入文件夹</ActionButton>{onImportBackup && <ActionButton action="import" onClick={onImportBackup}>恢复项目备份</ActionButton>}</div>
         <input ref={upload} type="file" multiple accept=".png,.json,.css,.js,.zip" className="hidden" onChange={e => { const files = Array.from(e.target.files || []); e.target.value = ''; void context?.importFiles(files); }} />
         <input ref={folder} type="file" multiple {...({ webkitdirectory: '', directory: '' } as any)} className="hidden" onChange={e => { const files = Array.from(e.target.files || []).filter(f => /\.(png|json|css|js|zip)$/i.test(f.name)); e.target.value = ''; void context?.importFiles(files); }} />
         <ManagementSearch value={search} onChange={e => { setSearch(e.target.value); setPage(0); }} placeholder="搜索文件、来源路径或识别结果" />

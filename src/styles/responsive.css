@@ -36,8 +36,9 @@
 }
 
 /* Explicit display choices take precedence over the default auto-fill grid.
+   Keep selector specificity equal with :where so wider breakpoints can win.
    Use panel width, so a sidebar or split-screen never forces tiny cards. */
-.resource-card-grid[data-view-mode] {
+.resource-card-grid:where([data-view-mode]) {
   grid-template-columns: minmax(0, 1fr);
 }
 
@@ -46,25 +47,25 @@
 }
 
 @container (min-width: 36rem) {
-  .resource-card-grid[data-view-mode]:not([data-view-mode="list"]) {
+  .resource-card-grid:where([data-view-mode="grid-3"], [data-view-mode="grid-4"], [data-view-mode="grid-5"]) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @container (min-width: 54rem) {
-  .resource-card-grid[data-view-mode]:not([data-view-mode="list"]) {
+  .resource-card-grid:where([data-view-mode="grid-3"], [data-view-mode="grid-4"], [data-view-mode="grid-5"]) {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
-@container (min-width: 64rem) {
-  .resource-card-grid:is([data-view-mode="grid-4"], [data-view-mode="grid-5"]) {
+@container (min-width: 60rem) {
+  .resource-card-grid:where([data-view-mode="grid-4"], [data-view-mode="grid-5"]) {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
 
-@container (min-width: 76rem) {
-  .resource-card-grid[data-view-mode="grid-5"] {
+@container (min-width: 72rem) {
+  .resource-card-grid:where([data-view-mode="grid-5"]) {
     grid-template-columns: repeat(5, minmax(0, 1fr));
   }
 }
