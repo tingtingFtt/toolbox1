@@ -4,6 +4,8 @@ import { setTavernImportCheckpoint } from './utils/tavernImportPipeline';
 import { useCardPayload } from './hooks/useCardPayload';
 import { hydrateCard, hydrateCardAsset, hydrateCardBoundAssets } from './utils/largeCardStore';
 import { ImportCenter } from './components/st/ImportCenter';
+import { ResourceFileManager } from './components/st/ResourceFileManager';
+import { deleteManagedPresets } from './utils/resourceManagement';
 import { STQuickRepliesSection } from './components/st/STQuickRepliesSection';
 import * as fflate from 'fflate';
 import { connectTavernDirectory, scanTavernDirectory } from "./utils/tavernSync";
@@ -2957,12 +2959,13 @@ export default function App() {
   };
 
   const handleBatchDeletePresets = () => {
-    if (selectedPresetIds.length === 0) return;
-    const updatedPresets = (appData.presets || []).filter((p) => !selectedPresetIds.includes(p.id));
-    updateAppData({ ...appData, presets: updatedPresets });
-    setSelectedPresetIds([]);
-    setPresetBatchMode(false);
-    showToast(`已批量删除 ${selectedPresetIds.length} 个预设`, 'info');
+    if (!selectedPresetIds.length) return;
+    const names = (appData.presets || []).filter(preset => selectedPresetIds.includes(preset.id)).map(preset => preset.name).slice(0, 8).join('、');
+    requestDelete(`【绑定资源】确定要删除选中的 ${selectedPresetIds.length} 个预设（${names}）吗？它们的内嵌正则和脚本管理集合也会删除；仍由角色卡绑定的集合保留为独立资源。请先导出 JSON 备份并确认影响。`, selectedPresetIds.length, () => {
+      updateAppData(prev => deleteManagedPresets(prev, selectedPresetIds));
+      setSelectedPresetIds([]); setPresetBatchMode(false);
+      showToast(`已批量删除 ${selectedPresetIds.length} 个预设`, 'info');
+    });
   };
 
   // Detail Modal Actions
@@ -2999,10 +3002,11 @@ export default function App() {
 
   const handleDeleteEditingPreset = () => {
     if (!editingPreset) return;
-    const updatedPresets = (appData.presets || []).filter((p) => p.id !== editingPreset.id);
-    updateAppData({ ...appData, presets: updatedPresets });
-    setEditingPreset(null);
-    showToast('预设已删除', 'info');
+    const id = editingPreset.id;
+    requestDelete(`【绑定资源】删除预设「${editingPreset.name}」及其内嵌正则、脚本集合？仍由角色卡绑定的集合保留为独立资源。请先导出 JSON 备份并确认影响。`, 1, () => {
+      updateAppData(prev => deleteManagedPresets(prev, [id]));
+      setEditingPreset(null); showToast('预设已删除', 'info');
+    });
   };
 
   const handleUpdateEditingPresetFile = async (file: File) => {
@@ -3718,7 +3722,7 @@ export default function App() {
 
   // Delete Single Card (with cascading delete for bound assets)
   const handleDeleteCard = useCallback((id: string) => {
-    requestDelete('确定要删除这张角色卡吗？其绑定的专属资源（世界书、脚本、正则）将一同清理。', 1, () => {
+    requestDelete('【绑定资源】确定要删除这张角色卡吗？其绑定的专属资源（世界书、脚本、正则、QR）将一同清理；仍由其他角色卡使用的资源保留。', 1, () => {
       const { updatedAppData, deletedCounts } = deleteCardsAndCascadeAssets([id], appDataRef.current);
       updateAppData(updatedAppData);
       setDetailCardId(prev => prev === id ? null : prev);
@@ -4396,7 +4400,7 @@ export default function App() {
 
   const handleBatchDeleteCards = () => {
     if (selectedCardIds.length === 0) return;
-    requestDelete(`确定要删除选中的 ${selectedCardIds.length} 张角色卡吗？其绑定的专属资源也将一同清理。`, selectedCardIds.length, () => {
+    requestDelete(`【绑定资源】确定要删除选中的 ${selectedCardIds.length} 张角色卡吗？其绑定的专属资源也将一同清理；仍由其他角色卡使用的资源保留。`, selectedCardIds.length, () => {
       const { updatedAppData, deletedCounts } = deleteCardsAndCascadeAssets(selectedCardIds, appData);
       updateAppData(updatedAppData);
       setSelectedCardIds([]);
@@ -4874,6 +4878,7 @@ export default function App() {
 
           {/* Page Body Container */}
           <div id="app-content" className={`flex-1 overflow-y-auto ${currentPage === 'settings' ? 'p-0' : 'p-4 md:p-6'}`}>
+            <ResourceFileManager page={currentPage} appData={appData} updateAppData={updateAppData} showToast={showToast} />
             {currentPage === 'home' ? (
               <HomeSection cardViewMode={homeCardViewMode} setCardViewMode={setHomeCardViewMode}
                 appData={appData}
@@ -5274,6 +5279,7 @@ export default function App() {
         onConfirm={deleteConfirmConfig.onConfirm}
         title={deleteConfirmConfig.title}
         message={deleteConfirmConfig.message}
+        requireAcknowledgement={deleteConfirmConfig.message.includes("【绑定资源】")}
         itemCount={deleteConfirmConfig.itemCount}
       />
 

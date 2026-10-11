@@ -1,3 +1,5 @@
+import { useManagedResourceDeletion } from '../../hooks/useManagedResourceDeletion';
+import { bindingWarning, resourceJsonPayload } from '../../utils/resourceManagement';
 import { ResourceSourceControls, ResourceSourceBadge, ResourceSourceFilter } from './ResourceSourceControls';
 import { resourceSource } from '../../utils/presetResources';
 import { useFixedPagination } from '../../hooks/useFixedPagination';
@@ -94,6 +96,7 @@ export const STWorldBooksSection = React.memo<STWorldBooksSectionProps>(({
   };
 
   // Detail Modal State
+  const resourceDeletion = useManagedResourceDeletion(appData, updateAppData, showToast, 'stWorldBooks');
   const [activeWb, setActiveWb] = useState<STWorldBookEntry | null>(null);
   useEffect(() => {
     if (!activeWb?.assetStub) return;
@@ -363,40 +366,20 @@ export const STWorldBooksSection = React.memo<STWorldBooksSectionProps>(({
 
   const handleExportWb = async (wb: STWorldBookEntry) => {
     wb = await hydrateCardAsset(wb);
-    const payload = wb.jsonData || {
-      name: wb.name,
-      description: wb.description,
-      entries: (Array.isArray(wb.entries) ? wb.entries : (Object.values(wb.entries || {}) as any[])).reduce((acc: any, item, idx) => {
-        acc[idx] = item;
-        return acc;
-      }, {}),
-    };
+    const payload = resourceJsonPayload('worldbook', wb);
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' });
     triggerFileDownload(blob, `${wb.name || 'ST世界书'}.json`);
     showToast('已导出世界书 JSON 文件', 'success');
   };
 
   const handleDeleteWb = (id: string) => {
-    requestDelete('确定要删除此世界书吗？', 1, () => {
-      updateAppData((prev) => ({
-        ...prev,
-        stWorldBooks: (prev.stWorldBooks || []).filter((w) => w.id !== id),
-      }));
-      if (activeWb?.id === id) setActiveWb(null);
-      showToast('世界书已删除', 'info');
-    });
+    resourceDeletion.requestDelete([id], () => { if (activeWb?.id === id) setActiveWb(null); });
   };
 
   const handleBatchDelete = () => {
-    if (!selectedIds.length) return;
-    requestDelete(`确定要删除选中的 ${selectedIds.length} 个世界书吗？`, selectedIds.length, () => {
-      updateAppData((prev) => ({
-        ...prev,
-        stWorldBooks: (prev.stWorldBooks || []).filter((w) => !selectedIds.includes(w.id)),
-      }));
-      setSelectedIds([]);
-      setBatchMode(false);
-      showToast(`已批量删除 ${selectedIds.length} 个世界书`, 'info');
+    resourceDeletion.requestDelete(selectedIds, () => {
+      if (activeWb && selectedIds.includes(activeWb.id)) setActiveWb(null);
+      setSelectedIds([]); setBatchMode(false);
     });
   };
 
@@ -444,7 +427,7 @@ export const STWorldBooksSection = React.memo<STWorldBooksSectionProps>(({
 
   const handleDeleteEntry = (idx: number) => {
     if (!activeWb) return;
-    requestDelete('确定要删除此条目吗？', 1, () => {
+    requestDelete('确定要删除此条目吗？' + bindingWarning(appData, 'stWorldBooks', [activeWb.id]), 1, () => {
       const entries = (Array.isArray(activeWb.entries) ? activeWb.entries : (Object.values(activeWb.entries || {}) as any[])).filter((_, i) => i !== idx);
       const updated: STWorldBookEntry = { ...activeWb, entries, updatedAt: Date.now() };
       handleSaveActiveWb(updated);
@@ -1483,12 +1466,14 @@ export const STWorldBooksSection = React.memo<STWorldBooksSectionProps>(({
                   }}
                 />
 
-                <DeleteConfirmationModal
+                {resourceDeletion.modal}
+      <DeleteConfirmationModal
                   isOpen={deleteConfirmConfig.isOpen}
                   onClose={() => setDeleteConfirmConfig((prev) => ({ ...prev, isOpen: false }))}
                   onConfirm={deleteConfirmConfig.onConfirm}
                   title="确认删除"
                   message={deleteConfirmConfig.message}
+                  requireAcknowledgement={deleteConfirmConfig.message.includes("【绑定资源】")}
                   itemCount={deleteConfirmConfig.itemCount}
                 />
 

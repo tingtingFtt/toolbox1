@@ -41,7 +41,7 @@ export async function parseTavernFile(file: File, path: string, source: 'local' 
       info.targets.push({ field: record.field, id: record.entry.id });
     }
     info.status = bundle.kind === 'unknown' ? 'pending' : 'imported';
-    info.message = bundle.kind === 'unknown' ? '未匹配已知结构，可在导入中心单独选择类型或换文件重试' : bundle.title;
+    info.message = bundle.kind === 'unknown' ? '未匹配已知结构，请在对应管理界面的文件管理中重新识别或更换文件' : bundle.title;
     return { bundle, record: info };
   } catch (e: any) {
     info.status = 'failed'; info.message = e.message;

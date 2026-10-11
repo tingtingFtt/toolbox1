@@ -29,6 +29,7 @@ export interface CardAssociation {
 }
 
 export interface CardEntry {
+  historyBindings?: Partial<Record<'boundWorldBooks' | 'boundRegexes' | 'boundScripts', string[]>>;
   payloadKey?: string;
   coverFileKey?: string;
   thumbnailKey?: string;

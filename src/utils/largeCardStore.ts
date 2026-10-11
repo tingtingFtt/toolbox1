@@ -7,6 +7,19 @@ export interface StoredCard extends CardEntry {
   coverFileKey?: string;
   payloadStub?: boolean;
   contentFingerprint?: string;
+  referencedBodyKeys?: string[];
+}
+
+function retainedHistoryKeys(entry: any): string[] {
+  const keys = new Set<string>();
+  const visit = (value: any) => {
+    if (!value) return;
+    for (const key of [value.payloadKey, value.coverFileKey, value.thumbnailKey, value.assetPayloadKey, value.fileKey, ...(value.referencedBodyKeys || [])]) if (key) keys.add(key);
+    if (value.importInfo?.hash) keys.add(`tavern_import_file:${value.importInfo.hash}`);
+    for (const version of value.versions || []) visit(version.data);
+  };
+  for (const version of entry.versions || []) visit(version.data);
+  return [...keys];
 }
 
 const bodyFields = ['rawData', 'coverImage', 'extraCovers', 'screenshots', 'versions', 'qrData'] as const;
@@ -24,6 +37,10 @@ export async function storeCardBody(card: StoredCard, original?: Blob): Promise<
 export function compactCard(card: StoredCard): StoredCard {
   if (!card.payloadKey || card.payloadStub) return card;
   const raw = card.rawData?.data || card.rawData || {};
+  const historyBindings: CardEntry['historyBindings'] = {};
+  for (const field of ['boundWorldBooks', 'boundRegexes', 'boundScripts'] as const) {
+    historyBindings[field] = [...new Set((card.versions || []).flatMap(version => [...(version.data?.[field] || []), ...(version.data?.historyBindings?.[field] || []), ...Object.keys(version.data?.boundAssetVersions || {})]))];
+  }
   const summary = {
     name: raw.name || card.name,
     description: String(raw.description || raw.char_persona || '').slice(0, 800),
@@ -32,7 +49,7 @@ export function compactCard(card: StoredCard): StoredCard {
     character_version: raw.character_version,
   };
   return {
-    ...card, versionCount: card.versions?.length || 0, rawData: summary, coverImage: null, extraCovers: undefined,
+    ...card, historyBindings, referencedBodyKeys: retainedHistoryKeys(card), versionCount: card.versions?.length || 0, rawData: summary, coverImage: null, extraCovers: undefined,
     screenshots: undefined, versions: undefined, qrData: undefined, payloadStub: true,
   };
 }
@@ -41,7 +58,7 @@ export async function hydrateCard<T extends CardEntry>(card: T): Promise<T> {
   const stored = card as StoredCard;
   if (!stored.payloadStub || !stored.payloadKey) return card;
   const body = await get<any>(stored.payloadKey);
-  if (!body) throw new Error(`「${card.name}」的完整数据未找到，请从导入记录重新导入原文件`);
+  if (!body) throw new Error(`「${card.name}」的完整数据未找到，请在角色卡管理界面更换原文件`);
   return { ...card, ...body, payloadStub: false } as T;
 }
 
@@ -75,7 +92,7 @@ export async function portableCard(card: CardEntry): Promise<CardEntry> {
     if (!data?.coverFileKey && !data?.payloadStub) return version;
     return { ...version, data: await portableCard({ ...full, ...data, versions: undefined, payloadStub: !!data.payloadStub } as CardEntry) };
   }));
-  const { payloadKey, coverFileKey, thumbnailKey, payloadStub, ...portable } = full;
+  const { payloadKey, coverFileKey, thumbnailKey, payloadStub, referencedBodyKeys, ...portable } = full as StoredCard;
   return portable;
 }
 
@@ -85,13 +102,13 @@ export async function storeCardAsset(entry: any) {
   const assetPayloadKey = `tavern_asset_body:${entry.id}:${crypto.randomUUID()}`;
   await set(assetPayloadKey, Object.fromEntries(assetFields.map(key => [key, entry[key]])));
   const count = entry.entries?.length || entry.rules?.length || entry.jsonData?.qrList?.length || 0;
-  return { ...entry, assetPayloadKey, assetStub: true, entryCount: count, jsonData: undefined, entries: [], rules: [], rawContent: '', versions: undefined, findRegex: '', replaceString: '' };
+  return { ...entry, referencedBodyKeys: retainedHistoryKeys(entry), assetPayloadKey, assetStub: true, entryCount: count, jsonData: undefined, entries: [], rules: [], rawContent: '', versions: undefined, findRegex: '', replaceString: '' };
 }
 export async function hydrateCardAsset<T>(entry: T): Promise<T> {
   const asset = entry as any;
   if (!asset.assetStub) return entry;
   const body = await get(asset.assetPayloadKey);
-  if (!body) throw Error('资源正文读取失败，请从导入中心重试此来源文件');
+  if (!body) throw Error('资源正文读取失败，请在对应管理界面的文件管理中重试此来源文件');
   return { ...asset, ...(body as any), assetStub: false };
 }
 
@@ -100,11 +117,12 @@ export function referencedImportKeys(data: AppData): Set<string> {
   const keys = new Set<string>();
   const visit = (entry: any) => {
     if (!entry) return;
-    for (const key of [entry.payloadKey, entry.coverFileKey, entry.thumbnailKey, entry.assetPayloadKey, entry.fileKey]) if (key) keys.add(key);
+    if (entry.importInfo?.hash) keys.add(`tavern_import_file:${entry.importInfo.hash}`);
+    for (const key of [entry.payloadKey, entry.coverFileKey, entry.thumbnailKey, entry.assetPayloadKey, entry.fileKey, ...(entry.referencedBodyKeys || [])]) if (key) keys.add(key);
     for (const version of entry.versions || []) visit(version.data);
     if (entry.incomingCard) { visit(entry.incomingCard); visit(entry.matchedCard); }
   };
-  for (const field of ['cards', 'stWorldBooks', 'stRegexScripts', 'scripts', 'stagedDuplicateCards', 'importRecords']) for (const entry of (data as any)[field] || []) visit(entry);
+  for (const field of ['cards', 'presets', 'themes', 'stWorldBooks', 'stRegexScripts', 'scripts', 'stagedDuplicateCards', 'importRecords']) for (const entry of (data as any)[field] || []) visit(entry);
   return keys;
 }
 

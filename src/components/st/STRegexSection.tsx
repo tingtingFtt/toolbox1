@@ -1,3 +1,5 @@
+import { useManagedResourceDeletion } from '../../hooks/useManagedResourceDeletion';
+import { bindingWarning, resourceJsonPayload } from '../../utils/resourceManagement';
 import { useFixedPagination } from '../../hooks/useFixedPagination';
 import { ManagementPagination } from '../ui/ManagementPagination';
 import { ManagementListItem, managementViewClass } from '../ui/ManagementListItem';
@@ -96,6 +98,7 @@ export const STRegexSection = React.memo<STRegexSectionProps>(({
   };
 
   // Detail / Inspector Modal
+  const resourceDeletion = useManagedResourceDeletion(appData, updateAppData, showToast, 'stRegexScripts');
   const [activeRegex, setActiveRegex] = useState<STRegexEntry | null>(null);
   useEffect(() => {
     if (!activeRegex?.assetStub) return;
@@ -378,7 +381,7 @@ export const STRegexSection = React.memo<STRegexSectionProps>(({
   };
 
   const handleSaveActiveRegex = async (updatedRx: STRegexEntry) => {
-    if (updatedRx.sourceResources) {
+    if (updatedRx.sourceResources || Array.isArray(updatedRx.rules)) {
       updatedRx = { ...updatedRx, jsonData: (updatedRx.rules || []).map(cleanPresetResource) };
     }
     let fullOwner: any = null;
@@ -473,38 +476,20 @@ export const STRegexSection = React.memo<STRegexSectionProps>(({
 
   const handleExportRegex = async (rx: STRegexEntry) => {
     rx = await hydrateCardAsset(rx);
-    const payload = rx.jsonData || rx.rules || [{
-      scriptName: rx.scriptName,
-      findRegex: rx.findRegex,
-      replaceString: rx.replaceString,
-      disabled: rx.disabled,
-    }];
+    const payload = resourceJsonPayload('regex', rx);
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' });
     triggerFileDownload(blob, `${rx.scriptName || 'ST正则'}.json`);
     showToast('已导出正则 JSON 文件', 'success');
   };
 
   const handleDeleteRegex = (id: string) => {
-    requestDelete('确定要删除此正则脚本吗？', 1, () => {
-      updateAppData((prev) => ({
-        ...prev,
-        stRegexScripts: (prev.stRegexScripts || []).filter((r: any) => r.id !== id),
-      }));
-      if (activeRegex?.id === id) setActiveRegex(null);
-      showToast('正则脚本已删除', 'info');
-    });
+    resourceDeletion.requestDelete([id], () => { if (activeRegex?.id === id) setActiveRegex(null); });
   };
 
   const handleBatchDelete = () => {
-    if (!selectedIds.length) return;
-    requestDelete(`确定要删除选中的 ${selectedIds.length} 个正则脚本吗？`, selectedIds.length, () => {
-      updateAppData((prev) => ({
-        ...prev,
-        stRegexScripts: (prev.stRegexScripts || []).filter((r: any) => !selectedIds.includes(r.id)),
-      }));
-      setSelectedIds([]);
-      setBatchMode(false);
-      showToast(`已批量删除 ${selectedIds.length} 个正则脚本`, 'info');
+    resourceDeletion.requestDelete(selectedIds, () => {
+      if (activeRegex && selectedIds.includes(activeRegex.id)) setActiveRegex(null);
+      setSelectedIds([]); setBatchMode(false);
     });
   };
 
@@ -552,7 +537,7 @@ export const STRegexSection = React.memo<STRegexSectionProps>(({
 
   const handleDeleteRule = (idx: number) => {
     if (!activeRegex) return;
-    requestDelete('确定要删除此条正则规则吗？', 1, () => {
+    requestDelete('确定要删除此条正则规则吗？' + bindingWarning(appData, 'stRegexScripts', [activeRegex.id]), 1, () => {
       const rules = (activeRegex.rules || []).filter((_, i) => i !== idx);
       const updated: STRegexEntry = { ...activeRegex, rules, updatedAt: Date.now() };
       handleSaveActiveRegex(updated);
@@ -1888,11 +1873,13 @@ export const STRegexSection = React.memo<STRegexSectionProps>(({
       />
 
       {/* Delete Confirmation Modal */}
+      {resourceDeletion.modal}
       <DeleteConfirmationModal
         isOpen={deleteConfirmConfig.isOpen}
         onClose={() => setDeleteConfirmConfig(prev => ({ ...prev, isOpen: false }))}
         onConfirm={deleteConfirmConfig.onConfirm}
         message={deleteConfirmConfig.message}
+        requireAcknowledgement={deleteConfirmConfig.message.includes("【绑定资源】")}
         itemCount={deleteConfirmConfig.itemCount}
       />
     </div>

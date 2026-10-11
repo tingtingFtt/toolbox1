@@ -265,7 +265,11 @@ function queuePendingSave() {
       cachedAppData = saved;
       if (previous) {
         const live = referencedImportKeys(saved), old = referencedImportKeys(previous);
-        const unused = [...old].filter(key => !live.has(key));
+        // Older compact bodies have no reference summary. Their hidden history may
+        // still use an original file; defer cleanup until those bodies are resaved.
+        const legacyHistory = (saved.cards || []).some(card => card.payloadStub && !!card.versionCount && !Array.isArray((card as any).referencedBodyKeys)) ||
+          [...(saved.stWorldBooks || []), ...(saved.stRegexScripts || []), ...(saved.scripts || [])].some(item => item.assetStub && !Array.isArray((item as any).referencedBodyKeys));
+        const unused = legacyHistory ? [] : [...old].filter(key => !live.has(key));
         try { for (let i = 0; i < unused.length; i += 64) await delMany(unused.slice(i, i + 64)); } catch (error) { console.warn('旧导入正文清理失败，稍后重试', error); }
       }
       return true;
@@ -1595,7 +1599,7 @@ export function syncStRegexBackToCards(rx: STRegexEntry, cards: CardEntry[]): Ca
     if (card.id !== rx.sourceCardId) return card;
     const eh = { ...(card.editHistory || {}) };
     
-    const regexList = (rx.rules && rx.rules.length > 0)
+    const regexList = Array.isArray(rx.rules)
       ? rx.rules
       : [{
           scriptName: rx.scriptName,
@@ -2422,7 +2426,7 @@ export async function mergeImportFiles(
 }
 
 export function injectBoundAssetsForExport(card: import('./types').CardEntry, appData?: import('./types').AppData): any {
-  const raw = card.rawData || {};
+  const raw = card.rawData ? getCurrentCardData(card) : {};
   const rawData = raw.data || raw;
 
   // Extract all standard character card fields
@@ -2530,6 +2534,7 @@ export function injectBoundAssetsForExport(card: import('./types').CardEntry, ap
   if (card.qrData) extensions.qrData = card.qrData;
 
   const dataPayload: Record<string, any> = {
+    ...rawData,
     name,
     description,
     personality,
@@ -2553,6 +2558,7 @@ export function injectBoundAssetsForExport(card: import('./types').CardEntry, ap
   // If card is explicitly CCv3
   if (card.version === 'v3' || raw.spec === 'chara_card_v3') {
     return {
+      ...raw,
       spec: 'chara_card_v3',
       spec_version: '3.0',
       data: dataPayload
@@ -2561,6 +2567,7 @@ export function injectBoundAssetsForExport(card: import('./types').CardEntry, ap
 
   // For CCv2 (Dual format: both top-level and data fields present for universal compatibility across SillyTavern versions)
   return {
+    ...raw,
     ...dataPayload,
     spec: 'chara_card_v2',
     spec_version: '2.0',
@@ -3153,6 +3160,9 @@ export function deleteCardsAndCascadeAssets(
   const remainingCardNames = new Set<string>(remainingCards.map((c) => (c.name || '').trim().toLowerCase()));
 
   remainingCards.forEach((c) => {
+    for (const id of c.historyBindings?.boundWorldBooks || []) remainingBoundWbIds.add(id);
+    for (const id of c.historyBindings?.boundScripts || []) remainingBoundScriptIds.add(id);
+    for (const id of c.historyBindings?.boundRegexes || []) remainingBoundRegexIds.add(id);
     (c.boundWorldBooks || []).forEach((id) => remainingBoundWbIds.add(id));
     (c.boundScripts || []).forEach((id) => remainingBoundScriptIds.add(id));
     (c.boundRegexes || []).forEach((id) => remainingBoundRegexIds.add(id));
@@ -3177,6 +3187,9 @@ export function deleteCardsAndCascadeAssets(
   const deletedCardNames = new Set<string>();
 
   cardsToDelete.forEach((c) => {
+    for (const id of c.historyBindings?.boundWorldBooks || []) deletedCardBoundWbIds.add(id);
+    for (const id of c.historyBindings?.boundScripts || []) deletedCardBoundScriptIds.add(id);
+    for (const id of c.historyBindings?.boundRegexes || []) deletedCardBoundRegexIds.add(id);
     if (c.name) deletedCardNames.add(c.name.trim().toLowerCase());
     (c.boundWorldBooks || []).forEach((id) => deletedCardBoundWbIds.add(id));
     (c.boundScripts || []).forEach((id) => deletedCardBoundScriptIds.add(id));
@@ -3255,6 +3268,10 @@ export function deleteCardsAndCascadeAssets(
     return true;
   });
 
+  const detachDeletedOwner = <T extends { sourceCardId?: string }>(entry: T): T => entry.sourceCardId && idsToDelete.has(entry.sourceCardId)
+    ? { ...entry, sourceCardId: undefined, sourceCardName: undefined, sourceScope: 'standalone', isBuiltIn: false }
+    : entry;
+
   const deletedCounts = {
     cards: cardsToDelete.length,
     worldbooks: (currentAppData.stWorldBooks || []).length - updatedWorldBooks.length,
@@ -3266,9 +3283,9 @@ export function deleteCardsAndCascadeAssets(
     updatedAppData: {
       ...currentAppData,
       cards: remainingCards,
-      stWorldBooks: updatedWorldBooks,
-      scripts: updatedScripts,
-      stRegexScripts: updatedRegexes,
+      stWorldBooks: updatedWorldBooks.map(detachDeletedOwner),
+      scripts: updatedScripts.map(detachDeletedOwner),
+      stRegexScripts: updatedRegexes.map(detachDeletedOwner),
     },
     deletedCounts,
   };

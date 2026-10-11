@@ -56,6 +56,10 @@ export async function runTavernImport(files: ImportFile[] | AsyncIterable<Import
     const index = await CardImportIndex.build(initial.cards || [], options.signal);
     const liveIds = new Map(Object.entries(initial).filter(([, value]) => Array.isArray(value)).map(([field, value]) => [field, new Set((value as any[]).map(v => v?.id))]));
     const knownFiles = new Set((initial.importRecords || []).filter(r => r.status === 'imported' && r.targets.some(t => liveIds.get(String(t.field))?.has(t.id))).map(r => `${r.kind}:${r.hash}`));
+    // Clearing history must not disable file deduplication for live imported resources.
+    for (const value of Object.values(initial)) if (Array.isArray(value)) for (const item of value) {
+      if (item?.importInfo?.hash) knownFiles.add(`${item.importInfo.kind}:${item.importInfo.hash}`);
+    }
     async function consume(item: ImportFile) {
       check(); report(item.relativePath, 'parsing');
       let result;

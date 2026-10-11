@@ -104,6 +104,10 @@ export interface DeleteConfirmationModalProps {
   title?: string;
   message?: string;
   itemCount?: number;
+  requireAcknowledgement?: boolean;
+  acknowledgementText?: string;
+  busy?: boolean;
+  closeOnConfirm?: boolean;
 }
 
 export interface ChoiceModalOption {
@@ -207,24 +211,31 @@ export const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = (
   onConfirm,
   title = "确认删除",
   message = "此操作不可恢复，请确认是否删除该项目？",
-  itemCount = 1
+  itemCount = 1,
+  requireAcknowledgement = false,
+  acknowledgementText = '我已了解绑定资源的影响，并确认继续',
+  busy = false,
+  closeOnConfirm = true
 }) => {
   const [step, setStep] = useState(1);
+  const [acknowledged, setAcknowledged] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       setStep(1);
+      setAcknowledged(false);
     }
-  }, [isOpen]);
+  }, [isOpen, message]);
 
   if (!isOpen) return null;
 
   const handleConfirm = () => {
+    if (busy || (requireAcknowledgement && !acknowledged)) return;
     if (step < 3) {
       setStep(step + 1);
     } else {
       onConfirm();
-      onClose();
+      if (closeOnConfirm) onClose();
     }
   };
 
@@ -241,10 +252,10 @@ export const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = (
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-transparent modal-backdrop p-4 animate-in fade-in duration-200" role="dialog" aria-modal="true">
+    <div className="fixed inset-0 z-[2400] flex items-center justify-center bg-transparent modal-backdrop p-4 animate-in fade-in duration-200" role="dialog" aria-modal="true" aria-label={title}>
       <div 
         className="fixed inset-0 bg-transparent modal-backdrop cursor-pointer"
-        onClick={onClose}
+        onClick={() => { if (!busy) onClose(); }}
         aria-label="关闭遮罩"
       />
       <div 
@@ -259,7 +270,8 @@ export const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = (
         </div>
         
         <div className="p-5 text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">
-          {message}
+          <p className="whitespace-pre-wrap break-words">{message}</p>
+          {requireAcknowledgement && <label className="mt-4 flex items-start gap-2 rounded-lg border border-amber-500 p-3 text-xs text-amber-700 dark:text-amber-300"><input type="checkbox" checked={acknowledged} disabled={busy} onChange={event => setAcknowledged(event.target.checked)} className="mt-0.5 shrink-0" /><span>{acknowledgementText}</span></label>}
           {itemCount > 1 && (
             <div className="mt-3 p-2 bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 rounded-lg text-xs font-medium border border-red-100 dark:border-red-900/50">
               提示：您正在批量删除 {itemCount} 个项目
@@ -286,12 +298,14 @@ export const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = (
         <div className="p-4 border-t border-[var(--line,#e6e3dd)] dark:border-zinc-800/60 bg-black/5 dark:bg-white/5 flex gap-3">
           <BaseButton
             onClick={onClose}
+            disabled={busy}
             className="flex-1 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors"
           >
             取消
           </BaseButton>
           <BaseButton
             onClick={handleConfirm}
+            disabled={busy || (requireAcknowledgement && !acknowledged)}
             className={`flex-1 py-2.5 rounded-xl text-sm font-bold shadow-sm transition-all ${getButtonColor()}`}
           >
             {getButtonText()}
@@ -621,3 +635,4 @@ export const NewGroupModal: React.FC<NewGroupModalProps> = ({
     </div>
   );
 };
+

@@ -17,9 +17,13 @@
 
 ## 单文件调整与删除
 
-每个文件记录类型、路径、来源、SHA-256、结果及产生的条目 ID。在导入中心选择「调整 / 重试」，可以自动重新识别、指定类型，或更换修正后的文件。仅成功识别后替换此记录产生的条目；失败保留旧条目并新增诊断记录。单个文件的重试不会重置其他来源。
+每个文件记录类型、路径、来源、SHA-256、结果及产生的条目 ID。导入中心只展示记录，支持删除单条记录及导出记录 JSON；删除记录不删除已导入资源、不解除绑定。主页标题旁的导入按钮仍打开该弹窗，多选文件、文件夹及备份恢复入口保留。
 
-删除来源记录会删除它产生的条目；角色卡的专属资源按现有级联规则清理。资源管理页仍支持单独删除集合。文件副本可能被其他导入记录或历史版本引用，最后一个引用消失后才清理存储。
+角色卡、预设、世界书、正则、脚本、QR、主题管理页各自提供「更换文件 / 重新识别」。选择当前类型的目标资源后，可以更换文件、导出 JSON；未导入且没有资源目标的失败 / 待分类文件可在相应管理页重新识别。更换保留目标 ID、分组、标签和绑定，保存更换前的版本；内嵌资源同步所属来源。来源文件缺少旧附带资源时保留这些资源，解析失败保留原资源。
+
+绑定资源单条、批量及子条目删除会列出来源影响，并强制勾选确认，再完成三次确认。删除内嵌资源同步从所属角色卡或预设当前正文中移除，清理绑定 ID；历史版本正文保留。删除角色卡和预设前同样提示其附带资源的影响；仍由其他角色卡绑定的集合保留为独立资源。删除资源与删除导入记录是两个独立操作。
+
+资源 JSON 导出先读取完整正文，保留原始结构、集合数组、主题 CSS、QR 设置；JS 源码导出为含 type/name/content 的合法 JSON，不将源码直接改名为 .json。内部预设子条目标识不写入导出文件。仍被资源正文或历史版本引用的原文件不会因删除记录而回收。
 
 ## 导入流程与规模
 
@@ -40,7 +44,7 @@
 ```sh
 npm run lint
 npm run build
-node --import tsx --test src/utils/presetResources.test.ts src/utils/baiduApi.test.ts src/utils/pagination.test.ts
+node --import tsx --test src/utils/presetResources.test.ts src/utils/baiduApi.test.ts src/utils/pagination.test.ts src/components/ui/ManagementGrid.test.ts src/components/ui/DeleteConfirmationModal.test.ts
 npm run test:imports
 # 可选：加入真实导入样本目录
 TAVERN_FIXTURES=/path/to/samples npm run test:imports

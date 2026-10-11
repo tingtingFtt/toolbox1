@@ -1,3 +1,5 @@
+import { useManagedResourceDeletion } from '../../hooks/useManagedResourceDeletion';
+import { bindingWarning, resourceJsonPayload, syncCardScriptEntry } from '../../utils/resourceManagement';
 import { useFixedPagination } from '../../hooks/useFixedPagination';
 import { ManagementPagination } from '../ui/ManagementPagination';
 import { ManagementListItem, managementViewClass } from '../ui/ManagementListItem';
@@ -97,6 +99,7 @@ export const STScriptsSection = React.memo<STScriptsSectionProps>(({
   };
 
   // Modals & Detail
+  const resourceDeletion = useManagedResourceDeletion(appData, updateAppData, showToast, 'scripts');
   const [activeScript, setActiveScript] = useState<ScriptEntry | null>(null);
   useEffect(() => {
     if (!activeScript?.assetStub) return;
@@ -390,7 +393,7 @@ export const STScriptsSection = React.memo<STScriptsSectionProps>(({
     setEditingContent(content);
   };
 
-  const handleSaveActiveScript = (scriptOverride?: ScriptEntry) => {
+  const handleSaveActiveScript = async (scriptOverride?: ScriptEntry) => {
     const target = scriptOverride || activeScript;
     if (!target) return;
     const content = !scriptOverride && detailTab === 'code' ? editingContent : target.rawContent || editingContent;
@@ -422,12 +425,10 @@ export const STScriptsSection = React.memo<STScriptsSectionProps>(({
       updatedAt: Date.now(),
     };
 
-    updateAppData((prev) => {
-      return {
-        ...prev,
-        scripts: (prev.scripts || []).map((s) => (s.id === target.id ? updated : s)),
-      };
-    });
+    let cards = appData.cards;
+    try { cards = await syncCardScriptEntry(appData, updated); }
+    catch (error: any) { showToast(error.message, 'error'); return; }
+    updateAppData((prev) => ({ ...prev, cards: updated.sourceCardId ? cards : prev.cards, scripts: (prev.scripts || []).map(s => s.id === target.id ? updated : s) }));
     setActiveScript(updated);
     setEditingContent(updated.rawContent || content);
     showToast((updated as any).sourcePresetId ? '脚本已保存并同步回对应预设！' : '脚本已保存！', 'success');
@@ -456,7 +457,7 @@ export const STScriptsSection = React.memo<STScriptsSectionProps>(({
 
   const handleDeleteSubEntry = (index: number) => {
     if (!activeScript || !activeScript.entries) return;
-    requestDelete('确定要删除此脚本子条目吗？', 1, () => {
+    requestDelete('确定要删除此脚本子条目吗？' + bindingWarning(appData, 'scripts', [activeScript.id]), 1, () => {
       const newEntries = activeScript.entries!.filter((_, i) => i !== index);
       const updated: ScriptEntry = {
         ...activeScript,
@@ -470,10 +471,7 @@ export const STScriptsSection = React.memo<STScriptsSectionProps>(({
       } else if (selectedSubEntryIndex !== null && selectedSubEntryIndex > index) {
         setSelectedSubEntryIndex(selectedSubEntryIndex - 1);
       }
-      updateAppData((prev) => ({
-        ...prev,
-        scripts: (prev.scripts || []).map((s) => (s.id === activeScript.id ? updated : s))
-      }));
+      void handleSaveActiveScript(updated);
       showToast('条目已删除', 'info');
     });
   };
@@ -511,33 +509,20 @@ export const STScriptsSection = React.memo<STScriptsSectionProps>(({
 
   const handleExportScript = async (script: ScriptEntry) => {
     script = await hydrateCardAsset(script);
-    const content = script.rawContent || JSON.stringify(script.jsonData || script.entries || {}, null, 2);
+    const content = JSON.stringify(resourceJsonPayload('script', script), null, 2);
     const blob = new Blob([content], { type: 'application/json;charset=utf-8' });
     triggerFileDownload(blob, `${script.name || 'ST脚本'}.json`);
     showToast('已导出脚本 JSON 文件', 'success');
   };
 
   const handleDeleteScript = (id: string) => {
-    requestDelete('确定要删除此脚本吗？', 1, () => {
-      updateAppData((prev) => ({
-        ...prev,
-        scripts: (prev.scripts || []).filter((s) => s.id !== id),
-      }));
-      if (activeScript?.id === id) setActiveScript(null);
-      showToast('脚本已删除', 'info');
-    });
+    resourceDeletion.requestDelete([id], () => { if (activeScript?.id === id) setActiveScript(null); });
   };
 
   const handleBatchDelete = () => {
-    if (!selectedIds.length) return;
-    requestDelete(`确定要删除选中的 ${selectedIds.length} 个脚本吗？`, selectedIds.length, () => {
-      updateAppData((prev) => ({
-        ...prev,
-        scripts: (prev.scripts || []).filter((s) => !selectedIds.includes(s.id)),
-      }));
-      setSelectedIds([]);
-      setBatchMode(false);
-      showToast(`已批量删除 ${selectedIds.length} 个脚本`, 'info');
+    resourceDeletion.requestDelete(selectedIds, () => {
+      if (activeScript && selectedIds.includes(activeScript.id)) setActiveScript(null);
+      setSelectedIds([]); setBatchMode(false);
     });
   };
 
@@ -1431,12 +1416,14 @@ export const STScriptsSection = React.memo<STScriptsSectionProps>(({
                   }}
                 />
 
-                <DeleteConfirmationModal
+                {resourceDeletion.modal}
+      <DeleteConfirmationModal
                   isOpen={deleteConfirmConfig.isOpen}
                   onClose={() => setDeleteConfirmConfig((prev) => ({ ...prev, isOpen: false }))}
                   onConfirm={deleteConfirmConfig.onConfirm}
                   title="确认删除"
                   message={deleteConfirmConfig.message}
+                  requireAcknowledgement={deleteConfirmConfig.message.includes("【绑定资源】")}
                   itemCount={deleteConfirmConfig.itemCount}
                 />
 
