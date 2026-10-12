@@ -4,6 +4,7 @@ import { setTavernImportCheckpoint } from './utils/tavernImportPipeline';
 import { useCardPayload } from './hooks/useCardPayload';
 import { hydrateCard, hydrateCardAsset, hydrateCardBoundAssets } from './utils/largeCardStore';
 import { ImportCenter } from './components/st/ImportCenter';
+import { IMPORT_KIND_PAGES } from './utils/importRecordAreas';
 import { ResourceFileManager } from './components/st/ResourceFileManager';
 import { deleteManagedPresets } from './utils/resourceManagement';
 import { STQuickRepliesSection } from './components/st/STQuickRepliesSection';
@@ -3694,6 +3695,8 @@ export default function App() {
   };
 
   const [showImportCenter, setShowImportCenter] = useState(false);
+  const [importReviewRecordId, setImportReviewRecordId] = useState<string | undefined>();
+  const clearImportReview = useCallback(() => setImportReviewRecordId(undefined), []);
   useEffect(() => {
     setTavernImportCheckpoint(async apply => {
       flushSync(() => updateAppData(apply));
@@ -4878,7 +4881,7 @@ export default function App() {
 
           {/* Page Body Container */}
           <div id="app-content" className={`flex-1 overflow-y-auto ${currentPage === 'settings' ? 'p-0' : 'p-4 md:p-6'}`}>
-            <ResourceFileManager page={currentPage} appData={appData} updateAppData={updateAppData} showToast={showToast} />
+            <ResourceFileManager page={currentPage} reviewRecordId={importReviewRecordId} onReviewOpened={clearImportReview} appData={appData} updateAppData={updateAppData} showToast={showToast} />
             {currentPage === 'home' ? (
               <HomeSection cardViewMode={homeCardViewMode} setCardViewMode={setHomeCardViewMode}
                 appData={appData}
@@ -5503,7 +5506,7 @@ export default function App() {
       { /* Card Detail Modal is rendered unconditionally, internally it checks for displayDetailCard */ }
       <CardDetailModal {...cardDetailProps} />
 
-      <ImportCenter open={showImportCenter} onClose={() => setShowImportCenter(false)} onImportBackup={() => importBackupInputRef.current?.click()} appData={appData} updateAppData={updateAppData} showToast={showToast} />
+      <ImportCenter open={showImportCenter} onClose={() => setShowImportCenter(false)} onOpenDuplicateStaging={() => { setShowImportCenter(false); setShowStagingVaultModal(true); }} onReviewUnclassified={(recordId, kind) => { setShowImportCenter(false); setCurrentPage(IMPORT_KIND_PAGES[kind]); setImportReviewRecordId(recordId); }} onImportBackup={() => importBackupInputRef.current?.click()} appData={appData} updateAppData={updateAppData} showToast={showToast} />
       {(detailLoading || detailLoadError) && <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/40"><div className="bg-[var(--modal-solid-bg)] p-6 max-w-md w-[calc(100%-2rem)]"><p>{detailLoading ? '正在读取完整卡片数据…' : detailLoadError}</p><button className="mt-4 underline" onClick={() => setDetailCardId(null)}>关闭</button></div></div>}
       <GlobalModals {...appModalProps} />
     </div>

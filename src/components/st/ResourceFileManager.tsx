@@ -1,5 +1,5 @@
 import { flushSync } from 'react-dom';
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { get } from 'idb-keyval';
 import { AppData, ImportRecord } from '../../types';
 import { ManagedKind, RESOURCE_FIELDS, resourceItems, resourceName, resourceJsonPayload, prepareResourceReplacement, bindingWarning } from '../../utils/resourceManagement';
@@ -8,19 +8,25 @@ import { runTavernImport, isTavernImportRunning } from '../../utils/tavernImport
 import { createImportAbortController, abortActiveImport } from '../../utils/importCancellation';
 import { hydrateCard, hydrateCardAsset, hydrateCardBoundAssets } from '../../utils/largeCardStore';
 import { injectBoundAssetsForExport, triggerFileDownload } from '../../utils';
+import { IMPORT_KIND_PAGES } from '../../utils/importRecordAreas';
 import { TAVERN_KIND_LABELS } from '../../utils/tavernFileTypes';
 import { useFixedPagination } from '../../hooks/useFixedPagination';
 import { ManagementPagination } from '../ui/ManagementPagination';
 import { ActionButton } from '../ui/ActionButton';
 import { DetailPanel, DetailHeader, DetailTabs, DetailBody, DetailFooter } from '../ui/DetailChrome';
 import { ManagementSearch } from '../ui/ManagementChrome';
-const pageKinds: Record<string, ManagedKind> = { 'st-cards': 'card', 'st-presets': 'preset', 'st-worldbooks': 'worldbook', 'st-regex': 'regex', 'st-scripts': 'script', 'st-qr': 'qr', 'st-themes': 'theme' };
-export function ResourceFileManager({ page, appData, updateAppData, showToast }: { page: string; appData: AppData; updateAppData: (apply: (data: AppData) => AppData) => void; showToast: (message: string, type?: 'success' | 'error' | 'info') => void }) {
+const pageKinds = Object.fromEntries(Object.entries(IMPORT_KIND_PAGES).map(([kind, page]) => [page, kind])) as Record<string, ManagedKind>;
+export function ResourceFileManager({ page, appData, updateAppData, showToast, reviewRecordId, onReviewOpened }: { page: string; reviewRecordId?: string; onReviewOpened?: () => void; appData: AppData; updateAppData: (apply: (data: AppData) => AppData) => void; showToast: (message: string, type?: 'success' | 'error' | 'info') => void }) {
   const kind = pageKinds[page];
-  return kind ? <KindFileManager key={kind} kind={kind} data={appData} update={updateAppData} toast={showToast} /> : null;
+  return kind ? <KindFileManager key={kind} kind={kind} data={appData} update={updateAppData} toast={showToast} reviewRecordId={reviewRecordId} onReviewOpened={onReviewOpened} /> : null;
 }
-function KindFileManager({ kind, data, update, toast }: { kind: ManagedKind; data: AppData; update: (apply: (data: AppData) => AppData) => void; toast: (message: string, type?: 'success' | 'error' | 'info') => void }) {
-  const [open, setOpen] = useState(false), [search, setSearch] = useState(''), [tab, setTab] = useState('resources'), [targetId, setTargetId] = useState(''), [recordId, setRecordId] = useState(''), [busy, setBusy] = useState(false), [ack, setAck] = useState(false);
+function KindFileManager({ kind, data, update, toast, reviewRecordId, onReviewOpened }: { kind: ManagedKind; reviewRecordId?: string; onReviewOpened?: () => void; data: AppData; update: (apply: (data: AppData) => AppData) => void; toast: (message: string, type?: 'success' | 'error' | 'info') => void }) {
+  const [open, setOpen] = useState(!!reviewRecordId), [search, setSearch] = useState(() => data.importRecords?.find(record => record.id === reviewRecordId)?.relativePath || ''), [tab, setTab] = useState(reviewRecordId ? 'records' : 'resources'), [targetId, setTargetId] = useState(''), [recordId, setRecordId] = useState(reviewRecordId || ''), [busy, setBusy] = useState(false), [ack, setAck] = useState(false);
+  useEffect(() => {
+    if (!reviewRecordId) return;
+    setOpen(true); setTab('records'); setRecordId(reviewRecordId); setTargetId(''); setSearch(data.importRecords?.find(record => record.id === reviewRecordId)?.relativePath || ''); setAck(false);
+    onReviewOpened?.();
+  }, [reviewRecordId, onReviewOpened]);
   const input = useRef<HTMLInputElement>(null), current = useRef(data); current.current = data;
   const items = resourceItems(data, kind).filter(item => `${resourceName(item)} ${item.fileName || ''}`.toLowerCase().includes(search.toLowerCase()));
   const records = (data.importRecords || []).filter(record => ['pending', 'failed'].includes(record.status) && !record.targets.length && (record.kind === kind || record.kind === 'unknown') && `${record.fileName} ${record.relativePath}`.toLowerCase().includes(search.toLowerCase()));
@@ -80,6 +86,7 @@ function KindFileManager({ kind, data, update, toast }: { kind: ManagedKind; dat
       <DetailTabs designPrefix="resource-file" label="文件管理" tabs={[{ id: 'resources', name: '更换已有资源' }, { id: 'records', name: '重新识别未导入文件' }]} activeTab={tab} onChange={value => { if (!busy) { setTab(value); setTargetId(''); setRecordId(''); setAck(false); } }} />
       <DetailBody className="space-y-3">
         <ManagementSearch value={search} onChange={event => setSearch(event.target.value)} placeholder="搜索要处理的名称或文件" />
+        {tab === 'records' && record && <p className="text-xs font-semibold break-all">当前处理文件：{record.relativePath}</p>}
         <p className="text-xs text-zinc-500">更换成功后保留条目 ID、分组、标签和绑定，并保存更换前的历史版本。解析失败时原资源保留。</p>
         <div className="space-y-2">{tab === 'resources' ? items.slice(pagination.start, pagination.end).map(item => <button type="button" disabled={busy} aria-pressed={targetId === item.id} className={`w-full p-3 text-left border text-xs break-all ${targetId === item.id ? 'border-[var(--accent)] bg-[var(--btn-primary-bg)]' : ''}`} key={item.id} onClick={() => { setTargetId(item.id); setAck(false); }}>{resourceName(item)} · {item.sourceCardName || item.sourcePresetName || item.fileName || '独立资源'}</button>) : records.slice(pagination.start, pagination.end).map(item => <button type="button" disabled={busy} aria-pressed={recordId === item.id} className={`w-full p-3 text-left border text-xs break-all ${recordId === item.id ? 'border-[var(--accent)]' : ''}`} key={item.id} onClick={() => setRecordId(item.id)}>{item.relativePath} · {item.message}</button>)}</div>
         <ManagementPagination total={tab === 'resources' ? items.length : records.length} page={pagination.page} pageSize={pagination.pageSize} onPageChange={pagination.setPage} unit="项" label="文件管理分页" />

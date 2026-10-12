@@ -11,9 +11,15 @@
 | 真实脚本节点 content / code / script | ST 脚本：一份来源文件一个集合 |
 | qrList 中的 message | ST QR 快捷回复：一个回复集合一个条目 |
 | custom_css 或主题颜色设置、CSS 文件 | ST 主题 |
-| 无法识别的结构 | 导入中心「待处理」，保留原文件 |
+| 无法识别的结构 | 导入中心「无法分类待处理」，保留原文件；与重复卡面暂存分开 |
 
 角色卡附带的世界书、正则和脚本随卡片一起进入对应管理页，保留来源角色卡及绑定关系。多个支持位置同时存在资源时汇总并去除重复内容。重复卡暂存期间不发布附带资源，确认入库后再按同一规则提取。角色卡和预设内的正则、脚本按所属来源分组；集合详情再显示子条目。脚本文件夹中的变量配置不会当作脚本。QR 的隐藏、触发、发送、上下文关联等原字段保留，导入不会执行脚本、QR 或主题。
+
+## 无法分类待处理区
+
+导入中心提供独立的「无法分类待处理」分页，仅收录类型未知、仍待处理且没有入库目标的文件。解析失败单独显示在「失败」记录中；同名不同内容的卡面进入原有重复卡面暂存区，完全相同的文件保留为重复记录，均不会混入无法分类列表。
+
+待分类文件可下载原文件、删除记录，或选择角色卡 / 预设 / 世界书 / 正则 / 脚本 / QR / 主题，直接打开相应管理页的文件管理并选中该记录。重新识别、更换文件仍在管理页执行。分类成功后记录变为已导入并退出待分类区，失败则保留原待分类文件和诊断记录。删除待分类记录不影响重复卡面暂存内容或已导入资源。两个区域各自展示数量，列表固定每页 50 个，并支持搜索和导出当前记录 JSON。
 
 ## 单文件调整与删除
 
@@ -44,7 +50,7 @@
 ```sh
 npm run lint
 npm run build
-node --import tsx --test src/utils/presetResources.test.ts src/utils/baiduApi.test.ts src/utils/pagination.test.ts src/components/ui/ManagementGrid.test.ts src/components/ui/DeleteConfirmationModal.test.ts
+node --import tsx --test src/utils/presetResources.test.ts src/utils/baiduApi.test.ts src/utils/pagination.test.ts src/components/ui/ManagementGrid.test.ts src/components/ui/DeleteConfirmationModal.test.ts src/utils/importRecordAreas.test.ts
 npm run test:imports
 # 可选：加入真实导入样本目录
 TAVERN_FIXTURES=/path/to/samples npm run test:imports
