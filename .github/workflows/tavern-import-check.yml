@@ -2,9 +2,9 @@ name: Tavern import checks
 on:
   push:
     branches: [main]
-    paths: ['src/**', 'scripts/test-tavern-import.mjs', 'package.json', 'package-lock.json', '.github/workflows/tavern-import-check.yml']
+    paths: ['src/**', 'scripts/test-tavern-import.mjs', 'scripts/test-card-surfaces.mjs', 'package.json', 'package-lock.json', '.github/workflows/tavern-import-check.yml']
   pull_request:
-    paths: ['src/**', 'scripts/test-tavern-import.mjs', 'package.json', 'package-lock.json', '.github/workflows/tavern-import-check.yml']
+    paths: ['src/**', 'scripts/test-tavern-import.mjs', 'scripts/test-card-surfaces.mjs', 'package.json', 'package-lock.json', '.github/workflows/tavern-import-check.yml']
 permissions:
   contents: read
 jobs:
@@ -19,5 +19,6 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: node --import tsx --test src/utils/presetResources.test.ts src/utils/baiduApi.test.ts src/utils/pagination.test.ts src/components/ui/ManagementGrid.test.ts src/components/ui/DeleteConfirmationModal.test.ts src/utils/importRecordAreas.test.ts
+      - run: npm run test:card-surfaces
       - run: npm run test:imports
       - run: npm run build

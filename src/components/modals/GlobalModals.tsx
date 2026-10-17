@@ -65,6 +65,7 @@ export interface GlobalModalsProps {
   renameGroupInput?: any;
   renameThemeGroupInput?: any;
   selectedCardIds?: any;
+  setSelectedCardIds: React.Dispatch<React.SetStateAction<string[]>>;
   selectedThemeIds?: any;
   setApiCategoryFilter?: any;
   setBatchImportProgress?: any;
@@ -185,6 +186,7 @@ export const GlobalModals = (props: GlobalModalsProps) => {
     renameGroupInput,
     renameThemeGroupInput,
     selectedCardIds,
+    setSelectedCardIds,
     selectedThemeIds,
     setApiCategoryFilter,
     setBatchImportProgress,

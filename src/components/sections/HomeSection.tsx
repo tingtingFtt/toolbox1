@@ -1,3 +1,4 @@
+import { CardCover } from '../ui/CardCover';
 import React from 'react';
 import {
   Sparkles,
@@ -547,11 +548,7 @@ export const HomeSection: React.FC<HomeSectionProps> = ({
                       >
                          <div className="flex items-center gap-3 min-w-0">
                            <div className="w-10 h-10 rounded-lg overflow-hidden bg-zinc-100 flex-shrink-0">
-                             {card.coverImage ? (
-                               <img src={card.coverImage} className="w-full h-full object-cover" />
-                             ) : (
-                               <ImageIcon className="w-5 h-5 m-2.5 text-zinc-400" />
-                             )}
+                             <CardCover card={card} className="w-full h-full object-cover"  alt={getCardDisplayName(card)} fallback={<ImageIcon className="w-5 h-5 m-2.5 text-zinc-400" />} />
                            </div>
                            <div className="truncate">
                              <h4 className="font-bold text-xs text-zinc-900 dark:text-zinc-100 truncate group-hover:text-[var(--accent)] dark:group-hover:text-[var(--accent)] transition-colors">{name}</h4>
@@ -575,16 +572,11 @@ export const HomeSection: React.FC<HomeSectionProps> = ({
                         className="p-0 rounded-none overflow-hidden hover:border-[var(--line-focus)] dark:hover:border-[var(--line-focus)] shadow-sm hover:shadow-md cursor-pointer group flex flex-col"
                       >
                         <div className="aspect-[4/5] w-full bg-zinc-100 dark:bg-zinc-800 relative overflow-hidden flex items-center justify-center">
-                          {card.coverImage ? (
-                            <img
-                              src={card.coverImage}
+                          <CardCover card={card}
                               alt={name}
                               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                               loading="lazy"
-                            />
-                          ) : (
-                            <ImageIcon className="w-8 h-8 text-zinc-400" />
-                          )}
+                             fallback={<ImageIcon className="w-8 h-8 text-zinc-400" />} />
                         </div>
                         {/* 仅在 3 列大图模式下展示信息，在 4 列或 5 列（图片较小）时不展示文字信息，突出纯粹卡面 */}
                         {cardViewMode === 'grid-3' && (
@@ -831,11 +823,7 @@ export const HomeSection: React.FC<HomeSectionProps> = ({
                       >
                          <div className="flex items-center gap-3 min-w-0">
                            <div className="w-10 h-10 rounded-lg overflow-hidden bg-zinc-100 flex-shrink-0">
-                             {card.coverImage ? (
-                               <img src={card.coverImage} className="w-full h-full object-cover" />
-                             ) : (
-                               <ImageIcon className="w-5 h-5 m-2.5 text-zinc-400" />
-                             )}
+                             <CardCover card={card} className="w-full h-full object-cover"  alt={getCardDisplayName(card)} fallback={<ImageIcon className="w-5 h-5 m-2.5 text-zinc-400" />} />
                            </div>
                            <div className="truncate">
                              <h4 className="font-bold text-xs text-zinc-900 dark:text-zinc-100 truncate group-hover:text-[var(--accent)] dark:group-hover:text-[var(--accent)] transition-colors">{name}</h4>
@@ -861,16 +849,11 @@ export const HomeSection: React.FC<HomeSectionProps> = ({
                         className="p-0 rounded-none overflow-hidden hover:border-[var(--line-focus)] dark:hover:border-[var(--line-focus)] shadow-sm hover:shadow-md cursor-pointer group flex flex-col"
                       >
                         <div className="aspect-[4/5] w-full bg-zinc-100 dark:bg-zinc-800 relative overflow-hidden flex items-center justify-center">
-                          {card.coverImage ? (
-                            <img
-                              src={card.coverImage}
+                          <CardCover card={card}
                               alt={name}
                               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                               loading="lazy"
-                            />
-                          ) : (
-                            <ImageIcon className="w-8 h-8 text-zinc-400" />
-                          )}
+                             fallback={<ImageIcon className="w-8 h-8 text-zinc-400" />} />
                         </div>
                         {/* 仅在 3 列大图模式下展示信息，在 4 列或 5 列（图片较小）时不展示文字信息，突出纯粹卡面 */}
                         {cardViewMode === 'grid-3' && (

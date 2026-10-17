@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useCardCover } from '../../hooks/useCardPayload';
 import { DetailPanel, DetailBody, DetailFooter, DetailHeader, DetailTabs } from '../ui/DetailChrome';
 import { ActionButton } from '../ui/ActionButton';
@@ -7,19 +6,19 @@ import { BaseButton } from '../ui/BaseButton';
 import { BaseInput } from '../ui/BaseInput';
 import { BaseCard } from '../ui/BaseCard';
 import { CustomSelect } from '../ui/CustomSelect';
-import { AppData, CardEntry } from '../../types';
-import { getCardDisplayName, getCardCreator, getCardDescription, getCardPersonality, getCardGreeting, getCardAlternateGreetings, getCardWorldBook, getCardRegex, getCardTags, getPureVersionLabel, estimateTokens, normalizeAssociationName } from '../../utils';
+import { AppData, CardEntry, CardAssociation } from '../../types';
+import { getCardDisplayName, getCardCreator, getCardDescription, getCardPersonality, getCardGreeting, getCardAlternateGreetings, getCardWorldBook, getCardRegex, getCardTags, getPureVersionLabel, estimateTokens, normalizeAssociationName, fileToDataURL } from '../../utils';
 import { TagEditor } from '../ui/TagEditor';
 import { Search, Plus, Trash2, FolderPlus, Edit3, Download, Upload, Home, Maximize2, ChevronDown, ChevronUp, Check, ImageIcon, Tag, Folder, CheckSquare, Square, MoreHorizontal, RefreshCw, FileText, CheckCircle2, Circle, ArrowRightLeft, Move, Copy, Sliders, ZoomIn, FileCode, Save, Dices, QrCode, ArrowUpDown, Sparkles, Link2, HardDrive, Layers, ExternalLink, Palette, AlertCircle, AlertTriangle, Info, Settings, History, RotateCcw, ArrowLeft, Book, BookOpen, Eye, X, Code2, Cpu } from 'lucide-react';
 import { BatchAIRefineModal } from './BatchAIRefineModal';
 
 export interface CardDetailModalProps {
-  setDeleteAssociatedAssetsWithVersion?: any;
-  handleChangeBoundAssetVersion?: any;
-  coverUploadInputRef?: any;
-  updateCardInputRef?: any;
-  setShowAddAltGreetingModal?: any;
-  setNewAltGreetingInputText?: any;
+  setDeleteAssociatedAssetsWithVersion: React.Dispatch<React.SetStateAction<boolean>>;
+  handleChangeBoundAssetVersion: (assetId: string, assetName: string, currentVersion: string, versionId: string, versionLabel: string) => Promise<void>;
+  coverUploadInputRef: React.RefObject<HTMLInputElement>;
+  updateCardInputRef: React.RefObject<HTMLInputElement>;
+  setShowAddAltGreetingModal: React.Dispatch<React.SetStateAction<boolean>>;
+  setNewAltGreetingInputText: React.Dispatch<React.SetStateAction<string>>;
   cardWorldBookSearchQuery?: any;
   setCardWorldBookSearchQuery?: any;
   setCardRegexSearchQuery?: any;
@@ -28,20 +27,20 @@ export interface CardDetailModalProps {
   setEditingCardRegex?: any;
   setCurrentPage?: any;
   cardRegexSearchQuery?: any;
-  authorNoteInputRef?: any;
-  setAuthorNoteBatchMode?: any;
-  setSelectedAuthorNoteIndices?: any;
+  authorNoteInputRef: React.RefObject<HTMLInputElement>;
+  setAuthorNoteBatchMode: React.Dispatch<React.SetStateAction<boolean>>;
+  setSelectedAuthorNoteIndices: React.Dispatch<React.SetStateAction<number[]>>;
   authorNoteBatchMode?: any;
   selectedAuthorNoteIndices?: any;
   processImageFile?: any;
-  memoryInputRef?: any;
-  setMemoryBatchMode?: any;
-  setSelectedMemoryIndices?: any;
+  memoryInputRef: React.RefObject<HTMLInputElement>;
+  setMemoryBatchMode: React.Dispatch<React.SetStateAction<boolean>>;
+  setSelectedMemoryIndices: React.Dispatch<React.SetStateAction<number[]>>;
   memoryBatchMode?: any;
   selectedMemoryIndices?: any;
 
   appData: AppData;
-  updateAppData: any;
+  updateAppData: (data: AppData | ((previous: AppData) => AppData)) => void;
   showToast: any;
   detailCardId: string | null;
   displayDetailCard: any;
@@ -52,6 +51,8 @@ export interface CardDetailModalProps {
   detailTab: string;
   setDetailTab: any;
   handleConfirmDeleteVersion: () => void;
+  exportAsJson: (card: CardEntry) => void;
+  exportAsPng: (card: CardEntry) => void;
   customGreetingUsername: string;
   setCustomGreetingUsername: any;
   applyCustomGreetingUsername: any;
@@ -91,7 +92,7 @@ export interface CardDetailModalProps {
   setAssociationNote: any;
   associationTargetId: any;
   associationNote: any;
-  getAssociationCandidates: any;
+  getAssociationCandidates: (card: CardEntry | undefined) => CardEntry[];
 }
 
 export const CardDetailModal: React.FC<CardDetailModalProps> = ({
@@ -133,6 +134,8 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
   detailTab,
   setDetailTab,
   handleConfirmDeleteVersion,
+  exportAsJson,
+  exportAsPng,
   customGreetingUsername,
   setCustomGreetingUsername,
   applyCustomGreetingUsername,
@@ -229,7 +232,7 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
   />
 
             {/* Modal Body: Scrollable Vertical Area within Fixed Height */}
-            <DetailBody key={detailTab} className="flex-1 overflow-y-auto p-6 space-y-6">
+            <DetailBody key={`${displayDetailCard.id}:${detailTab}`} className="flex-1 overflow-y-auto p-6 space-y-6">
 
               {/* TAB: 版本历史 (Versions) */}
               {detailTab === 'versions' && (
@@ -309,6 +312,13 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
                             author: detailCard.author,
                             rawData: detailCard.rawData,
                             coverImage: detailCard.coverImage,
+                            coverFileKey: detailCard.coverFileKey,
+                            thumbnailKey: detailCard.thumbnailKey,
+                            qrData: detailCard.qrData,
+                            screenshots: detailCard.screenshots,
+                            extraCovers: detailCard.extraCovers,
+                            boundAssetVersions: detailCard.boundAssetVersions,
+                            payloadStub: false,
                             editHistory: detailCard.editHistory,
                             customTags: detailCard.customTags,
                             boundWorldBooks: detailCard.boundWorldBooks ? [...detailCard.boundWorldBooks] : [],
@@ -422,6 +432,13 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
                                           author: detailCard.author,
                                           rawData: detailCard.rawData,
                                           coverImage: detailCard.coverImage,
+                            coverFileKey: detailCard.coverFileKey,
+                            thumbnailKey: detailCard.thumbnailKey,
+                            qrData: detailCard.qrData,
+                            screenshots: detailCard.screenshots,
+                            extraCovers: detailCard.extraCovers,
+                            boundAssetVersions: detailCard.boundAssetVersions,
+                            payloadStub: false,
                                           editHistory: detailCard.editHistory,
                                           customTags: detailCard.customTags,
                                           boundWorldBooks: detailCard.boundWorldBooks ? [...detailCard.boundWorldBooks] : [],
@@ -941,7 +958,7 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
 
                     {/* Established associations list */}
                     <div className="space-y-2">
-                      {(displayDetailCard.associations || []).map((assoc) => {
+                      {(displayDetailCard.associations || []).map((assoc: CardAssociation) => {
                         const targetCard = appData.cards.find((c) => c.id === assoc.cardId);
                         if (!targetCard) return null;
                         return (
@@ -1038,7 +1055,7 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
                         if (file) {
                           const original = await fileToDataURL(file);
                           const updatedCards = appData.cards.map((c) =>
-                            c.id === displayDetailCard.id ? { ...c, coverImage: original } : c
+                            c.id === displayDetailCard.id ? { ...c, ...displayDetailCard, coverImage: original, coverFileKey: undefined, payloadStub: false, thumbnailKey: undefined } : c
                           );
                           updateAppData({ ...appData, cards: updatedCards });
                           showToast('封面更新成功', 'success');
@@ -2157,7 +2174,7 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
                     
                     <div className="space-y-2">
                       {/* Worldbooks */}
-                      {(displayDetailCard.boundWorldBooks || []).map(wbId => {
+                      {(displayDetailCard.boundWorldBooks || []).map((wbId: string) => {
                         const wb = appData.stWorldBooks?.find(w => w.id === wbId);
                         if (!wb) return null;
                         return (
@@ -2187,7 +2204,7 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
                         );
                       })}
                       {/* Scripts */}
-                      {(displayDetailCard.boundScripts || []).map(sId => {
+                      {(displayDetailCard.boundScripts || []).map((sId: string) => {
                         const s = appData.scripts?.find(scr => scr.id === sId);
                         if (!s) return null;
                         return (
@@ -2217,7 +2234,7 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
                         );
                       })}
                       {/* Regexes */}
-                      {(displayDetailCard.boundRegexes || []).map(rId => {
+                      {(displayDetailCard.boundRegexes || []).map((rId: string) => {
                         const r = appData.stRegexScripts?.find(rx => rx.id === rId);
                         if (!r) return null;
                         return (
@@ -2311,7 +2328,7 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
 
                     {(displayDetailCard.associations || []).length > 0 ? (
                       <div className="space-y-2">
-                        {(displayDetailCard.associations || []).map((association) => {
+                        {(displayDetailCard.associations || []).map((association: CardAssociation) => {
                           const relatedCard = appData.cards.find((c) => c.id === association.cardId);
                           if (!relatedCard) return null;
                           return (
@@ -2426,7 +2443,7 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
             {/* Modal Bottom Sticky Footer Bar: 顶栏和底栏颜色一致，按键缩小 */}
             <DetailFooter data-design-id="card-detail-footer">
               <ActionButton type="button" onClick={() => {
-                  requestDelete(`确定要删除角色卡 “${getCardDisplayName(displayDetailCard)}” 吗？其专属绑定的世界书、脚本、正则等资源也将同步删除。`, 1, () => {
+                  requestDelete(`【绑定资源】确定要删除角色卡 “${getCardDisplayName(displayDetailCard)}” 吗？其专属绑定的世界书、脚本、正则等资源也将同步删除。`, 1, () => {
                     const { updatedAppData, deletedCounts } = deleteCardsAndCascadeAssets([displayDetailCard.id], appData);
                     updateAppData(updatedAppData);
                     setDetailCardId(null);
@@ -2448,7 +2465,7 @@ export const CardDetailModal: React.FC<CardDetailModalProps> = ({
 
                 <ActionButton type="button" onClick={() => {
                     const authorInputEl = document.getElementById('authorInputVal') as HTMLInputElement;
-                    const newAuthor = authorInputEl?.value.trim() || '';
+                    const newAuthor = authorInputEl ? authorInputEl.value.trim() : (displayDetailCard.author || '');
                     const updatedCards = appData.cards.map((c) =>
                       c.id === displayDetailCard.id
                         ? {

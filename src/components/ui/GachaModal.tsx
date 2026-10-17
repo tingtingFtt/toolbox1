@@ -1,3 +1,5 @@
+import { useCardPayload } from '../../hooks/useCardPayload';
+import { CardCover } from './CardCover';
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { BaseButton } from './BaseButton';
 import { BaseInput } from './BaseInput';
@@ -55,6 +57,8 @@ export const GachaModal: React.FC<GachaModalProps> = ({
   const [activeTab, setActiveTab] = useState<'stage' | 'history'>('stage');
   const [poolType, setPoolType] = useState<'st' | 'normal'>('st');
   const [copiedGreeting, setCopiedGreeting] = useState(false);
+  const { card: drawnPayload, error: drawnError } = useCardPayload(isOpen ? currentDrawnCard || undefined : undefined);
+  useEffect(() => { if (isOpen && drawnError) showToast(`抽卡详情读取失败：${drawnError}`, 'error'); }, [isOpen, drawnError]);
 
   // Available groups for pool selection
   const activePoolCards = useMemo<CardEntry[]>(() => {
@@ -370,17 +374,12 @@ export const GachaModal: React.FC<GachaModalProps> = ({
                         className="group p-2 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:border-[var(--line-focus,rgba(217,119,6,0.5))] bg-white dark:bg-zinc-900/60 hover:shadow-md transition-all cursor-pointer flex flex-col"
                       >
                         <div className="aspect-[2/3] w-full rounded-lg overflow-hidden bg-zinc-100 dark:bg-zinc-800 relative mb-1.5">
-                          {card.coverImage ? (
-                            <img
-                              src={card.coverImage}
+                          <CardCover card={card}
                               alt={name}
                               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-[10px] text-zinc-400">
+                             fallback={<div className="w-full h-full flex items-center justify-center text-[10px] text-zinc-400">
                               无封面
-                            </div>
-                          )}
+                            </div>} />
                           <div className="absolute top-1 left-1 px-1.5 py-0.5 rounded bg-black/60  text-[8px] font-bold text-[var(--accent,#D97706)]">
                             #{idx + 1}
                           </div>
@@ -440,17 +439,12 @@ export const GachaModal: React.FC<GachaModalProps> = ({
                           }`}
                         >
                           <div className="aspect-[2/3] w-full rounded-lg overflow-hidden bg-zinc-100 dark:bg-zinc-800 relative mb-1">
-                            {card.coverImage ? (
-                              <img
-                                src={card.coverImage}
+                            <CardCover card={card}
                                 alt={name}
                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-[9px] text-zinc-400">
+                               fallback={<div className="w-full h-full flex items-center justify-center text-[9px] text-zinc-400">
                                 无封面
-                              </div>
-                            )}
+                              </div>} />
                             <div className="absolute top-1 left-1 px-1 py-0.2 rounded bg-black/60 text-white text-[8px] font-bold">
                               {idx + 1}
                             </div>
@@ -466,11 +460,7 @@ export const GachaModal: React.FC<GachaModalProps> = ({
                   {currentDrawnCard && (
                     <div className="p-3 rounded-xl bg-[var(--card-inner-bg,rgba(217,119,6,0.05))] border border-[var(--line-soft,rgba(217,119,6,0.1))] flex flex-col sm:flex-row items-start gap-3">
                       <div className="w-16 h-22 sm:w-20 sm:h-28 rounded-lg overflow-hidden bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 flex-shrink-0 mx-auto sm:mx-0">
-                        {currentDrawnCard.coverImage ? (
-                          <img src={currentDrawnCard.coverImage} alt="Cover" className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-[9px] text-zinc-400">无封面</div>
-                        )}
+                        <CardCover card={currentDrawnCard} alt="Cover" className="w-full h-full object-cover"  fallback={<div className="w-full h-full flex items-center justify-center text-[9px] text-zinc-400">无封面</div>} />
                       </div>
                       <div className="flex-1 min-w-0 space-y-1.5 w-full">
                         <div className="flex items-center justify-between gap-2">
@@ -490,7 +480,7 @@ export const GachaModal: React.FC<GachaModalProps> = ({
                           </BaseButton>
                         </div>
                         <p className="text-[10px] text-zinc-600 dark:text-zinc-400 line-clamp-2 leading-relaxed">
-                          {getCardGreeting(currentDrawnCard) || getCardDescription(currentDrawnCard) || '暂无详细介绍'}
+                          {getCardGreeting(drawnPayload || currentDrawnCard) || getCardDescription(drawnPayload || currentDrawnCard) || '暂无详细介绍'}
                         </p>
                       </div>
                     </div>
@@ -503,18 +493,13 @@ export const GachaModal: React.FC<GachaModalProps> = ({
                   <div className="flex-shrink-0 flex flex-col items-center w-40 sm:w-52 md:w-56">
                     <div className="relative group w-full">
                       <div className="aspect-[2/3] w-full rounded-2xl overflow-hidden bg-zinc-100 dark:bg-zinc-800/80 border-2 border-[var(--line-focus,rgba(217,119,6,0.5))] shadow-xl shadow-[var(--faint,rgba(217,119,6,0.1))] relative">
-                        {currentDrawnCard.coverImage ? (
-                          <img
-                            src={currentDrawnCard.coverImage}
+                        <CardCover card={currentDrawnCard} thumbnail={false}
                             alt={getCardDisplayName(currentDrawnCard)}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex flex-col items-center justify-center text-zinc-400 gap-2">
+                           fallback={<div className="w-full h-full flex flex-col items-center justify-center text-zinc-400 gap-2">
                             <Dices className="w-8 h-8 text-[var(--accent,#D97706)]/50" />
                             <span className="text-[10px]">角色卡暂无封面</span>
-                          </div>
-                        )}
+                          </div>} />
 
                         {/* Top Group / Status Badge */}
                         <div className="absolute top-2 left-2 flex items-center gap-1">
@@ -575,7 +560,7 @@ export const GachaModal: React.FC<GachaModalProps> = ({
                     )}
 
                     {/* First Message Snippet */}
-                    {getCardGreeting(currentDrawnCard) && (
+                    {getCardGreeting(drawnPayload || currentDrawnCard) && (
                       <div className="p-2.5 sm:p-3 rounded-xl bg-[var(--card-inner-bg,rgba(217,119,6,0.05))] border border-[var(--line-soft,rgba(217,119,6,0.1))] space-y-1.5">
                         <div className="flex items-center justify-between text-[9px] sm:text-[10px] font-bold text-[var(--badge-text,var(--accent,#D97706))]">
                           <span className="flex items-center gap-1">
@@ -584,7 +569,7 @@ export const GachaModal: React.FC<GachaModalProps> = ({
                           </span>
                           <button
                             type="button"
-                            onClick={() => handleCopyGreeting(getCardGreeting(currentDrawnCard))}
+                            onClick={() => handleCopyGreeting(getCardGreeting(drawnPayload || currentDrawnCard))}
                             className="h-5 px-1.5 py-0 text-[9px] font-medium text-zinc-500 dark:text-zinc-400 hover:text-[var(--accent,#D97706)] hover:bg-black/5 dark:hover:bg-white/5 rounded transition-colors flex items-center gap-1 cursor-pointer leading-none"
                             title="复制开场白文本"
                           >
@@ -593,20 +578,20 @@ export const GachaModal: React.FC<GachaModalProps> = ({
                           </button>
                         </div>
                         <p className="text-[10px] sm:text-[11px] text-zinc-700 dark:text-zinc-300 line-clamp-3 sm:line-clamp-4 leading-relaxed font-sans whitespace-pre-wrap">
-                          {getCardGreeting(currentDrawnCard)}
+                          {getCardGreeting(drawnPayload || currentDrawnCard)}
                         </p>
                       </div>
                     )}
 
                     {/* Description Snippet */}
-                    {getCardDescription(currentDrawnCard) && (
+                    {getCardDescription(drawnPayload || currentDrawnCard) && (
                       <div className="p-2.5 rounded-xl bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 space-y-1">
                         <div className="text-[9px] font-bold text-zinc-600 dark:text-zinc-400 flex items-center gap-1">
                           <BookOpen className="w-2.5 h-2.5" />
                           设定概要
                         </div>
                         <p className="text-[9px] sm:text-[10px] text-zinc-600 dark:text-zinc-400 line-clamp-2 sm:line-clamp-3 leading-relaxed">
-                          {getCardDescription(currentDrawnCard)}
+                          {getCardDescription(drawnPayload || currentDrawnCard)}
                         </p>
                       </div>
                     )}
@@ -674,3 +659,4 @@ export const GachaModal: React.FC<GachaModalProps> = ({
     </div>
   );
 };
+

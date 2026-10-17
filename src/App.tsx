@@ -2,6 +2,7 @@ import { flushSync } from 'react-dom';
 import { TavernImportContext } from './hooks/TavernImportContext';
 import { setTavernImportCheckpoint } from './utils/tavernImportPipeline';
 import { useCardPayload } from './hooks/useCardPayload';
+import { prepareCardDetailSection } from './utils/cardDetailSections';
 import { hydrateCard, hydrateCardAsset, hydrateCardBoundAssets } from './utils/largeCardStore';
 import { ImportCenter } from './components/st/ImportCenter';
 import { IMPORT_KIND_PAGES } from './utils/importRecordAreas';
@@ -80,6 +81,7 @@ import { FullscreenDataModal } from './components/ui/FullscreenDataModal';
 import { BatchImportProgressModal } from './components/modals/BatchImportProgressModal';
 import { StagingVaultModal } from './components/modals/StagingVaultModal';
 import { CardDetailModal } from './components/modals/CardDetailModal';
+import { CardActionModals } from './components/modals/CardActionModals';
 import { GlobalModals } from './components/modals/GlobalModals';
 import { BatchImportProgressState, StagedDuplicateCard, ItemVersion } from './types';
 import { createSafeJsonBlob, mergeImportFiles, triggerFileDownload } from './utils';
@@ -1021,16 +1023,17 @@ export default function App() {
     };
   };
 
-  const saveCardQrDocument = (doc: any) => {
-    if (!activeDetailCard) return;
-    const normalized = normalizeQrDocument(doc);
-    const updatedCards = appData.cards.map((c) =>
-      c.id === activeDetailCard.id
-        ? { ...c, qrData: normalized, edited: true, updatedAt: Date.now() }
-        : c
-    );
-    updateAppData({ ...appData, cards: updatedCards });
+  const saveCardSection = async (section: 'worldbook' | 'regex' | 'qr', payload: any) => {
+    if (!detailCardId) return false;
+    try {
+      const prepared = await prepareCardDetailSection(appDataRef.current, detailCardId, section, payload);
+      // Validate before scheduling the React update, preserving concurrent edits.
+      const next = prepared.apply(appDataRef.current);
+      flushSync(() => updateAppData(next));
+      return true;
+    } catch (error: any) { showToast(error.message || '保存失败，原数据保留', 'error'); return false; }
   };
+  const saveCardQrDocument = (doc: any) => saveCardSection('qr', normalizeQrDocument(doc));
 
   const addManualQr = () => {
     const current = activeDetailCard?.qrData ? normalizeQrDocument(activeDetailCard.qrData) : { version: 2, name: '', qrList: [], idIndex: 0 };
@@ -1058,12 +1061,12 @@ export default function App() {
     setEditingQrItem({ index: next.qrList.length - 1, item });
   };
 
-  const saveEditedQrItem = () => {
+  const saveEditedQrItem = async (itemOverride?: any) => {
     if (!activeDetailCard || !editingQrItem) return;
     const current = normalizeQrDocument(activeDetailCard.qrData || { version: 2, name: '', qrList: [], idIndex: 0 });
     const qrList = [...current.qrList];
-    qrList[editingQrItem.index] = editingQrItem.item;
-    saveCardQrDocument({ ...current, qrList });
+    qrList[editingQrItem.index] = itemOverride ?? editingQrItem.item;
+    if (!await saveCardQrDocument({ ...current, qrList })) return;
     setEditingQrItem(null);
     showToast('QR 已保存', 'success');
   };
@@ -1079,25 +1082,8 @@ export default function App() {
     showToast(`已删除 QR：${label}`, 'success');
   };
 
-  const saveCardRegexList = (list: any[]) => {
-    if (!activeDetailCard) return;
-    const updatedCards = appData.cards.map((c) =>
-      c.id === activeDetailCard.id
-        ? { ...c, editHistory: { ...c.editHistory, regex_scripts: list }, edited: true, updatedAt: Date.now() }
-        : c
-    );
-    updateAppData({ ...appData, cards: updatedCards });
-  };
-
-  const saveCardWorldBook = (book: any) => {
-    if (!activeDetailCard) return;
-    const updatedCards = appData.cards.map((c) =>
-      c.id === activeDetailCard.id
-        ? { ...c, editHistory: { ...c.editHistory, character_book: book }, edited: true, updatedAt: Date.now() }
-        : c
-    );
-    updateAppData({ ...appData, cards: updatedCards });
-  };
+  const saveCardRegexList = (list: any[]) => saveCardSection('regex', list);
+  const saveCardWorldBook = (book: any) => saveCardSection('worldbook', book);
 
 
   const importQrJsonText = (text: string, mode: 'single' | 'all' = 'all') => {
@@ -1145,9 +1131,9 @@ export default function App() {
         const normalized = normalizeWorldBookEntriesFromJson(json);
         if (!normalized.entries.length) throw new Error('未找到世界书 entries');
         const current = JSON.parse(JSON.stringify(getCardWorldBook(activeDetailCard) || { entries: [] }));
-        const next = mode === 'all' ? normalized.book : { ...(current || normalized.book), entries: [...(current.entries || []), normalized.entries[0]] };
-        saveCardWorldBook(next);
-        showToast(`世界书 ${mode === 'all' ? '全部覆盖' : '单条追加'}成功，共 ${(next.entries || []).length} 条`, 'success');
+        const next = mode === 'all' ? normalized.book : { ...(current || normalized.book), entries: [...normalizeWorldBookEntriesFromJson(current).entries, normalized.entries[0]] };
+        if (!await saveCardWorldBook(next)) return false;
+        showToast(`世界书 ${mode === 'all' ? '全部覆盖' : '单条追加'}成功，共 ${Array.isArray(next.entries) ? next.entries.length : Object.keys(next.entries || {}).length} 条`, 'success');
       } else if (section === 'regex') {
         const normalized = normalizeRegexScriptsFromJson(json).map((rx: any) => {
           const name = (typeof rx?.scriptName === 'string' ? rx.scriptName : typeof rx?.script_name === 'string' ? rx.script_name : typeof rx?.name === 'string' ? rx.name : typeof rx?.title === 'string' ? rx.title : '导入正则').trim();
@@ -1158,17 +1144,19 @@ export default function App() {
         if (!normalized.length) throw new Error('未找到正则条目');
         const current = JSON.parse(JSON.stringify(getCardRegex(activeDetailCard) || []));
         const next = mode === 'all' ? normalized : [...current, normalized[0]];
-        saveCardRegexList(next);
+        if (!await saveCardRegexList(next)) return false;
         showToast(`正则 ${mode === 'all' ? '全部覆盖' : '单条追加'}成功，共 ${next.length} 条`, 'success');
       } else {
         const parsed = normalizeQrDocument(json);
         const current = activeDetailCard?.qrData && typeof activeDetailCard.qrData === 'object' ? normalizeQrDocument(activeDetailCard.qrData) : null;
         const next = mode === 'all' ? parsed : { ...(current || parsed), name: current?.name || parsed.name, qrList: [...(current?.qrList || []), parsed.qrList[0]].filter(Boolean), idIndex: Math.max(Number(current?.idIndex || 0), Number(parsed.qrList[0]?.id || 0)) };
-        saveCardQrDocument(next);
+        if (!await saveCardQrDocument(next)) return false;
         showToast(`QR ${mode === 'all' ? '全部覆盖' : '单条追加'}成功，共 ${next.qrList.length} 条`, 'success');
       }
+      return true;
     } catch (err: any) {
       showToast(`导入失败：${err?.message || 'JSON 格式错误'}`, 'error');
+      return false;
     }
   };
 
@@ -4651,6 +4639,14 @@ export default function App() {
   };
 
   const cardDetailProps = {
+    exportAsJson,
+    exportAsPng,
+    coverUploadInputRef,
+    updateCardInputRef,
+    setShowAddAltGreetingModal,
+    setNewAltGreetingInputText,
+    setDeleteAssociatedAssetsWithVersion,
+    handleChangeBoundAssetVersion,
     appData,
     updateAppData,
     showToast,
@@ -4723,6 +4719,7 @@ export default function App() {
     setCardWorldBookSearchQuery
   };
   const appModalProps = {
+    setSelectedCardIds,
     appData,
     batchImportProgress,
     batchTargetGroup,
@@ -5505,6 +5502,32 @@ export default function App() {
       
       { /* Card Detail Modal is rendered unconditionally, internally it checks for displayDetailCard */ }
       <CardDetailModal {...cardDetailProps} />
+      {activeDetailCard && <>
+        <AssetBindingModal isOpen={assetBindingModalOpen} onClose={() => setAssetBindingModalOpen(false)} card={activeDetailCard} appData={appData} initialType={assetBindingModalType} replacesAssetId={assetBindingReplacesId} onConfirmBind={handleConfirmBindAsset} />
+        <CardActionModals
+          section={cardSectionImportModal} onCloseSection={() => setCardSectionImportModal(null)}
+          importMode={cardSectionImportMode} onImportMode={setCardSectionImportMode} onImportFile={handleCardSectionFileImport}
+          regex={editingCardRegex} onRegexChange={setEditingCardRegex} onCloseRegex={() => setEditingCardRegex(null)}
+          onSaveRegex={async () => {
+            if (!editingCardRegex) return;
+            if (!editingCardRegex.findRegex.trim()) { showToast('查找正则不能为空', 'error'); return; }
+            const list = structuredClone(getCardRegex(activeDetailCard));
+            const { index, ...fields } = editingCardRegex;
+            if (!list[index]) { showToast('正则条目已变化，请重新打开编辑', 'error'); return; }
+            list[index] = { ...list[index], ...fields };
+            if (await saveCardRegexList(list)) { setEditingCardRegex(null); showToast('正则已保存', 'success'); }
+          }}
+          qr={editingQrItem} onSaveQr={saveEditedQrItem} onCloseQr={() => setEditingQrItem(null)} showToast={showToast}
+        />
+      </>}
+      <DeleteConfirmationModal
+        isOpen={!!versionToDelete}
+        onClose={() => setVersionToDelete(null)}
+        onConfirm={handleConfirmDeleteVersion}
+        title="删除角色卡历史版本"
+        message={`【绑定资源】删除「${versionToDelete?.cardName || ''}」的历史版本「${versionToDelete?.versionLabel || ''}」？将同时清理仅属于该版本的关联资源，仍被其他版本或角色卡使用的资源保留。`}
+        requireAcknowledgement
+      />
 
       <ImportCenter open={showImportCenter} onClose={() => setShowImportCenter(false)} onOpenDuplicateStaging={() => { setShowImportCenter(false); setShowStagingVaultModal(true); }} onReviewUnclassified={(recordId, kind) => { setShowImportCenter(false); setCurrentPage(IMPORT_KIND_PAGES[kind]); setImportReviewRecordId(recordId); }} onImportBackup={() => importBackupInputRef.current?.click()} appData={appData} updateAppData={updateAppData} showToast={showToast} />
       {(detailLoading || detailLoadError) && <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/40"><div className="bg-[var(--modal-solid-bg)] p-6 max-w-md w-[calc(100%-2rem)]"><p>{detailLoading ? '正在读取完整卡片数据…' : detailLoadError}</p><button className="mt-4 underline" onClick={() => setDetailCardId(null)}>关闭</button></div></div>}

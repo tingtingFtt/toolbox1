@@ -9,7 +9,8 @@
     "start": "node dist/server.cjs",
     "lint": "tsc --noEmit",
     "preview": "vite preview",
-    "test:imports": "node scripts/test-tavern-import.mjs"
+    "test:imports": "node scripts/test-tavern-import.mjs",
+    "test:card-surfaces": "node scripts/test-card-surfaces.mjs"
   },
   "dependencies": {
     "@types/cors": "^2.8.19",
